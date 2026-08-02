@@ -118,8 +118,12 @@ export function createEngine(canvas, opts = {}) {
   let composer = new EffectComposer(renderer);
   let renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
-  /** @type {EffectPass|null} */
-  let effectPass = null;
+  /** @type {any[]} zero or more active EffectPasses. Normally exactly one
+   * merged pass (cheaper); falls back to one pass per effect if the
+   * postprocessing library rejects merging a specific combination — e.g.
+   * Pixelate transforms UVs, Blur/DoF is a convolution effect, and the
+   * library refuses to merge the two into a single pass. */
+  let effectPasses = [];
 
   let mode = '3d';
   let demoMesh = null;
@@ -147,20 +151,29 @@ export function createEngine(canvas, opts = {}) {
     return cam;
   }
 
-  /** Rebuild the EffectPass from a list of channel ids. Cheap to call often. */
+  /** Rebuild the EffectPass(es) from a list of channel ids. Cheap to call often. */
   function rebuildChannels(channelIds) {
-    if (effectPass) {
-      composer.removePass(effectPass);
-      effectPass.dispose();
-      effectPass = null;
-    }
+    for (const p of effectPasses) { composer.removePass(p); p.dispose(); }
+    effectPasses = [];
     const effects = CHANNEL_IDS
       .filter((id) => channelIds.includes(id))
       .map((id) => buildEffect(id, camera))
       .filter(Boolean);
-    if (effects.length) {
-      effectPass = new EffectPass(camera, ...effects);
-      composer.addPass(effectPass);
+    if (!effects.length) return;
+    try {
+      const merged = new EffectPass(camera, ...effects);
+      composer.addPass(merged);
+      effectPasses = [merged];
+    } catch (err) {
+      // Some effect combinations can't share one pass (e.g. Pixelate +
+      // Blur — see the file-level note above). Fall back to one pass per
+      // effect instead of losing the whole channel stack to a crash.
+      console.warn('[renderer] channels could not merge into one pass, falling back to one pass per effect:', err);
+      effectPasses = effects.map((effect) => {
+        const pass = new EffectPass(camera, effect);
+        composer.addPass(pass);
+        return pass;
+      });
     }
   }
 
@@ -176,7 +189,7 @@ export function createEngine(canvas, opts = {}) {
     composer.removeAllPasses();
     renderPass = new RenderPass(scene, camera);
     composer.addPass(renderPass);
-    effectPass = null; // caller re-applies channels via rebuildChannels after mode switch
+    effectPasses = []; // caller re-applies channels via rebuildChannels after mode switch
     if (withDemo) {
       clearDemoContent();
       if (mode === '2d') buildDemoSprite(); else buildDemoCube();
@@ -319,7 +332,7 @@ export function createEngine(canvas, opts = {}) {
   }
 
   function dispose() {
-    if (effectPass) effectPass.dispose();
+    for (const p of effectPasses) p.dispose();
     composer.dispose();
     renderer.dispose();
     scene.traverse((obj) => {
