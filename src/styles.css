@@ -331,3 +331,4 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   padding: 3px 8px; background: var(--bg-2); border: 1px solid var(--line);
   font-size: 11px; display: flex; align-items: center; gap: 4px;
 }
+.tracker-chain-chip.playing { outline: 2px solid var(--good); }

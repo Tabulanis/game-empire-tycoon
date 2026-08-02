@@ -250,6 +250,11 @@ export function playSong(song) {
   scheduler();
 
   return {
-    stop() { stopped = true; }
+    stop() { stopped = true; },
+    /** Live playback position, for a UI playhead — polled, not pushed. */
+    getPosition() {
+      const idx = chainIndex % song.chain.length;
+      return { patternId: song.chain[idx], chainIndex: idx, stepIndex };
+    }
   };
 }

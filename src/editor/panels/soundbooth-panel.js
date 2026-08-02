@@ -232,11 +232,18 @@ export function renderSoundboothPanel(host, ctx) {
   }
   patternSelect.addEventListener('change', () => { currentPatternId = patternSelect.value; renderAll(); });
 
+  /** gridCells[ch][step] -> the live cell element, cached so the playback
+   * poll loop can toggle a class on the right cell every frame without
+   * rebuilding (and re-binding click handlers on) the whole grid. */
+  let gridCells = [];
+
   function refreshGrid() {
     grid.innerHTML = '';
+    gridCells = [];
     const pattern = working.patterns[currentPatternId];
     if (!pattern) return;
     for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
+      gridCells[ch] = [];
       const label = document.createElement('div');
       label.className = 'tracker-channel-label';
       label.textContent = 'Ch ' + (ch + 1);
@@ -251,6 +258,7 @@ export function renderSoundboothPanel(host, ctx) {
           sb.setStep(working, currentPatternId, ch, step, note ? null : selectedNote);
           refreshGrid();
         });
+        gridCells[ch][step] = cell;
         grid.appendChild(cell);
       }
     }
@@ -349,15 +357,69 @@ export function renderSoundboothPanel(host, ctx) {
     refreshLibrary();
   }
 
+  /* ---------------------------------------------------------------- */
+  /* playback: the .playing outline style already existed in styles.css   */
+  /* but nothing ever toggled it — this is what actually drives it now.   */
+  /* ---------------------------------------------------------------- */
+  let playRafId = null;
+  let lastHighlightedStep = -1;
+
+  function clearStepHighlight() {
+    if (lastHighlightedStep < 0) return;
+    for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
+      const cell = gridCells[ch] && gridCells[ch][lastHighlightedStep];
+      if (cell) cell.classList.remove('playing');
+    }
+    lastHighlightedStep = -1;
+  }
+
+  function pollPlayback() {
+    if (!previewPlayer) return;
+    const pos = previewPlayer.getPosition();
+
+    chainRow.querySelectorAll('.tracker-chain-chip').forEach((chip, i) => {
+      chip.classList.toggle('playing', i === pos.chainIndex);
+    });
+
+    if (pos.patternId !== currentPatternId) {
+      clearStepHighlight();
+    } else if (pos.stepIndex !== lastHighlightedStep) {
+      clearStepHighlight();
+      for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
+        const cell = gridCells[ch] && gridCells[ch][pos.stepIndex];
+        if (cell) cell.classList.add('playing');
+      }
+      lastHighlightedStep = pos.stepIndex;
+    }
+    playRafId = requestAnimationFrame(pollPlayback);
+  }
+
   function doPreviewPlay() {
     doPreviewStop();
     previewPlayer = playSong(working);
+    playBtn.disabled = true;
+    stopBtn.disabled = false;
+    playRafId = requestAnimationFrame(pollPlayback);
   }
   function doPreviewStop() {
     if (previewPlayer) { previewPlayer.stop(); previewPlayer = null; }
+    if (playRafId) { cancelAnimationFrame(playRafId); playRafId = null; }
+    clearStepHighlight();
+    chainRow.querySelectorAll('.tracker-chain-chip.playing').forEach((chip) => chip.classList.remove('playing'));
+    playBtn.disabled = false;
+    stopBtn.disabled = true;
   }
 
+  stopBtn.disabled = true;
   renderAll();
+
+  /** Before this, leaving the Sound Booth tab mid-playback left the song
+   * running forever — nothing ever stopped it. Same cleanup pattern used
+   * by the Lab and Loft panels. */
+  const stopObs = new MutationObserver(() => {
+    if (!document.body.contains(panel)) { stopObs.disconnect(); doPreviewStop(); }
+  });
+  stopObs.observe(document.body, { childList: true, subtree: true });
 }
 
 function makeBtn(label, fn) {
