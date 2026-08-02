@@ -10,6 +10,28 @@
 let sharedContext = null;
 /** @type {{master: GainNode, music: GainNode, sfx: GainNode}|null} */
 let buses = null;
+let unlockBound = false;
+
+/**
+ * Browsers create AudioContext in a "suspended" state and refuse to produce
+ * sound until it's resumed from inside a real user gesture. Without this,
+ * playSfx/playSong can appear to work (no error, notes scheduled) while
+ * producing total silence. Bind once; every listener disposes itself after
+ * the first gesture, whichever fires first.
+ */
+function bindAutoplayUnlock() {
+  if (unlockBound) return;
+  unlockBound = true;
+  const unlock = () => {
+    if (sharedContext && sharedContext.state === 'suspended') sharedContext.resume();
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchstart', unlock);
+  };
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+  window.addEventListener('touchstart', unlock);
+}
 
 /** @returns {AudioContext} */
 function getContext() {
@@ -22,7 +44,9 @@ function getContext() {
     sfx.connect(master);
     master.connect(sharedContext.destination);
     buses = { master, music, sfx };
+    bindAutoplayUnlock();
   }
+  if (sharedContext.state === 'suspended') sharedContext.resume();
   return sharedContext;
 }
 
