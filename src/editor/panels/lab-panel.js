@@ -64,6 +64,23 @@ export function renderLabPanel(host, ctx) {
   canvas.className = 'deck-canvas';
   canvasWrap.appendChild(canvas);
   left.appendChild(canvasWrap);
+
+  /** Same crash-visibility fix as the Stage's Play loop: an uncaught throw
+   * in here used to just kill the rAF loop silently — canvas stays blank,
+   * no error anywhere the user would see. */
+  const crashBanner = document.createElement('div');
+  crashBanner.style.cssText =
+    'display:none;background:#3a0d0d;border:1px solid #ff5555;color:#ffd6d6;padding:8px 10px;' +
+    'font:12px/1.4 monospace;white-space:pre-wrap;border-radius:6px;margin-top:6px;max-height:30vh;overflow:auto;';
+  left.appendChild(crashBanner);
+  let previewCrashed = false;
+  function showPreviewCrash(err) {
+    previewCrashed = true;
+    console.error('[lab] particle preview crashed:', err);
+    crashBanner.textContent = 'PREVIEW CRASHED — ' + (err && err.message || String(err)) + '\n' +
+      (err && err.stack ? err.stack.split('\n').slice(0, 6).join('\n') : '');
+    crashBanner.style.display = 'block';
+  }
   left.appendChild(makeBtn('\u21BB Replay Burst', () => { if (activeSystem) activeSystem.burstNow(); }));
   layout.appendChild(left);
 
@@ -183,9 +200,15 @@ export function renderLabPanel(host, ctx) {
   function restartPreview() {
     if (activeSystem) { activeSystem.dispose(); activeSystem = null; }
     if (!engine) return;
-    activeSystem = createParticleSystem(engine, working);
-    activeSystem.setPosition(0, 0, 0);
-    if (working.burst) activeSystem.burstNow();
+    try {
+      activeSystem = createParticleSystem(engine, working);
+      activeSystem.setPosition(0, 0, 0);
+      if (working.burst) activeSystem.burstNow();
+      previewCrashed = false;
+      crashBanner.style.display = 'none';
+    } catch (err) {
+      showPreviewCrash(err);
+    }
   }
 
   function startPreview() {
@@ -203,8 +226,14 @@ export function renderLabPanel(host, ctx) {
     function loop(ts) {
       const dt = Math.min((ts - lastTs) / 1000, 0.1);
       lastTs = ts;
-      if (activeSystem) activeSystem.tick(dt);
-      if (engine) engine.tick();
+      if (!previewCrashed) {
+        try {
+          if (activeSystem) activeSystem.tick(dt);
+          if (engine) engine.tick();
+        } catch (err) {
+          showPreviewCrash(err);
+        }
+      }
       rafId = requestAnimationFrame(loop);
     }
     rafId = requestAnimationFrame((ts) => { lastTs = ts; loop(ts); });
