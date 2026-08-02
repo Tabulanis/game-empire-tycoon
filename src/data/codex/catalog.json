@@ -1,0 +1,460 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "game-start",
+      "voice": "Watts",
+      "oneLiner": "The whistle that starts the level.",
+      "explainer": "Watts checks the clock every level: 'Everybody set? This card fires exactly once \u2014 right when the level opens its eyes.' No timer, no touching required \u2014 it's the very first thing that can happen.",
+      "sandbox": "A single light bulb entity with only a Game Start card wired to Show/Hide \u2014 watch it switch on the instant the sandbox loads."
+    },
+    {
+      "id": "scene-start",
+      "voice": "Watts",
+      "oneLiner": "Same whistle, but for this scene specifically.",
+      "explainer": "'Game Start and Scene Start look like twins on level one,' Watts admits, 'but once you've got more than one scene, Scene Start fires every time you arrive at THIS one \u2014 Game Start only ever fires once, at the very beginning.'",
+      "sandbox": "Two scenes, a door between them \u2014 a counter ticks up every time Scene Start fires on scene 2, no matter how many times you walk back through."
+    },
+    {
+      "id": "touched",
+      "voice": "Watts",
+      "oneLiner": "Somebody bumped into you.",
+      "explainer": "'This is the big one,' says Watts. 'Touched fires the moment the player's box overlaps yours. Add a tag filter if you only care about being touched by something specific \u2014 leave it blank and anything counts.'",
+      "sandbox": "A single glowing square \u2014 touch it and it changes color, proving the card fired."
+    },
+    {
+      "id": "bumped",
+      "voice": "Watts",
+      "oneLiner": "Somebody bumped into you FROM A DIRECTION.",
+      "explainer": "'Touched doesn't care which way you came from. Bumped does,' Watts explains. 'Set it to \"from: above\" and you've built the classic stomp \u2014 jump on an enemy's head and it's a very different card than walking into its side.'",
+      "sandbox": "A patrol enemy with two Bumped cards \u2014 one for above (defeat), one for side (ouch) \u2014 walk into it, then jump on it, and watch which one fires."
+    },
+    {
+      "id": "health-zero",
+      "voice": "Watts",
+      "oneLiner": "Somebody just ran out of health.",
+      "explainer": "'The instant health hits zero \u2014 not before, not after \u2014 this card fires once,' says Watts. 'Perfect for a death animation, a respawn, or ending the game.'",
+      "sandbox": "A punching-bag entity that loses one health per touch \u2014 watch this card fire on the third hit, exactly."
+    },
+    {
+      "id": "counter-reached",
+      "voice": "The Founder",
+      "oneLiner": "A named number in your game just crossed a line you drew.",
+      "explainer": "The Founder keeps the books: 'Score, coins, keys \u2014 whatever you're counting, this card watches ONE named counter and fires the moment it crosses the value you set. Ten coins and the door creaks open? That's this card.'",
+      "sandbox": "A coin counter and a locked door \u2014 collect coins one at a time and watch the door's Counter Reached card fire the instant you hit ten."
+    },
+    {
+      "id": "item-collected",
+      "voice": "The Founder",
+      "oneLiner": "The player just picked something up.",
+      "explainer": "'Leave the item name blank and this fires for ANYTHING collected,' says The Founder. 'Name one item and it only cares about that one \u2014 a key, a mushroom, whatever you're tracking.'",
+      "sandbox": "Three different pickups on the floor \u2014 a counter ticks for each one collected, no matter which."
+    },
+    {
+      "id": "enemy-defeated",
+      "voice": "Scout",
+      "oneLiner": "Something tagged 'enemy' just went down.",
+      "explainer": "Scout tracks every fight: 'Defeat Self on anything tagged enemy sends this card off. Tally up defeated enemies for a score, or check whether the room is clear.'",
+      "sandbox": "Three tagged enemies and a counter \u2014 stomp them one by one and watch the counter match your defeats."
+    },
+    {
+      "id": "every-n-seconds",
+      "voice": "Watts",
+      "oneLiner": "A card that fires again, and again, and again.",
+      "explainer": "'This is the only card in the whole Workshop that repeats on its own,' Watts says carefully. 'No loop brick needed, no forever-block \u2014 just set the seconds and it keeps firing until the level ends.'",
+      "sandbox": "A lamp with an Every N Seconds (2s) card toggling Show/Hide \u2014 watch it blink forever, completely on its own."
+    },
+    {
+      "id": "player-enters-zone",
+      "voice": "Watts",
+      "oneLiner": "The player just stepped inside your zone.",
+      "explainer": "'Zones are invisible boxes you draw in the Stage,' says Watts. 'The player walks in, this card fires once \u2014 walks out, a different card (Player Leaves Zone) fires. Perfect for secret rooms and boss-door triggers.'",
+      "sandbox": "A zone that opens a door when entered and closes it when left \u2014 walk in and out and watch the door react each time."
+    },
+    {
+      "id": "player-leaves-zone",
+      "voice": "Watts",
+      "oneLiner": "The player just stepped back out of your zone.",
+      "explainer": "'The other half of the zone pair,' Watts notes. 'Some of the best puzzle ideas use enter AND leave together \u2014 a light that's only on while you're standing on the switch, say.'",
+      "sandbox": "A pressure-plate zone wired to a light \u2014 the light is only on while a card from THIS brick hasn't fired yet since the last entry."
+    },
+    {
+      "id": "message-received",
+      "voice": "Scout",
+      "oneLiner": "Somebody, somewhere in the level, shouted a name \u2014 and you heard it.",
+      "explainer": "'Messages don't care about position or zones,' Scout says. 'Any entity can Send Message, any entity can listen with Message Received \u2014 great for \"all the switches are on now, unlock the door\" logic that isn't tied to one spot.'",
+      "sandbox": "Three switches, each sending 'switch-on' when touched; a door listening for it three times before it opens."
+    },
+    {
+      "id": "has-item",
+      "voice": "The Founder",
+      "oneLiner": "Checks whether the player is carrying something \u2014 or, with value off, checks they are NOT.",
+      "explainer": "'Doors love this one,' The Founder grins. 'Has Item: key \u2014 if it's true, let the door open. If not, nothing happens. No key, no entry.'",
+      "sandbox": "A locked door checking Has Item before it'll open \u2014 try it with and without the key sitting in a chest nearby."
+    },
+    {
+      "id": "counter-compare",
+      "voice": "The Founder",
+      "oneLiner": "Checks a named number against a value, without waiting for it to CHANGE.",
+      "explainer": "'Counter Reached fires the MOMENT a number crosses your line,' explains The Founder. 'Counter Compare is different \u2014 it's a question you can ask any time, inside an IF, alongside other conditions.'",
+      "sandbox": "A door that only opens if touched WHILE coins is 10 or more \u2014 walk up early and nothing happens; come back after collecting enough and it opens."
+    },
+    {
+      "id": "chance",
+      "voice": "Scout",
+      "oneLiner": "Rolls the dice \u2014 right here, right now.",
+      "explainer": "'Every level has its own secret dice, seeded the moment it starts,' Scout explains. 'Set Chance to 25 and a quarter of the time, whatever's inside the IF gets to happen. Same seed, same rolls, every time you replay \u2014 that's how a saved level stays fair.'",
+      "sandbox": "An enemy with a 25% Chance to drop a coin when defeated \u2014 defeat it many times and watch the drop rate settle near one in four."
+    },
+    {
+      "id": "facing",
+      "voice": "Watts",
+      "oneLiner": "Checks which way this entity is currently looking.",
+      "explainer": "'Every entity remembers if it's facing left or right,' says Watts. 'Great for a shield that only blocks damage from the front.'",
+      "sandbox": "A knight that only takes damage when hit from behind \u2014 walk around it and test both sides."
+    },
+    {
+      "id": "in-zone",
+      "voice": "Watts",
+      "oneLiner": "Checks whether this entity is standing in ANY zone right now.",
+      "explainer": "'Less specific than the enter/leave events \u2014 this one's a plain yes-or-no question you can drop inside an IF,' Watts says.",
+      "sandbox": "A lamp that only stays lit while an entity's In Zone check is true for the platform it's standing on."
+    },
+    {
+      "id": "health-compare",
+      "voice": "Watts",
+      "oneLiner": "Checks this entity's current health against a value.",
+      "explainer": "'Health Zero only fires at the exact moment you die,' Watts reminds. 'Health Compare is the ongoing question \u2014 \"am I below half?\" \u2014 perfect for a screen tint or a change in behavior when things get dangerous.'",
+      "sandbox": "An enemy that starts fleeing instead of attacking once its Health Compare (<= half) turns true."
+    },
+    {
+      "id": "patrol-between",
+      "voice": "Scout",
+      "oneLiner": "Start walking back and forth, forever, between two or more points.",
+      "explainer": "'One card, and this entity just... patrols,' Scout says. 'No loop, no re-triggering needed \u2014 set it going on Game Start and it keeps walking until a Stop card cancels it.'",
+      "sandbox": "A guard walking a fixed beat between two posts \u2014 watch it turn around cleanly at each end, forever."
+    },
+    {
+      "id": "follow-path",
+      "voice": "Scout",
+      "oneLiner": "Walk through a list of points, once, then stop.",
+      "explainer": "'Patrol Between ping-pongs forever. Follow Path is a one-way trip,' Scout clarifies. 'Great for a platform that carries you across a gap and then just... stays put.'",
+      "sandbox": "A moving platform that carries the player across a pit and stops on the far side."
+    },
+    {
+      "id": "teleport-to",
+      "voice": "Watts",
+      "oneLiner": "Instantly move this entity to an exact spot \u2014 no travel time.",
+      "explainer": "'This is a snap, not a walk,' says Watts. 'One frame you're here, the next you're there. Great for pipes, portals, and \"oops, fell in lava\" resets.'",
+      "sandbox": "Step on a pad and Teleport To sends you to a matching pad across the room, instantly."
+    },
+    {
+      "id": "face",
+      "voice": "Watts",
+      "oneLiner": "Turn to face a direction, without moving an inch.",
+      "explainer": "'Sometimes you want the LOOK of facing a direction without any walking,' Watts notes. 'A sign, a turret, a sleeping guard that wakes up and turns to face you.'",
+      "sandbox": "A sentry that Faces the player the moment they enter a nearby zone, without taking a single step."
+    },
+    {
+      "id": "stop",
+      "voice": "Scout",
+      "oneLiner": "Cancels whatever Patrol Between or Follow Path this entity was doing.",
+      "explainer": "'Every ongoing motion needs an off switch,' Scout says. 'Stop is it \u2014 wire it to a zone, a message, whatever should freeze this entity in place.'",
+      "sandbox": "A patrolling enemy that freezes solid the instant a nearby switch is thrown."
+    },
+    {
+      "id": "deal-damage",
+      "voice": "Watts",
+      "oneLiner": "Takes away health \u2014 usually from whoever touched YOU.",
+      "explainer": "'By default, Deal Damage hits the player \u2014 that's what a spike or an enemy is supposed to do,' Watts explains. 'Flip target to self if you want something to hurt on its own, like a lava tile ticking away at anything standing in it.'",
+      "sandbox": "A spike strip that deals 1 damage on touch \u2014 watch the player's health drop exactly once per fresh touch."
+    },
+    {
+      "id": "heal",
+      "voice": "The Founder",
+      "oneLiner": "Gives back health, up to the max.",
+      "explainer": "'A heart pickup is just Heal wired to Touched,' The Founder says simply. 'Set target to self for a slow-regenerating campfire instead.'",
+      "sandbox": "A heart pickup that restores one health and disappears \u2014 try it at full health and see nothing overflow."
+    },
+    {
+      "id": "knockback",
+      "voice": "Watts",
+      "oneLiner": "A sudden shove in a direction.",
+      "explainer": "'Great paired with Deal Damage,' says Watts. 'Getting hit AND getting shoved back sells the impact so much better than damage alone.'",
+      "sandbox": "An enemy bump that knocks the player backward and slightly up \u2014 feel the difference with and without this card."
+    },
+    {
+      "id": "invincible",
+      "voice": "Watts",
+      "oneLiner": "Ignore all damage for a little while.",
+      "explainer": "'A star pickup, a post-hit grace period, a shield power-up \u2014 all Invincible under the hood,' Watts says. 'While it's active, Deal Damage just... does nothing.'",
+      "sandbox": "Touch a star and take zero damage from a spike for three full seconds \u2014 then watch the vulnerability return."
+    },
+    {
+      "id": "shoot",
+      "voice": "Watts",
+      "oneLiner": "Fire a small projectile in the direction you're facing.",
+      "explainer": "Watts explains: 'Whatever holds this card spawns a tiny mover heading the way it's facing. Give the projectile its own bricksheet (something as simple as 'when touched, destroy self') to decide what happens on impact \u2014 a different sheet gets you a piercing shot, an explosive one, whatever you design.'",
+      "sandbox": "A turret with an Every N Seconds card wired to Shoot, its projectiles carrying a simple destroy-on-touch sheet \u2014 watch a steady stream fire down a corridor and vanish on contact."
+    },
+    {
+      "id": "explode",
+      "voice": "Watts",
+      "oneLiner": "Damage everything nearby, all at once, right now.",
+      "explainer": "'No projectile, no travel time \u2014 just a burst that checks a radius and hits everything with health inside it,' Watts explains. 'A barrel that goes off when it takes damage, say.'",
+      "sandbox": "A barrel that Explodes when its own health hits zero, damaging anything standing too close."
+    },
+    {
+      "id": "defeat-self",
+      "voice": "Scout",
+      "oneLiner": "Remove this entity from the level.",
+      "explainer": "'If it's tagged enemy, this is exactly what Enemy Defeated is listening for,' Scout says. 'For scenery instead of foes, use Destroy Self \u2014 same effect, no enemy-defeated fanfare.'",
+      "sandbox": "Stomp an enemy from above and watch Defeat Self remove it, firing the Enemy Defeated event a counter is listening for."
+    },
+    {
+      "id": "respawn-at-checkpoint",
+      "voice": "The Founder",
+      "oneLiner": "Send this entity back to the last checkpoint and refill its health.",
+      "explainer": "'Every kill zone in the level ends with this card,' The Founder says. 'No checkpoint set yet? It falls all the way back to the level's very start instead \u2014 nobody gets stuck.'",
+      "sandbox": "Walk into a kill zone with no checkpoint set \u2014 watch yourself land back at the level start, full health restored."
+    },
+    {
+      "id": "spawn-prefab",
+      "voice": "Scout",
+      "oneLiner": "Create a brand new copy of a saved prefab, right now.",
+      "explainer": "'Wave-based enemies, refilling ammo crates, endless coins \u2014 all Spawn Prefab under the hood,' Scout says. 'Pair it with Every N Seconds for a steady drip of new entities.'",
+      "sandbox": "A spawner with an Every N Seconds (3s) card wired to Spawn Prefab \u2014 watch a fresh enemy appear on schedule."
+    },
+    {
+      "id": "destroy-self",
+      "voice": "Scout",
+      "oneLiner": "Remove this entity \u2014 no fanfare, no events.",
+      "explainer": "'This is the quiet cousin of Defeat Self,' Scout notes. 'For a coin disappearing after pickup, a crate breaking apart \u2014 anything that isn't really a \"defeat\".'",
+      "sandbox": "A coin that Destroys Self the instant it's touched, right after awarding its points."
+    },
+    {
+      "id": "show-hide",
+      "voice": "Watts",
+      "oneLiner": "Toggle whether this entity is visible.",
+      "explainer": "'The entity is still there \u2014 still solid, if it has a body \u2014 it just isn't drawn,' Watts clarifies. 'For a true vanish, pair it with removing the body, or just use Destroy Self instead.'",
+      "sandbox": "A torch that blinks via Show/Hide on an Every N Seconds card, flickering on and off forever."
+    },
+    {
+      "id": "send-message",
+      "voice": "Scout",
+      "oneLiner": "Broadcast a named signal the whole level can hear.",
+      "explainer": "'Anything, anywhere, can be listening for this exact name with Message Received,' Scout says. 'Great for \"all switches thrown\" logic that spans the whole level, not just one zone.'",
+      "sandbox": "Three switches sending 'all-clear' when the last one is touched \u2014 a door across the map opens the instant it hears it."
+    },
+    {
+      "id": "award-points",
+      "voice": "The Founder",
+      "oneLiner": "Add to a named counter.",
+      "explainer": "'Score, coins, gems \u2014 you name the counter, this card adds to it,' The Founder says. 'Pair with Counter Reached to unlock a door once you've collected enough.'",
+      "sandbox": "A coin that awards 1 point on pickup \u2014 watch the counter climb, one coin at a time."
+    },
+    {
+      "id": "set-counter",
+      "voice": "The Founder",
+      "oneLiner": "Set a named counter to an exact value \u2014 not add to it, SET it.",
+      "explainer": "'Sometimes you don't want to add \u2014 you want to reset,' The Founder explains. 'A new-game button that sets score back to zero, say.'",
+      "sandbox": "A reset lever that Sets Counter (score, 0) \u2014 rack up some points, then pull the lever and watch it zero out."
+    },
+    {
+      "id": "give-item",
+      "voice": "The Founder",
+      "oneLiner": "Add to the player's inventory.",
+      "explainer": "'A key, a mushroom, a magic feather \u2014 Give Item is how anything ends up in the player's pockets,' The Founder says.",
+      "sandbox": "A chest that Gives Item (key, 1) when touched \u2014 check a nearby door's Has Item card before and after."
+    },
+    {
+      "id": "take-item",
+      "voice": "The Founder",
+      "oneLiner": "Remove from the player's inventory.",
+      "explainer": "'Doors that use up a key when they open pair Has Item with Take Item,' The Founder notes. 'One key, one door, then it's gone.'",
+      "sandbox": "A door that checks Has Item, opens, then Takes Item \u2014 walk up a second time with no key left and watch it stay shut."
+    },
+    {
+      "id": "end-game",
+      "voice": "The Founder",
+      "oneLiner": "End the level, right now \u2014 win or lose.",
+      "explainer": "'The last card any level needs,' The Founder says. 'Win when you reach the flag, lose when your health runs out \u2014 either way, End Game is how the level knows it's over.'",
+      "sandbox": "A flagpole that touches off End Game (win) \u2014 and a bottomless pit that touches off End Game (lose)."
+    },
+    {
+      "id": "set-checkpoint",
+      "voice": "The Founder",
+      "oneLiner": "Save this entity's position as the respawn point.",
+      "explainer": "'Checkpoints are built into the checkpoint zone automatically,' The Founder says, 'but you can also drop this card anywhere you want a manual save point.'",
+      "sandbox": "Walk through a checkpoint zone, then deliberately walk into a kill zone \u2014 watch yourself return to the checkpoint, not the level start."
+    },
+    {
+      "id": "story-card-reached",
+      "voice": "Quill",
+      "oneLiner": "Fires when the story reaches a specific beat.",
+      "explainer": "Quill keeps the script: 'Every dialogue card that shows up fires this \u2014 name one to react to a specific line, or leave it blank to catch every beat of the story going by.'",
+      "sandbox": "A counter that ticks up every time Story Card Reached fires \u2014 walk through a short conversation and watch it count each line."
+    },
+    {
+      "id": "story-flag-set",
+      "voice": "Quill",
+      "oneLiner": "Checks whether something in the story has already happened.",
+      "explainer": "'Story flags are the memory of your game,' Quill explains. 'Met the wizard once? Set a flag. Later, check Story Flag Set before letting the wizard say hello for the first time again.'",
+      "sandbox": "A guard who only unlocks the gate after a Story Flag Set check passes \u2014 trigger the flag first, then try the gate."
+    },
+    {
+      "id": "open",
+      "voice": "Watts",
+      "oneLiner": "Open this entity \u2014 its collider turns off, so the player walks straight through.",
+      "explainer": "'A closed door blocks. Open removes the block,' Watts says. 'Pair it with Close for a door that can shut again \u2014 a puzzle room that locks behind you, say.'",
+      "sandbox": "A door that opens when a nearby switch is touched \u2014 walk through it before and after."
+    },
+    {
+      "id": "close",
+      "voice": "Watts",
+      "oneLiner": "Close this entity \u2014 its collider turns back on, blocking the player again.",
+      "explainer": "'The other half of Open,' Watts notes. 'Great for a door that swings shut once you've passed through, or a gate a switch controls both ways.'",
+      "sandbox": "A door that alternates open and closed each time a switch is touched."
+    },
+    {
+      "id": "swap-sprite",
+      "voice": "Pix",
+      "oneLiner": "Change this entity's look, right now.",
+      "explainer": "Pix keeps the art department: 'A new color, or a whole different Atelier sprite \u2014 Swap Sprite is how a character changes outfits, or a light turns from green to red.'",
+      "sandbox": "A traffic light cycling between three swapped sprites as a timer ticks."
+    },
+    {
+      "id": "play-animation",
+      "voice": "Pix",
+      "oneLiner": "Show a specific flipbook frame from this entity's sprite.",
+      "explainer": "'Full animation rigs are further down the road,' Pix admits, 'but flipbook frames \u2014 the ones you drew in the Atelier \u2014 you can step through right now with this card.'",
+      "sandbox": "A torch cycling through its three drawn flame frames, one after another."
+    },
+    {
+      "id": "shake-camera",
+      "voice": "Watts",
+      "oneLiner": "A brief, decaying camera shake.",
+      "explainer": "'Nothing sells an impact like the whole screen flinching,' Watts says. 'Pair it with Deal Damage or Explode and the hit actually feels like something.'",
+      "sandbox": "An explosive barrel that shakes the camera the instant it goes off."
+    },
+    {
+      "id": "lock-zone",
+      "voice": "Watts",
+      "oneLiner": "Make a zone stop responding to the player, until unlocked.",
+      "explainer": "'Sometimes a zone should go quiet for a while,' Watts explains. 'Lock a switch's trigger zone after it's used once, so it can't be pressed again by accident.'",
+      "sandbox": "A one-time switch that Locks Zone on itself right after firing, so touching it again does nothing."
+    },
+    {
+      "id": "unlock-zone",
+      "voice": "Watts",
+      "oneLiner": "Let a locked zone respond to the player again.",
+      "explainer": "'The undo for Lock Zone,' says Watts. 'A puzzle that resets, a switch a later event re-enables.'",
+      "sandbox": "A switch that re-locks itself, then a lever elsewhere that Unlocks it again."
+    },
+    {
+      "id": "play-sfx",
+      "voice": "Echo",
+      "oneLiner": "Play a sound made in the SFX Foundry.",
+      "explainer": "Echo runs the sound department: 'Any sound you've saved in the Foundry, this card can play. Turn on positional and it'll pan left or right based on where it's coming from relative to the player.'",
+      "sandbox": "A chest that plays a saved 'coin' sfx on open, and a bell across the room that plays the same sfx positionally as you walk past."
+    },
+    {
+      "id": "play-song",
+      "voice": "Echo",
+      "oneLiner": "Start a song made in the Sound Booth, looping until stopped.",
+      "explainer": "'One card starts the music, and it just keeps going,' Echo says. 'Stop Music is the only thing that ends it \u2014 or starting a different song, which cuts the first one off.'",
+      "sandbox": "A level that starts its Sound Booth song the moment Game Start fires."
+    },
+    {
+      "id": "stop-music",
+      "voice": "Echo",
+      "oneLiner": "Stop whatever song is currently playing.",
+      "explainer": "'Every song needs an off switch,' Echo notes. 'A boss door that cuts the exploration music before the fight track starts.'",
+      "sandbox": "A zone that Stops Music the moment the player enters, then a different Play Song right after."
+    },
+    {
+      "id": "flash-channel",
+      "voice": "Sparks",
+      "oneLiner": "Briefly turn on a render channel, then turn it back off.",
+      "explainer": "Sparks handles the effects rack: 'A flash of bloom on a pickup, a jolt of chromatic aberration on a hit \u2014 Flash Channel turns a channel on for a moment and switches it back off automatically.'",
+      "sandbox": "A coin that Flash Channels bloom for a fifth of a second the moment it's collected."
+    },
+    {
+      "id": "slow-time",
+      "voice": "Sparks",
+      "oneLiner": "Slow the whole game down for a little while.",
+      "explainer": "'Everything slows together \u2014 the player included,' Sparks says. 'A dramatic near-miss, a boss's big wind-up, a satisfying finishing blow.'",
+      "sandbox": "A bell that triggers Slow Time (0.3 speed, 1 second) right as an enemy is defeated."
+    },
+    {
+      "id": "say",
+      "voice": "Quill",
+      "oneLiner": "Show a dialogue card \u2014 a speaker and a line of text.",
+      "explainer": "'This is how anyone in your game talks,' Quill says. 'Wire it to Touched on an NPC, and touching them starts the conversation.'",
+      "sandbox": "An NPC that Says its intro card the moment the player touches it."
+    },
+    {
+      "id": "show-choice-card",
+      "voice": "Quill",
+      "oneLiner": "Show a story card with buttons the player picks between.",
+      "explainer": "'Same mechanism as Say,' Quill clarifies, 'but the card itself has choices attached \u2014 that's what makes the buttons appear. Where the story branches is decided by the card's data, not by which brick revealed it.'",
+      "sandbox": "A crossroads NPC whose choice card sends the player down two different branches depending on the pick."
+    },
+    {
+      "id": "set-story-flag",
+      "voice": "Quill",
+      "oneLiner": "Remember that something happened.",
+      "explainer": "'Every 'have I done this before' question in your game starts with this card,' Quill says. 'Set the flag once, check it forever after with Story Flag Set.'",
+      "sandbox": "An NPC that only offers their special line once \u2014 Set Story Flag the first time, Story Flag Set guards it from firing twice."
+    },
+    {
+      "id": "key-pressed",
+      "voice": "Watts",
+      "oneLiner": "Fires the instant a named action button is pressed.",
+      "explainer": "Watts explains: 'Jump has its own dedicated control, but any OTHER button \u2014 shoot, dash, whatever your game needs \u2014 gets a name, and this card fires the instant it is pressed. Held down does not fire again and again; only the moment it is first pressed.'",
+      "sandbox": "A player wired with Key Pressed (shoot) -> Shoot \u2014 press the button and watch exactly one projectile fire per press, no matter how long you hold it."
+    },
+    {
+      "id": "chase",
+      "voice": "Scout",
+      "oneLiner": "Real steering-based chasing, not a straight line toward the target.",
+      "explainer": "Scout runs the AI Workshop: 'Chase rides on Yuka under the hood \u2014 the same steering math real games use. Name a target entity and it tracks them live, wherever they move; or give a fixed spot if you just want a guard patrolling toward a post.'",
+      "sandbox": "A guard chasing the player across an open room \u2014 walk in a circle and watch it curve to follow, not snap in straight lines."
+    },
+    {
+      "id": "flee",
+      "voice": "Scout",
+      "oneLiner": "Real steering-based fleeing \u2014 but only once the threat is actually close.",
+      "explainer": "'Flee has a built-in panic distance,' Scout explains. 'Far away, a fleeing creature does not react at all \u2014 get close, and it bolts. That is what makes it feel alive instead of robotic.'",
+      "sandbox": "A timid creature that ignores the player from a distance, then flees the instant they get close."
+    },
+    {
+      "id": "wander",
+      "voice": "Scout",
+      "oneLiner": "Natural, meandering motion with no fixed destination.",
+      "explainer": "'Not random teleporting \u2014 actual smooth wandering,' Scout says. 'Great for background creatures that should feel alive without chasing or fleeing anything.'",
+      "sandbox": "A few small creatures wandering a meadow, each moving independently and naturally."
+    },
+    {
+      "id": "path-to",
+      "voice": "Scout",
+      "oneLiner": "Finds a real route around walls, then walks it.",
+      "explainer": "'Chase walks in a straight line toward its target \u2014 which means it walks straight into a wall if one is in the way,' Scout warns. 'Path To is smarter: it plans an actual route around your level's walls first, using the same kind of pathfinding real dungeon-crawler enemies use, then walks that route.'",
+      "sandbox": "An enemy in a small maze that correctly routes around walls to reach the player, instead of getting stuck against them."
+    },
+    {
+      "id": "spawned",
+      "voice": "Watts",
+      "oneLiner": "Fires the instant THIS entity comes into being.",
+      "explainer": "Watts explains: 'Game Starts is the whistle for the whole level \u2014 it blows once, at the very beginning. But an enemy a spawner creates five minutes in never hears that whistle; it was not there yet. Spawned is every entity's OWN personal whistle \u2014 it fires once, for that entity, the moment it exists, no matter when that happens.'",
+      "sandbox": "A spawner creating a new enemy every few seconds, each one immediately starting its own patrol via a Spawned card \u2014 watch each new arrival begin moving the instant it appears, not just the ones present at the start."
+    },
+    {
+      "id": "emit-particles",
+      "voice": "Sparks",
+      "oneLiner": "Plays a particle effect made in the Particle Lab.",
+      "explainer": "Sparks runs the effects rack: 'Build the effect once in the Lab \u2014 fire, smoke, an explosion, whatever \u2014 then this card is how any bricksheet actually plays it. It starts right where the card owner is standing.'",
+      "sandbox": "A crate that Emit Particles (an explosion effect) the instant it is Defeated \u2014 stomp it and watch the burst."
+    }
+  ]
+}

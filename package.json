@@ -1,0 +1,26 @@
+{
+  "name": "game-empire-tycoon",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A game that builds a game company. Standalone, offline, finite.",
+  "scripts": {
+    "dev": "vite",
+    "build:player": "vite build --config src/press/vite.player.config.js",
+    "build": "npm run build:player && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@dimforge/rapier2d-compat": "^0.14.0",
+    "@dimforge/rapier3d-compat": "^0.14.0",
+    "fflate": "^0.8.2",
+    "postprocessing": "^6.36.0",
+    "three": "^0.169.0",
+    "tweakpane": "^4.0.4",
+    "yuka": "^0.7.8"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "vite-plugin-singlefile": "^2.0.2"
+  }
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "when": "player-enters-zone",
+    "if": [{ "check": "has-item", "item": "sword" }],
+    "do": [
+      { "do": "end-game", "result": "win", "message": "Sword in hand, you enter the castle." }
+    ]
+  },
+  {
+    "when": "player-enters-zone",
+    "if": [{ "check": "has-item", "item": "sword", "value": false }],
+    "do": [
+      { "do": "say", "card": "need-sword" }
+    ]
+  }
+]

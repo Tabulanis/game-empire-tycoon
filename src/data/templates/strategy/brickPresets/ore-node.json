@@ -1,0 +1,10 @@
+[
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "award-points", "key": "ore", "amount": 5 },
+      { "do": "destroy-self" }
+    ]
+  }
+]

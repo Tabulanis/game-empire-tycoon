@@ -1,0 +1,340 @@
+{
+  "id": "village",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "gold-1",
+      "name": "Gold",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "$",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "gold-pickup"
+        }
+      }
+    },
+    {
+      "id": "gold-2",
+      "name": "Gold",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3,
+            2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "$",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "gold-pickup"
+        }
+      }
+    },
+    {
+      "id": "gold-3",
+      "name": "Gold",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            4,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "$",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "gold-pickup"
+        }
+      }
+    },
+    {
+      "id": "gold-4",
+      "name": "Gold",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4,
+            -2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "$",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "gold-pickup"
+        }
+      }
+    },
+    {
+      "id": "blacksmith",
+      "name": "Blacksmith",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            5,
+            -3,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#c7d0de",
+          "glyph": "\u2694",
+          "size": [
+            0.7,
+            0.7
+          ]
+        },
+        "bricks": {
+          "sheet": "sword-kiosk"
+        }
+      }
+    },
+    {
+      "id": "healer",
+      "name": "Healer",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -5,
+            -3,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#9fe6b3",
+          "glyph": "+",
+          "size": [
+            0.7,
+            0.7
+          ]
+        },
+        "bricks": {
+          "sheet": "healer-npc"
+        }
+      }
+    },
+    {
+      "id": "wolf",
+      "name": "Wolf",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            8,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#603a5e",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "shape": "box",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "bricks": {
+          "sheet": "enemy-chaser"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "castle-gate-zone",
+      "name": "Castle Gate",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            12,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#8a6bd6",
+          "glyph": "\u2691",
+          "size": [
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            2,
+            2
+          ]
+        },
+        "bricks": {
+          "sheet": "castle-gate"
+        }
+      }
+    }
+  ]
+}

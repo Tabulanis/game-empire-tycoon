@@ -1,0 +1,9 @@
+[
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "destroy-self" }
+    ]
+  }
+]

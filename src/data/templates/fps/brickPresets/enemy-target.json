@@ -1,0 +1,18 @@
+[
+  {
+    "when": "touched",
+    "by": "projectile",
+    "if": [],
+    "do": [
+      { "do": "deal-damage", "amount": 1, "target": "self" }
+    ]
+  },
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      { "do": "defeat-self" },
+      { "do": "award-points", "key": "targets", "amount": 1 }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "id": "collect-a-thon",
+  "era": "garage",
+  "tags": ["3d", "collect", "jump"],
+  "modules": ["motion3d", "triggers", "score"],
+  "starter": "scenes/grove.json",
+  "brickPresets": ["gem", "win-checker"],
+  "questions": ["hero", "tone", "difficulty"]
+}

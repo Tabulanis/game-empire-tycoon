@@ -1,0 +1,213 @@
+{
+  "id": "outpost",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "bricks": {
+          "sheet": "player-defender"
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "ore-1",
+      "name": "Ore",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#e0a83a",
+          "glyph": "\u25c6",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "ore-node"
+        }
+      }
+    },
+    {
+      "id": "ore-2",
+      "name": "Ore",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3,
+            2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#e0a83a",
+          "glyph": "\u25c6",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "ore-node"
+        }
+      }
+    },
+    {
+      "id": "ore-3",
+      "name": "Ore",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            -2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#e0a83a",
+          "glyph": "\u25c6",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "ore-node"
+        }
+      }
+    },
+    {
+      "id": "kiosk",
+      "name": "Watchtower Kiosk",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            3,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#c7d0de",
+          "glyph": "\u2692",
+          "size": [
+            0.7,
+            0.7
+          ]
+        },
+        "bricks": {
+          "sheet": "watchtower-kiosk"
+        }
+      }
+    },
+    {
+      "id": "spawner",
+      "name": "Raider Spawner",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            10,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "bricks": {
+          "sheet": "raider-spawner"
+        }
+      }
+    }
+  ]
+}

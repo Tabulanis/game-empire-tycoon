@@ -1,0 +1,17 @@
+[
+  {
+    "when": "key-pressed",
+    "action": "shoot",
+    "if": [],
+    "do": [
+      { "do": "shoot", "speed": 10, "sheet": "projectile" }
+    ]
+  },
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      { "do": "respawn-at-checkpoint" }
+    ]
+  }
+]

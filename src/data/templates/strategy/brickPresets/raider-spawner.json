@@ -1,0 +1,10 @@
+[
+  {
+    "when": "every-n-seconds",
+    "seconds": 5,
+    "if": [],
+    "do": [
+      { "do": "spawn-prefab", "prefab": "raider" }
+    ]
+  }
+]

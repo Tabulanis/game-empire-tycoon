@@ -1,0 +1,26 @@
+[
+  {
+    "when": "game-start",
+    "if": [],
+    "do": [
+      { "do": "chase", "target": "player", "speed": 2 }
+    ]
+  },
+  {
+    "when": "touched",
+    "by": "player",
+    "if": [{ "check": "has-item", "item": "sword" }],
+    "do": [
+      { "do": "defeat-self" },
+      { "do": "award-points", "key": "score", "amount": 10 }
+    ]
+  },
+  {
+    "when": "touched",
+    "by": "player",
+    "if": [],
+    "do": [
+      { "do": "deal-damage", "amount": 1, "target": "other" }
+    ]
+  }
+]

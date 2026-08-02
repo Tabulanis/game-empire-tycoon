@@ -1,0 +1,9 @@
+{
+  "id": "word",
+  "era": "garage",
+  "tags": ["word", "collect", "side-view", "2d"],
+  "modules": ["motion2d", "triggers", "score"],
+  "starter": "scenes/spellbound.json",
+  "brickPresets": ["letter-tile", "win-checker"],
+  "questions": ["word", "goal", "tone", "difficulty"]
+}

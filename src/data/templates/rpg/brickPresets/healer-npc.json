@@ -1,0 +1,21 @@
+[
+  {
+    "when": "touched",
+    "if": [
+      { "check": "counter-compare", "key": "gold", "op": ">=", "value": 5 },
+      { "check": "health-compare", "op": "<=", "value": 2 }
+    ],
+    "do": [
+      { "do": "award-points", "key": "gold", "amount": -5, "target": "self" },
+      { "do": "heal", "amount": 3, "target": "other" },
+      { "do": "say", "card": "healed" }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [{ "check": "health-compare", "op": ">=", "value": 3 }],
+    "do": [
+      { "do": "say", "card": "full-health" }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "id": "platformer",
+  "era": "garage",
+  "tags": ["side-view", "jump", "run", "collect", "2d"],
+  "modules": ["motion2d", "triggers", "score", "camera-follow"],
+  "starter": "scenes/meadow.json",
+  "brickPresets": ["player-platformer", "patrol-enemy", "coin", "checkpoint", "goal"],
+  "questions": ["hero", "goal", "tone", "difficulty"]
+}

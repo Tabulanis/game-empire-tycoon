@@ -1,0 +1,12 @@
+[
+  {
+    "when": "counter-reached",
+    "key": "letters",
+    "op": ">=",
+    "value": 4,
+    "if": [],
+    "do": [
+      { "do": "end-game", "result": "win", "message": "You spelled it!" }
+    ]
+  }
+]

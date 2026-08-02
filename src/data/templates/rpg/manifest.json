@@ -1,0 +1,11 @@
+{
+  "id": "rpg",
+  "era": "garage",
+  "tags": ["top", "top-down", "rpg", "collect", "talk", "2d"],
+  "modules": ["motion2d", "triggers", "score", "ai"],
+  "perspective": "top",
+  "starter": "scenes/village.json",
+  "story": "story.json",
+  "brickPresets": ["gold-pickup", "sword-kiosk", "healer-npc", "enemy-chaser", "castle-gate"],
+  "questions": ["hero", "goal", "tone", "difficulty"]
+}

@@ -1,0 +1,1038 @@
+{
+  "version": 1,
+  "bricks": [
+    {
+      "id": "game-start",
+      "category": "when",
+      "label": "Game Starts",
+      "params": [],
+      "description": "Fires once, the moment the level begins."
+    },
+    {
+      "id": "scene-start",
+      "category": "when",
+      "label": "Scene Starts",
+      "params": [],
+      "description": "Fires once, the moment this scene loads (same moment as Game Starts, on level 1)."
+    },
+    {
+      "id": "touched",
+      "category": "when",
+      "label": "Touched",
+      "params": [
+        {
+          "name": "by",
+          "type": "tag",
+          "default": null,
+          "label": "by (optional tag)"
+        }
+      ],
+      "description": "Fires the moment the player touches this entity."
+    },
+    {
+      "id": "bumped",
+      "category": "when",
+      "label": "Bumped",
+      "params": [
+        {
+          "name": "from",
+          "type": "enum:above,below,side",
+          "default": "above",
+          "label": "from direction"
+        }
+      ],
+      "description": "Fires when the player bumps this entity from a specific direction \u2014 'from: above' is the classic stomp."
+    },
+    {
+      "id": "health-zero",
+      "category": "when",
+      "label": "Health Reaches 0",
+      "params": [],
+      "description": "Fires the instant this entity's health hits zero."
+    },
+    {
+      "id": "counter-reached",
+      "category": "when",
+      "label": "Counter Reaches N",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "default": "score",
+          "label": "counter name"
+        },
+        {
+          "name": "op",
+          "type": "enum:>=,<=,=",
+          "default": ">=",
+          "label": "compare"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "default": 10,
+          "label": "value"
+        }
+      ],
+      "description": "Fires when a named counter crosses the value you pick."
+    },
+    {
+      "id": "item-collected",
+      "category": "when",
+      "label": "Item Collected",
+      "params": [
+        {
+          "name": "item",
+          "type": "string",
+          "default": null,
+          "label": "item (optional)"
+        }
+      ],
+      "description": "Fires whenever any Give Item brick runs \u2014 filter to one item, or leave blank for any."
+    },
+    {
+      "id": "enemy-defeated",
+      "category": "when",
+      "label": "Enemy Defeated",
+      "params": [
+        {
+          "name": "tag",
+          "type": "tag",
+          "default": null,
+          "label": "tag (optional)"
+        }
+      ],
+      "description": "Fires whenever a Defeat Self brick removes an entity tagged 'enemy'."
+    },
+    {
+      "id": "every-n-seconds",
+      "category": "when",
+      "label": "Every N Seconds",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "default": 1,
+          "label": "seconds"
+        }
+      ],
+      "description": "Fires again and again, on a repeating timer \u2014 no loop brick needed."
+    },
+    {
+      "id": "player-enters-zone",
+      "category": "when",
+      "label": "Player Enters Zone",
+      "params": [],
+      "description": "Fires the moment the player steps into this zone entity."
+    },
+    {
+      "id": "player-leaves-zone",
+      "category": "when",
+      "label": "Player Leaves Zone",
+      "params": [],
+      "description": "Fires the moment the player steps out of this zone entity."
+    },
+    {
+      "id": "message-received",
+      "category": "when",
+      "label": "Message Received",
+      "params": [
+        {
+          "name": "message",
+          "type": "string",
+          "default": null,
+          "label": "message name"
+        }
+      ],
+      "description": "Fires when any Send Message brick broadcasts this exact name."
+    },
+    {
+      "id": "has-item",
+      "category": "if",
+      "label": "Has Item",
+      "params": [
+        {
+          "name": "item",
+          "type": "string",
+          "default": null,
+          "label": "item"
+        },
+        {
+          "name": "value",
+          "type": "boolean",
+          "default": true,
+          "label": "has it"
+        }
+      ],
+      "description": "True when the player is (or, with value off, is NOT) carrying at least one of this item."
+    },
+    {
+      "id": "counter-compare",
+      "category": "if",
+      "label": "Counter Compare",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "default": "score",
+          "label": "counter"
+        },
+        {
+          "name": "op",
+          "type": "enum:>=,<=,=",
+          "default": ">=",
+          "label": "compare"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "default": 0,
+          "label": "value"
+        }
+      ],
+      "description": "True when a named counter matches the comparison."
+    },
+    {
+      "id": "chance",
+      "category": "if",
+      "label": "Chance",
+      "params": [
+        {
+          "name": "percent",
+          "type": "number",
+          "default": 50,
+          "label": "percent"
+        }
+      ],
+      "description": "True this often, out of 100 \u2014 uses the level's seeded dice, so a saved replay always rolls the same way."
+    },
+    {
+      "id": "facing",
+      "category": "if",
+      "label": "Facing",
+      "params": [
+        {
+          "name": "dir",
+          "type": "enum:left,right",
+          "default": "right",
+          "label": "direction"
+        }
+      ],
+      "description": "True when this entity is currently facing the chosen direction."
+    },
+    {
+      "id": "in-zone",
+      "category": "if",
+      "label": "In Zone",
+      "params": [],
+      "description": "True while this entity is standing inside any zone."
+    },
+    {
+      "id": "health-compare",
+      "category": "if",
+      "label": "Health Compare",
+      "params": [
+        {
+          "name": "op",
+          "type": "enum:>=,<=,=",
+          "default": ">=",
+          "label": "compare"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "default": 1,
+          "label": "value"
+        }
+      ],
+      "description": "True when this entity's current health matches the comparison."
+    },
+    {
+      "id": "patrol-between",
+      "category": "do",
+      "label": "Patrol Between",
+      "params": [
+        {
+          "name": "points",
+          "type": "points",
+          "default": [],
+          "label": "waypoints"
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 2,
+          "label": "speed"
+        }
+      ],
+      "description": "Start walking back and forth between two or more points, forever, until Stop."
+    },
+    {
+      "id": "follow-path",
+      "category": "do",
+      "label": "Follow Path",
+      "params": [
+        {
+          "name": "points",
+          "type": "points",
+          "default": [],
+          "label": "waypoints"
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 2,
+          "label": "speed"
+        }
+      ],
+      "description": "Walk through a list of points once, then stop at the last one."
+    },
+    {
+      "id": "teleport-to",
+      "category": "do",
+      "label": "Teleport To",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "default": 0,
+          "label": "x"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "default": 0,
+          "label": "y"
+        }
+      ],
+      "description": "Instantly move this entity to an exact spot."
+    },
+    {
+      "id": "face",
+      "category": "do",
+      "label": "Face",
+      "params": [
+        {
+          "name": "dir",
+          "type": "enum:left,right",
+          "default": "right",
+          "label": "direction"
+        }
+      ],
+      "description": "Turn this entity to face left or right, without moving it."
+    },
+    {
+      "id": "stop",
+      "category": "do",
+      "label": "Stop",
+      "params": [],
+      "description": "Cancel any Patrol Between or Follow Path this entity is currently doing."
+    },
+    {
+      "id": "deal-damage",
+      "category": "do",
+      "label": "Deal Damage",
+      "params": [
+        {
+          "name": "amount",
+          "type": "number",
+          "default": 1,
+          "label": "amount"
+        },
+        {
+          "name": "target",
+          "type": "enum:other,self",
+          "default": "other",
+          "label": "target"
+        }
+      ],
+      "description": "Take away health \u2014 from the player by default (a spike or enemy hurts whoever touches it), or from yourself if you set target to self."
+    },
+    {
+      "id": "heal",
+      "category": "do",
+      "label": "Heal",
+      "params": [
+        {
+          "name": "amount",
+          "type": "number",
+          "default": 1,
+          "label": "amount"
+        },
+        {
+          "name": "target",
+          "type": "enum:other,self",
+          "default": "other",
+          "label": "target"
+        }
+      ],
+      "description": "Give back health, up to the maximum."
+    },
+    {
+      "id": "knockback",
+      "category": "do",
+      "label": "Knockback",
+      "params": [
+        {
+          "name": "vx",
+          "type": "number",
+          "default": 0,
+          "label": "push x"
+        },
+        {
+          "name": "vy",
+          "type": "number",
+          "default": 4,
+          "label": "push y"
+        },
+        {
+          "name": "target",
+          "type": "enum:other,self",
+          "default": "other",
+          "label": "target"
+        }
+      ],
+      "description": "Give a sudden shove in a direction."
+    },
+    {
+      "id": "invincible",
+      "category": "do",
+      "label": "Become Invincible",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "default": 1,
+          "label": "seconds"
+        },
+        {
+          "name": "target",
+          "type": "enum:other,self",
+          "default": "other",
+          "label": "target"
+        }
+      ],
+      "description": "Ignore all damage for a little while."
+    },
+    {
+      "id": "shoot",
+      "category": "do",
+      "label": "Shoot",
+      "params": [
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 8,
+          "label": "speed"
+        },
+        {
+          "name": "sheet",
+          "type": "string",
+          "default": null,
+          "label": "projectile bricksheet (optional)"
+        }
+      ],
+      "description": "Fire a small projectile in the direction this entity is facing. Give the projectile its own bricksheet to decide what happens when it hits something."
+    },
+    {
+      "id": "explode",
+      "category": "do",
+      "label": "Explode",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "default": 2,
+          "label": "radius"
+        },
+        {
+          "name": "damage",
+          "type": "number",
+          "default": 2,
+          "label": "damage"
+        }
+      ],
+      "description": "Damage everything with health inside a radius, right now."
+    },
+    {
+      "id": "defeat-self",
+      "category": "do",
+      "label": "Defeat Self",
+      "params": [],
+      "description": "Remove this entity from the level. If it's tagged 'enemy', this is what an Enemy Defeated brick is listening for."
+    },
+    {
+      "id": "respawn-at-checkpoint",
+      "category": "do",
+      "label": "Respawn At Checkpoint",
+      "params": [],
+      "description": "Send this entity back to the last checkpoint (or the level start, if none has been set yet), and refill its health."
+    },
+    {
+      "id": "spawn-prefab",
+      "category": "do",
+      "label": "Spawn Prefab",
+      "params": [
+        {
+          "name": "prefab",
+          "type": "prefab",
+          "default": null,
+          "label": "prefab"
+        },
+        {
+          "name": "at",
+          "type": "point",
+          "default": null,
+          "label": "position (optional)"
+        }
+      ],
+      "description": "Create a new copy of a saved prefab, right now."
+    },
+    {
+      "id": "destroy-self",
+      "category": "do",
+      "label": "Destroy Self",
+      "params": [],
+      "description": "Remove this entity from the level (same effect as Defeat Self, but no 'enemy defeated' event \u2014 for scenery, not foes)."
+    },
+    {
+      "id": "show-hide",
+      "category": "do",
+      "label": "Show / Hide",
+      "params": [
+        {
+          "name": "visible",
+          "type": "boolean",
+          "default": true,
+          "label": "visible"
+        }
+      ],
+      "description": "Toggle whether this entity is visible, without removing it."
+    },
+    {
+      "id": "send-message",
+      "category": "do",
+      "label": "Send Message",
+      "params": [
+        {
+          "name": "message",
+          "type": "string",
+          "default": null,
+          "label": "message name"
+        }
+      ],
+      "description": "Broadcast a named signal every bricksheet in the level can listen for."
+    },
+    {
+      "id": "award-points",
+      "category": "do",
+      "label": "Award Points",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "default": "score",
+          "label": "counter"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "default": 1,
+          "label": "amount"
+        }
+      ],
+      "description": "Add to a named counter (score, coins \u2014 whatever you call it)."
+    },
+    {
+      "id": "set-counter",
+      "category": "do",
+      "label": "Set Counter",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "default": "score",
+          "label": "counter"
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "default": 0,
+          "label": "value"
+        }
+      ],
+      "description": "Set a named counter to an exact value."
+    },
+    {
+      "id": "give-item",
+      "category": "do",
+      "label": "Give Item",
+      "params": [
+        {
+          "name": "item",
+          "type": "string",
+          "default": null,
+          "label": "item"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "default": 1,
+          "label": "amount"
+        }
+      ],
+      "description": "Add to the player's inventory."
+    },
+    {
+      "id": "take-item",
+      "category": "do",
+      "label": "Take Item",
+      "params": [
+        {
+          "name": "item",
+          "type": "string",
+          "default": null,
+          "label": "item"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "default": 1,
+          "label": "amount"
+        }
+      ],
+      "description": "Remove from the player's inventory."
+    },
+    {
+      "id": "end-game",
+      "category": "do",
+      "label": "End Game",
+      "params": [
+        {
+          "name": "result",
+          "type": "enum:win,lose",
+          "default": "win",
+          "label": "result"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "default": "",
+          "label": "message (optional)"
+        }
+      ],
+      "description": "End the level right now, win or lose."
+    },
+    {
+      "id": "set-checkpoint",
+      "category": "do",
+      "label": "Set Checkpoint",
+      "params": [],
+      "description": "Save this entity's position as where the player respawns next."
+    },
+    {
+      "id": "story-card-reached",
+      "category": "when",
+      "label": "Story Card Reached",
+      "params": [
+        {
+          "name": "card",
+          "type": "string",
+          "default": null,
+          "label": "card (optional)"
+        }
+      ],
+      "description": "Fires when a dialogue sequence reaches a specific card \u2014 leave blank to fire on any card."
+    },
+    {
+      "id": "story-flag-set",
+      "category": "if",
+      "label": "Story Flag Set",
+      "params": [
+        {
+          "name": "flag",
+          "type": "string",
+          "default": null,
+          "label": "flag"
+        },
+        {
+          "name": "value",
+          "type": "boolean",
+          "default": true,
+          "label": "is set to"
+        }
+      ],
+      "description": "True when a named story flag matches the value you pick."
+    },
+    {
+      "id": "open",
+      "category": "do",
+      "label": "Open",
+      "params": [],
+      "description": "Open this entity \u2014 if it has a body, its collider turns off so the player can walk through."
+    },
+    {
+      "id": "close",
+      "category": "do",
+      "label": "Close",
+      "params": [],
+      "description": "Close this entity \u2014 turns its collider back on, blocking the player again."
+    },
+    {
+      "id": "swap-sprite",
+      "category": "do",
+      "label": "Swap Sprite",
+      "params": [
+        {
+          "name": "swatch",
+          "type": "string",
+          "default": null,
+          "label": "color (optional)"
+        },
+        {
+          "name": "asset",
+          "type": "string",
+          "default": null,
+          "label": "sprite asset (optional)"
+        }
+      ],
+      "description": "Change this entity's look \u2014 a new color, or a different Atelier sprite."
+    },
+    {
+      "id": "play-animation",
+      "category": "do",
+      "label": "Play Animation",
+      "params": [
+        {
+          "name": "frame",
+          "type": "number",
+          "default": 0,
+          "label": "frame"
+        }
+      ],
+      "description": "Show a specific flipbook frame from this entity's Atelier sprite."
+    },
+    {
+      "id": "shake-camera",
+      "category": "do",
+      "label": "Shake Camera",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "default": 0.3,
+          "label": "seconds"
+        },
+        {
+          "name": "intensity",
+          "type": "number",
+          "default": 0.15,
+          "label": "intensity"
+        }
+      ],
+      "description": "Give the camera a brief, decaying shake \u2014 great for impacts and explosions."
+    },
+    {
+      "id": "lock-zone",
+      "category": "do",
+      "label": "Lock Zone",
+      "params": [
+        {
+          "name": "zone",
+          "type": "string",
+          "default": null,
+          "label": "zone (optional, defaults to self)"
+        }
+      ],
+      "description": "Make a zone stop responding to the player entering or leaving it."
+    },
+    {
+      "id": "unlock-zone",
+      "category": "do",
+      "label": "Unlock Zone",
+      "params": [
+        {
+          "name": "zone",
+          "type": "string",
+          "default": null,
+          "label": "zone (optional, defaults to self)"
+        }
+      ],
+      "description": "Let a locked zone start responding to the player again."
+    },
+    {
+      "id": "play-sfx",
+      "category": "do",
+      "label": "Play SFX",
+      "params": [
+        {
+          "name": "sfx",
+          "type": "string",
+          "default": null,
+          "label": "sound"
+        },
+        {
+          "name": "positional",
+          "type": "boolean",
+          "default": false,
+          "label": "positional"
+        }
+      ],
+      "description": "Play a sound made in the SFX Foundry. Turn on positional for a sound that pans left/right based on where it's coming from."
+    },
+    {
+      "id": "play-song",
+      "category": "do",
+      "label": "Play Song",
+      "params": [
+        {
+          "name": "song",
+          "type": "string",
+          "default": null,
+          "label": "song"
+        }
+      ],
+      "description": "Start a song made in the Sound Booth, looping until Stop Music."
+    },
+    {
+      "id": "stop-music",
+      "category": "do",
+      "label": "Stop Music",
+      "params": [],
+      "description": "Stop whatever song is currently playing."
+    },
+    {
+      "id": "flash-channel",
+      "category": "do",
+      "label": "Flash Channel",
+      "params": [
+        {
+          "name": "channel",
+          "type": "string",
+          "default": "bloom",
+          "label": "channel"
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "default": 0.2,
+          "label": "seconds"
+        }
+      ],
+      "description": "Briefly turn on a render channel (like bloom) for a flash effect, then turn it back off."
+    },
+    {
+      "id": "slow-time",
+      "category": "do",
+      "label": "Slow Time",
+      "params": [
+        {
+          "name": "scale",
+          "type": "number",
+          "default": 0.3,
+          "label": "speed"
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "default": 1,
+          "label": "seconds"
+        }
+      ],
+      "description": "Slow the whole game down for a little while, then return to normal speed."
+    },
+    {
+      "id": "say",
+      "category": "do",
+      "label": "Say",
+      "params": [
+        {
+          "name": "card",
+          "type": "string",
+          "default": null,
+          "label": "story card"
+        }
+      ],
+      "description": "Show a dialogue card \u2014 a speaker and a line of text."
+    },
+    {
+      "id": "show-choice-card",
+      "category": "do",
+      "label": "Show Choice Card",
+      "params": [
+        {
+          "name": "card",
+          "type": "string",
+          "default": null,
+          "label": "story card"
+        }
+      ],
+      "description": "Show a story card with buttons the player can pick between \u2014 where the story branches."
+    },
+    {
+      "id": "set-story-flag",
+      "category": "do",
+      "label": "Set Story Flag",
+      "params": [
+        {
+          "name": "flag",
+          "type": "string",
+          "default": null,
+          "label": "flag"
+        },
+        {
+          "name": "value",
+          "type": "boolean",
+          "default": true,
+          "label": "value"
+        }
+      ],
+      "description": "Remember something happened \u2014 check it later with Story Flag Set."
+    },
+    {
+      "id": "key-pressed",
+      "category": "when",
+      "label": "Key Pressed",
+      "params": [
+        {
+          "name": "action",
+          "type": "string",
+          "default": "shoot",
+          "label": "action name"
+        }
+      ],
+      "description": "Fires the instant a named action key is pressed \u2014 the action name matches whatever key mapping the game defines (shoot, dash, whatever you need)."
+    },
+    {
+      "id": "chase",
+      "category": "do",
+      "label": "Chase",
+      "params": [
+        {
+          "name": "target",
+          "type": "string",
+          "default": null,
+          "label": "target entity (optional)"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "default": 0,
+          "label": "or x"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "default": 0,
+          "label": "or y"
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 3,
+          "label": "speed"
+        }
+      ],
+      "description": "Start smoothly chasing a target \u2014 name another entity to follow it live, or give a fixed x/y instead. Rides on real steering, not a straight line."
+    },
+    {
+      "id": "flee",
+      "category": "do",
+      "label": "Flee",
+      "params": [
+        {
+          "name": "target",
+          "type": "string",
+          "default": null,
+          "label": "target entity (optional)"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "default": 0,
+          "label": "or x"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "default": 0,
+          "label": "or y"
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 3,
+          "label": "speed"
+        }
+      ],
+      "description": "Start smoothly fleeing from a target, once it gets close enough to matter."
+    },
+    {
+      "id": "wander",
+      "category": "do",
+      "label": "Wander",
+      "params": [
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 2,
+          "label": "speed"
+        }
+      ],
+      "description": "Start wandering \u2014 natural, meandering motion with no fixed target."
+    },
+    {
+      "id": "path-to",
+      "category": "do",
+      "label": "Path To",
+      "params": [
+        {
+          "name": "target",
+          "type": "string",
+          "default": null,
+          "label": "target entity (optional)"
+        },
+        {
+          "name": "x",
+          "type": "number",
+          "default": 0,
+          "label": "or x"
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "default": 0,
+          "label": "or y"
+        },
+        {
+          "name": "speed",
+          "type": "number",
+          "default": 2,
+          "label": "speed"
+        }
+      ],
+      "description": "Find a real route around walls and obstacles to a target, then walk it \u2014 for mazes and dungeons where a straight line would walk into a wall."
+    },
+    {
+      "id": "spawned",
+      "category": "when",
+      "label": "Spawned",
+      "params": [],
+      "description": "Fires once for this specific entity, the moment it comes into existence \u2014 whether it was placed in the Stage from the start, or created later by Spawn Prefab or Shoot. Use this instead of Game Starts for anything created mid-game, since Game Starts only ever fires once, before a later-spawned entity exists."
+    },
+    {
+      "id": "emit-particles",
+      "category": "do",
+      "label": "Emit Particles",
+      "params": [
+        {
+          "name": "effect",
+          "type": "string",
+          "default": null,
+          "label": "effect (from Particle Lab)"
+        }
+      ],
+      "description": "Play a particle effect made in the Particle Lab, starting right where this entity is."
+    }
+  ]
+}

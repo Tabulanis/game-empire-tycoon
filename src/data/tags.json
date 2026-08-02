@@ -1,0 +1,27 @@
+{
+  "note": "Pitch Meeting taxonomy. Constitution Article VIII. Phase 4 consumes this.",
+  "axes": {
+    "perspective": ["side", "top", "first", "iso"],
+    "verb": ["jump", "shoot", "solve", "talk", "build", "collect", "deliver", "sneak", "race"],
+    "hero": ["human", "animal", "robot", "dragon", "vehicle", "blob"],
+    "goal": ["rescue", "escape", "collect-all", "reach-end", "defeat-boss", "uncover-truth", "high-score"],
+    "tone": ["cozy", "spooky", "silly", "epic", "mysterious"],
+    "world": ["forest", "city", "space", "dungeon", "ocean", "desert", "house"],
+    "difficulty": ["chill", "normal", "spicy"]
+  },
+  "keywords": {
+    "dragon": ["hero:dragon"],
+    "pizza": ["goal:deliver"],
+    "deliver": ["goal:deliver", "verb:deliver"],
+    "haunted": ["tone:spooky", "world:house"],
+    "ghost": ["tone:spooky"],
+    "detective": ["goal:uncover-truth"],
+    "clue": ["goal:uncover-truth"],
+    "castle": ["world:dungeon"],
+    "puppy": ["hero:animal", "tone:cozy"],
+    "cat": ["hero:animal", "tone:cozy"],
+    "space": ["world:space"],
+    "robot": ["hero:robot"],
+    "race": ["verb:race", "goal:reach-end"]
+  }
+}

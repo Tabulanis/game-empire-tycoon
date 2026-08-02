@@ -1,0 +1,17 @@
+[
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      { "do": "end-game", "result": "lose", "message": "The outpost has fallen." }
+    ]
+  },
+  {
+    "when": "every-n-seconds",
+    "seconds": 45,
+    "if": [],
+    "do": [
+      { "do": "end-game", "result": "win", "message": "You held the line!" }
+    ]
+  }
+]

@@ -1,0 +1,234 @@
+{
+  "id": "crossroads",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6,
+            1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "floor",
+      "name": "Floor",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "tilemap": {
+          "cell": 1,
+          "tiles": {
+            "-8,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-7,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "0,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "7,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "8,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "9,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "10,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "11,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "12,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "13,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "14,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "wanderer",
+      "name": "Old Wanderer",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#c7d0de",
+          "glyph": "?",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "bricks": {
+          "sheet": "quest-giver"
+        }
+      }
+    },
+    {
+      "id": "spring",
+      "name": "Spring",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "glyph": "\u2248",
+          "size": [
+            0.8,
+            0.6
+          ]
+        },
+        "bricks": {
+          "sheet": "flag-checker"
+        }
+      }
+    }
+  ]
+}

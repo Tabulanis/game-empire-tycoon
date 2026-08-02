@@ -1,0 +1,18 @@
+[
+  {
+    "when": "touched",
+    "if": [{ "check": "counter-compare", "key": "gold", "op": ">=", "value": 10 }],
+    "do": [
+      { "do": "award-points", "key": "gold", "amount": -10 },
+      { "do": "give-item", "item": "sword", "amount": 1 },
+      { "do": "say", "card": "bought-sword" }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [{ "check": "counter-compare", "key": "gold", "op": "<=", "value": 9 }],
+    "do": [
+      { "do": "say", "card": "need-more-gold" }
+    ]
+  }
+]

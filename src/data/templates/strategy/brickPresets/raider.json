@@ -1,0 +1,17 @@
+[
+  {
+    "when": "spawned",
+    "if": [],
+    "do": [
+      { "do": "chase", "target": "player", "speed": 1.3 }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "deal-damage", "amount": 1, "target": "other" },
+      { "do": "defeat-self" }
+    ]
+  }
+]

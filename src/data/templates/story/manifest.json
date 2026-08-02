@@ -1,0 +1,10 @@
+{
+  "id": "story",
+  "era": "garage",
+  "tags": ["side-view", "talk", "2d"],
+  "modules": ["motion2d", "triggers", "score"],
+  "starter": "scenes/crossroads.json",
+  "story": "story.json",
+  "brickPresets": ["quest-giver", "flag-checker"],
+  "questions": ["hero", "goal", "tone", "difficulty"]
+}

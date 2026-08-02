@@ -1,0 +1,18 @@
+[
+  {
+    "when": "touched",
+    "if": [{ "check": "counter-compare", "key": "ore", "op": ">=", "value": 8 }],
+    "do": [
+      { "do": "award-points", "key": "ore", "amount": -8 },
+      { "do": "spawn-prefab", "prefab": "watchtower" },
+      { "do": "award-points", "key": "towersBuilt", "amount": 1 }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [{ "check": "counter-compare", "key": "ore", "op": "<=", "value": 7 }],
+    "do": [
+      { "do": "say", "card": "need-more-ore" }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "when": "player-enters-zone",
+    "if": [],
+    "do": [
+      { "do": "set-checkpoint" }
+    ]
+  }
+]

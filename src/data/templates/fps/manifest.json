@@ -1,0 +1,11 @@
+{
+  "id": "fps",
+  "era": "garage",
+  "tags": ["3d", "shoot", "first-person"],
+  "modules": ["motion3d", "triggers", "score"],
+  "controlScheme": "fps",
+  "input": { "shoot": ["KeyX", "KeyJ"] },
+  "starter": "scenes/range.json",
+  "brickPresets": ["player-shooter", "projectile", "enemy-target", "win-checker"],
+  "questions": ["hero", "tone", "difficulty"]
+}

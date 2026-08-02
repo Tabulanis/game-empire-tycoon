@@ -1,0 +1,35 @@
+[
+  {
+    "id": "quest-intro",
+    "speaker": "Old Wanderer",
+    "text": "The village well has run dry. Will you look for the spring?",
+    "choices": [
+      { "label": "I'll find it.", "next": "quest-accept" },
+      { "label": "Not today.", "next": "quest-decline" }
+    ]
+  },
+  {
+    "id": "quest-accept",
+    "speaker": "Old Wanderer",
+    "text": "Follow the path east. I'll wait here.",
+    "next": null
+  },
+  {
+    "id": "quest-decline",
+    "speaker": "Old Wanderer",
+    "text": "No matter. The offer stands, should you change your mind.",
+    "next": null
+  },
+  {
+    "id": "spring-found-yes",
+    "speaker": "Old Wanderer",
+    "text": "You came through! The village won't forget this.",
+    "next": null
+  },
+  {
+    "id": "spring-found-no",
+    "speaker": "Old Wanderer",
+    "text": "A spring, out here? I wouldn't know where to start looking.",
+    "next": null
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "heal", "amount": 1, "target": "other" },
+      { "do": "destroy-self" }
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+[
+  { "id": "bought-sword", "speaker": "Blacksmith", "text": "A fine blade. Watch yourself out there.", "next": null },
+  { "id": "need-more-gold", "speaker": "Blacksmith", "text": "Ten gold for the sword. Come back when you've got it.", "next": null },
+  { "id": "healed", "speaker": "Healer", "text": "There — good as new.", "next": null },
+  { "id": "full-health", "speaker": "Healer", "text": "You look well enough to me.", "next": null },
+  { "id": "need-sword", "speaker": "Gate Guard", "text": "The wilds past here aren't safe unarmed. Find a blade first.", "next": null }
+]

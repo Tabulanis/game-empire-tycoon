@@ -1,0 +1,416 @@
+{
+  "id": "meadow",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -5,
+            1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "bricks": {
+          "sheet": "player-platformer"
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "floor-left",
+      "name": "Floor (left)",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "tilemap": {
+          "cell": 1,
+          "tiles": {
+            "-6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "0,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "7,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "floor-right",
+      "name": "Floor (right)",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "tilemap": {
+          "cell": 1,
+          "tiles": {
+            "12,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "13,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "14,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "15,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "16,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "17,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "18,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "19,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "20,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "pit-kill",
+      "name": "Pit",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10,
+            -6,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "kill",
+          "size": [
+            3.6,
+            6
+          ]
+        }
+      }
+    },
+    {
+      "id": "coin-1",
+      "name": "Coin",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -2,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "coin"
+        }
+      }
+    },
+    {
+      "id": "coin-2",
+      "name": "Coin",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            15,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "size": [
+            0.4,
+            0.4
+          ]
+        },
+        "bricks": {
+          "sheet": "coin"
+        }
+      }
+    },
+    {
+      "id": "enemy-1",
+      "name": "Patrol Enemy",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3,
+            -0.55,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#603a5e",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "shape": "box",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "bricks": {
+          "sheet": "patrol-enemy"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "checkpoint-1",
+      "name": "Checkpoint",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            13,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "checkpoint",
+          "size": [
+            1.5,
+            2
+          ]
+        },
+        "bricks": {
+          "sheet": "checkpoint"
+        }
+      }
+    },
+    {
+      "id": "goal-1",
+      "name": "Goal Flag",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            19,
+            1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#67e39b",
+          "glyph": "\u2691",
+          "size": [
+            0.6,
+            1.2
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            1.5,
+            3
+          ]
+        },
+        "bricks": {
+          "sheet": "goal"
+        }
+      }
+    }
+  ]
+}

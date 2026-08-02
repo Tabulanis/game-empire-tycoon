@@ -1,0 +1,358 @@
+{
+  "id": "spellbound",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6,
+            1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#6fd3ff",
+          "size": [
+            0.6,
+            0.9
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "floor",
+      "name": "Floor",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -1,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "tilemap": {
+          "cell": 1,
+          "tiles": {
+            "-8,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-7,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "-1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "0,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "1,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "2,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "3,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "4,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "5,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "6,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "7,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "8,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "9,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "10,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "11,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            },
+            "12,-1": {
+              "item": "block",
+              "swatch": "#3b4a63"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "letter-g",
+      "name": "Letter G",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "G",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "bricks": {
+          "sheet": "letter-tile"
+        }
+      }
+    },
+    {
+      "id": "letter-a",
+      "name": "Letter A",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            1.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "A",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "bricks": {
+          "sheet": "letter-tile"
+        }
+      }
+    },
+    {
+      "id": "step-a",
+      "name": "Step",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            0.3,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#3b4a63"
+        },
+        "body": {
+          "type": "static",
+          "shape": "box",
+          "size": [
+            1.4,
+            0.4
+          ]
+        }
+      }
+    },
+    {
+      "id": "letter-m",
+      "name": "Letter M",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "M",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "bricks": {
+          "sheet": "letter-tile"
+        }
+      }
+    },
+    {
+      "id": "letter-e",
+      "name": "Letter E",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            9,
+            0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#f0c463",
+          "glyph": "E",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "bricks": {
+          "sheet": "letter-tile"
+        }
+      }
+    },
+    {
+      "id": "manager",
+      "name": "Game Manager",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "bricks": {
+          "sheet": "win-checker"
+        }
+      }
+    }
+  ]
+}

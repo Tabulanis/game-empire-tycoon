@@ -1,0 +1,17 @@
+[
+  {
+    "when": "touched",
+    "if": [{ "check": "story-flag-set", "flag": "quest-accepted", "value": true }],
+    "do": [
+      { "do": "say", "card": "spring-found-yes" },
+      { "do": "end-game", "result": "win", "message": "You found the spring!" }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [{ "check": "story-flag-set", "flag": "quest-accepted", "value": false }],
+    "do": [
+      { "do": "say", "card": "spring-found-no" }
+    ]
+  }
+]

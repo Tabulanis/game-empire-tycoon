@@ -1,0 +1,12 @@
+[
+  {
+    "when": "counter-reached",
+    "key": "targets",
+    "op": ">=",
+    "value": 5,
+    "if": [],
+    "do": [
+      { "do": "end-game", "result": "win", "message": "Range clear!" }
+    ]
+  }
+]

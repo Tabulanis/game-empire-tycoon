@@ -1,0 +1,21 @@
+{
+  "watchtower": {
+    "name": "Watchtower",
+    "components": {
+      "transform": { "p": [0, 0, 0], "r": [0, 0, 0], "s": [1, 1, 1] },
+      "sprite": { "swatch": "#8a95ad", "glyph": "\u25B2", "size": [0.8, 0.8] },
+      "body": { "type": "static", "shape": "box", "size": [0.8, 0.8] },
+      "tags": ["defense"]
+    }
+  },
+  "raider": {
+    "name": "Raider",
+    "components": {
+      "transform": { "p": [0, 0, 0], "r": [0, 0, 0], "s": [1, 1, 1] },
+      "sprite": { "swatch": "#ff6b8b", "size": [0.5, 0.5] },
+      "body": { "type": "kinematic", "shape": "box", "size": [0.5, 0.5] },
+      "bricks": { "sheet": "raider" },
+      "tags": ["enemy"]
+    }
+  }
+}

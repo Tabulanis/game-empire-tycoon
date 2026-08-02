@@ -1,0 +1,12 @@
+[
+  {
+    "when": "counter-reached",
+    "key": "gems",
+    "op": ">=",
+    "value": 5,
+    "if": [],
+    "do": [
+      { "do": "end-game", "result": "win", "message": "You found every gem!" }
+    ]
+  }
+]

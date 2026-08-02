@@ -1,0 +1,10 @@
+{
+  "id": "side-scroller",
+  "era": "garage",
+  "tags": ["side-view", "shoot", "run", "2d"],
+  "modules": ["motion2d", "triggers", "score", "camera-follow"],
+  "input": { "shoot": ["KeyX", "KeyJ"] },
+  "starter": "scenes/corridor.json",
+  "brickPresets": ["player-shooter", "projectile", "turret-enemy", "health-pickup", "goal-runner"],
+  "questions": ["hero", "goal", "tone", "difficulty"]
+}

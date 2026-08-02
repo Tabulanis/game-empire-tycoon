@@ -1,0 +1,10 @@
+[
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "award-points", "key": "gems", "amount": 1 },
+      { "do": "destroy-self" }
+    ]
+  }
+]

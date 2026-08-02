@@ -1,0 +1,379 @@
+/**
+ * @file meshes.js
+ * @description Entity -> Object3D construction and transform sync — the part
+ * of scene rendering that is NOT editor-only. Both the Stage (editor/stage.js,
+ * with its selection gizmos and tile-painting UI layered on top) and the real
+ * game runtime (runtime.js, which the exported single-file cartridge also
+ * runs) build their views through this module. Extracted out of stage.js in
+ * Phase 3 because runtime.js must never import from editor/ — the Cartridge
+ * Press ships a game that has no editor code in it at all.
+ * Ticket P3-5 (architecture fix alongside the runtime build). Originally
+ * written as part of P2-2.
+ */
+
+import * as THREE from 'three';
+import { LOGIC_COLORS, findEntity } from './entities.js';
+
+/**
+ * @typedef {Object} SceneView
+ * @property {Map<string, THREE.Object3D>} objects entityId -> root object
+ * @property {(id: string) => void} refreshEntity rebuild one entity's object
+ * @property {() => void} clear remove everything from the content root
+ */
+
+/**
+ * Build (or rebuild) the renderable view of a scene inside the engine's
+ * content root. Edit view includes logic entities; play view hides them
+ * (visible in edit, invisible in play — P2-6).
+ * @param {any} engine renderer engine handle
+ * @param {{entities: Array<any>}} scene
+ * @param {{play?: boolean}} [opts]
+ * @returns {SceneView}
+ */
+export function buildSceneView(engine, scene, opts = {}) {
+  const root = engine.contentRoot;
+  clearGroup(root);
+  /** @type {Map<string, THREE.Object3D>} */
+  const objects = new Map();
+
+  for (const entity of scene.entities) {
+    if (opts.play && entity.components.logic) continue;
+    const obj = buildEntityObject(engine, entity);
+    if (!obj) continue;
+    root.add(obj);
+    objects.set(entity.id, obj);
+  }
+
+  return {
+    objects,
+    refreshEntity(id) {
+      const old = objects.get(id);
+      if (old) { root.remove(old); disposeObject(old); objects.delete(id); }
+      const entity = findEntity(scene, id);
+      if (!entity || (opts.play && entity.components.logic)) return;
+      const obj = buildEntityObject(engine, entity);
+      if (!obj) return;
+      root.add(obj);
+      objects.set(id, obj);
+    },
+    clear() {
+      clearGroup(root);
+      objects.clear();
+    }
+  };
+}
+
+/** @param {THREE.Object3D} group */
+function clearGroup(group) {
+  for (const child of [...group.children]) {
+    group.remove(child);
+    disposeObject(child);
+  }
+}
+
+/** @param {THREE.Object3D} obj */
+function disposeObject(obj) {
+  obj.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) { if (m.map) m.map.dispose(); m.dispose(); }
+    }
+  });
+}
+
+/**
+ * Build the Object3D for one entity from its components.
+ * @param {any} engine
+ * @param {any} entity
+ * @returns {THREE.Object3D|null}
+ */
+export function buildEntityObject(engine, entity) {
+  const group = new THREE.Group();
+  group.name = entity.id;
+  group.userData.entityId = entity.id;
+  const c = entity.components;
+
+  if (c.tilemap) group.add(buildTilemapMesh(c.tilemap));
+  if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite));
+  if (c.model) group.add(buildModelMesh(c.model));
+  if (c.logic) group.add(buildLogicMesh(engine, c.logic));
+
+  if (group.children.length === 0) {
+    // component-less entity: a small wire marker so it is still selectable
+    const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x8a95ad, wireframe: true });
+    group.add(new THREE.Mesh(geo, mat));
+  }
+
+  syncTransform(group, entity, engine.mode);
+  return group;
+}
+
+/**
+ * Placeholder sprite card: swatch fill, soft border, optional glyph.
+ * Real image assets ride this same mesh once warehouse packs carry paths.
+ * @param {any} engine
+ * @param {any} sprite
+ * @returns {THREE.Mesh}
+ */
+function buildSpriteMesh(engine, sprite) {
+  const tex = engine.makeCanvasTexture((ctx, size) => {
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = sprite.swatch || '#6fb2dc';
+    roundRect(ctx, size * 0.06, size * 0.06, size * 0.88, size * 0.88, size * 0.12);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = size * 0.03;
+    ctx.stroke();
+    if (sprite.glyph) {
+      ctx.fillStyle = 'rgba(16,19,26,0.8)';
+      ctx.font = 'bold ' + Math.round(size * 0.5) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sprite.glyph, size / 2, size / 2);
+    }
+  });
+  const size = sprite.size || [1, 1];
+  const geo = new THREE.PlaneGeometry(size[0], size[1]);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+  const mesh = new THREE.Mesh(geo, mat);
+
+  // Real Atelier-authored art, when the caller has wired a resolver (the
+  // Stage during editing, or the exported game reading its baked-in
+  // cartridge). Swapped in once loaded — the swatch card above renders
+  // immediately so nothing pops in empty while the real texture decodes.
+  if (sprite.asset && typeof engine.resolveSpriteAsset === 'function') {
+    const dataUrl = engine.resolveSpriteAsset(sprite.asset);
+    if (dataUrl) {
+      new THREE.TextureLoader().load(dataUrl, (loaded) => {
+        loaded.colorSpace = THREE.SRGBColorSpace;
+        loaded.magFilter = THREE.NearestFilter; // crisp pixel art, no blur
+        loaded.minFilter = THREE.NearestFilter;
+        mat.map.dispose();
+        mat.map = loaded;
+        mat.needsUpdate = true;
+      });
+    }
+  }
+
+  return mesh;
+}
+
+/**
+ * @param {any} model
+ * @returns {THREE.Mesh}
+ */
+function buildModelMesh(model) {
+  const size = model.size || [1, 1, 1];
+  const shape = model.shape || 'box';
+  let geo;
+  switch (shape) {
+    case 'sphere':
+      geo = new THREE.SphereGeometry(Math.max(size[0], size[1], size[2]) / 2, 20, 16);
+      break;
+    case 'cylinder':
+      geo = new THREE.CylinderGeometry(size[0] / 2, size[0] / 2, size[1], 20);
+      break;
+    case 'cone':
+      geo = new THREE.ConeGeometry(size[0] / 2, size[1], 20);
+      break;
+    default:
+      geo = new THREE.BoxGeometry(size[0], size[1], size[2]);
+  }
+
+  const mat = buildModelMaterial(model);
+  const mesh = new THREE.Mesh(geo, mat);
+  if (model.shader) mesh.userData.animatedMaterial = true; // tick() needs to feed it a live time uniform
+  return mesh;
+}
+
+/**
+ * Workshop Mode: an optional custom fragment shader on a model, in place of
+ * the standard lit material. `model.shader` is a GLSL expression body that
+ * must assign `color` (vec3) — the workshop panel supplies a starter body
+ * ("color = vec3(uv.x, uv.y, 0.5);") a kid can edit freely.
+ *
+ * Honest limitation: the try/catch below only guards JS-level construction
+ * errors (rare) — GLSL syntax errors themselves compile on the GPU, not
+ * during material construction, so a malformed shader body will NOT be
+ * caught here. It will render black with a console warning instead of
+ * throwing. That's an acceptable failure mode for an experimental,
+ * advanced-drawer feature (doesn't break the rest of the scene), but it's
+ * not the same guarantee as "falls back to the standard material" — worth
+ * being precise about rather than overclaiming.
+ * @param {any} model
+ * @returns {THREE.Material}
+ */
+export function buildModelMaterial(model) {
+  if (!model.shader) {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(model.swatch || '#6fb2dc'),
+      roughness: 0.6,
+      metalness: 0.1
+    });
+  }
+  try {
+    return new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(model.swatch || '#6fb2dc') } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColor;
+        varying vec2 vUv;
+        void main() {
+          vec2 uv = vUv;
+          float time = uTime;
+          vec3 color = uColor;
+          ${model.shader}
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+  } catch (err) {
+    return new THREE.MeshStandardMaterial({ color: new THREE.Color(model.swatch || '#6fb2dc') });
+  }
+}
+
+/**
+ * Zones render as translucent color-coded boxes with edges; spawn/checkpoint
+ * points as small glyph markers. Colors from entities.LOGIC_COLORS. Never
+ * actually built during play (buildSceneView skips logic entities when
+ * opts.play is set) — kept here anyway since it's part of the same
+ * component -> mesh mapping and the Stage still needs it while editing.
+ * @param {any} engine
+ * @param {any} logic
+ * @returns {THREE.Object3D}
+ */
+function buildLogicMesh(engine, logic) {
+  const color = LOGIC_COLORS[logic.kind] || '#6fd3ff';
+  const isZone = logic.kind === 'trigger' || logic.kind === 'kill';
+  const size = logic.size || (isZone ? [2, 2] : [0.6, 0.6]);
+  const group = new THREE.Group();
+
+  if (isZone) {
+    const geo = new THREE.PlaneGeometry(size[0], size[1]);
+    const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color), transparent: true, opacity: 0.18, side: THREE.DoubleSide
+    }));
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: new THREE.Color(color) })
+    );
+    group.add(fill, edges);
+  } else {
+    const glyph = logic.kind === 'spawn' ? '\u25B2' : '\u2691';
+    const tex = engine.makeCanvasTexture((ctx, s) => {
+      ctx.clearRect(0, 0, s, s);
+      ctx.fillStyle = color;
+      ctx.font = 'bold ' + Math.round(s * 0.8) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(glyph, s / 2, s / 2);
+    });
+    const geo = new THREE.PlaneGeometry(size[0], size[1]);
+    group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true })));
+  }
+  return group;
+}
+
+/**
+ * Tilemap as one InstancedMesh — hundreds of tiles, one draw call (P2-5).
+ * @param {any} map tilemap component
+ * @returns {THREE.Object3D}
+ */
+function buildTilemapMesh(map) {
+  const keys = Object.keys(map.tiles);
+  const cell = map.cell || 1;
+  if (!keys.length) {
+    // empty map: a faint origin marker so the entity stays selectable
+    const geo = new THREE.PlaneGeometry(cell, cell);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x2c3446, transparent: true, opacity: 0.4 });
+    return new THREE.Mesh(geo, mat);
+  }
+  const geo = new THREE.PlaneGeometry(cell, cell);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const inst = new THREE.InstancedMesh(geo, mat, keys.length);
+  const m = new THREE.Matrix4();
+  const col = new THREE.Color();
+  keys.forEach((key, i) => {
+    const [cx, cy] = key.split(',').map(Number);
+    m.makeTranslation((cx + 0.5) * cell, (cy + 0.5) * cell, 0);
+    inst.setMatrixAt(i, m);
+    col.set(map.tiles[key].swatch || '#3b4a63');
+    inst.setColorAt(i, col);
+  });
+  inst.instanceMatrix.needsUpdate = true;
+  if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+  return inst;
+}
+
+/**
+ * Push an entity's transform data onto its Object3D.
+ * @param {THREE.Object3D} obj
+ * @param {any} entity
+ * @param {'2d'|'3d'} mode
+ */
+export function syncTransform(obj, entity, mode) {
+  const t = entity.components.transform;
+  obj.position.set(t.p[0], t.p[1], t.p[2]);
+  if (mode === '2d') {
+    obj.rotation.set(0, 0, THREE.MathUtils.degToRad(t.r[2]));
+  } else {
+    obj.rotation.set(
+      THREE.MathUtils.degToRad(t.r[0]),
+      THREE.MathUtils.degToRad(t.r[1]),
+      THREE.MathUtils.degToRad(t.r[2])
+    );
+  }
+  obj.scale.set(t.s[0], t.s[1], t.s[2]);
+}
+
+/**
+ * Pull an Object3D's pose back into entity transform data (gizmo write-back).
+ * @param {any} entity
+ * @param {THREE.Object3D} obj
+ * @param {'2d'|'3d'} mode
+ */
+export function readTransform(entity, obj, mode) {
+  const t = entity.components.transform;
+  t.p = [round3(obj.position.x), round3(obj.position.y), round3(obj.position.z)];
+  if (mode === '2d') {
+    t.p[2] = round3(entity.components.transform.p[2]); // Z is layer order in 2D — the gizmo never moves it
+    t.r = [0, 0, round3(THREE.MathUtils.radToDeg(obj.rotation.z))];
+  } else {
+    t.r = [
+      round3(THREE.MathUtils.radToDeg(obj.rotation.x)),
+      round3(THREE.MathUtils.radToDeg(obj.rotation.y)),
+      round3(THREE.MathUtils.radToDeg(obj.rotation.z))
+    ];
+  }
+  t.s = [round3(obj.scale.x), round3(obj.scale.y), round3(obj.scale.z)];
+}
+
+/** @param {number} n @returns {number} */
+function round3(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
+/**
+ * Canvas rounded-rect path helper (shared by sprite cards and the dummy).
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x @param {number} y @param {number} w @param {number} h
+ * @param {number} r
+ */
+export function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}

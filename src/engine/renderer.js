@@ -1,0 +1,352 @@
+/**
+ * @file renderer.js
+ * @description The render engine: one Three.js scene graph serving both 2D and
+ * 3D modes, plus the effect channels chain (Constitution Article XI). This is
+ * the "one renderer" law made real — the Deck and the Stage both run on this
+ * exact module.
+ * Phase 1, extended for Phase 2: `contentRoot` is a persistent group for scene
+ * content (the Stage builds entity views into it; it survives mode switches),
+ * and the P1 demo cube/sprite is now opt-in via `createEngine(canvas, {demo})`
+ * so the Stage starts empty while the Deck keeps its demo.
+ *
+ * API surface (all verified against installed package versions):
+ *   three@0.169.0, postprocessing@6.39.4
+ */
+
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {
+  EffectComposer,
+  RenderPass,
+  EffectPass,
+  BloomEffect,
+  VignetteEffect,
+  NoiseEffect,
+  ChromaticAberrationEffect,
+  PixelationEffect,
+  DepthOfFieldEffect,
+  BlendFunction
+} from 'postprocessing';
+
+/** The full channel list from Constitution Article XI. Order is render order. */
+export const CHANNEL_IDS = ['bloom', 'blur', 'chromatic', 'pixelate', 'noise', 'vignette'];
+
+/** Human labels for the channel toggles. */
+export const CHANNEL_LABELS = {
+  bloom: 'Bloom',
+  blur: 'Blur / DoF',
+  vignette: 'Vignette',
+  noise: 'Noise / Grain',
+  chromatic: 'Chromatic Aberration',
+  pixelate: 'Pixelate'
+};
+
+/** Tone-map presets, mapped to real THREE.* constants. */
+export const TONE_MAPS = {
+  none: THREE.NoToneMapping,
+  aces: THREE.ACESFilmicToneMapping,
+  agx: THREE.AgXToneMapping,
+  neutral: THREE.NeutralToneMapping,
+  reinhard: THREE.ReinhardToneMapping
+};
+
+/**
+ * Build one channel Effect instance. Wrapped defensively: a broken effect
+ * disables itself with a console warning instead of crashing the whole deck.
+ * @param {string} id
+ * @param {THREE.Camera} camera
+ * @returns {any|null}
+ */
+function buildEffect(id, camera) {
+  try {
+    switch (id) {
+      case 'bloom':
+        return new BloomEffect({ intensity: 1.2, luminanceThreshold: 0.55, luminanceSmoothing: 0.2 });
+      case 'blur':
+        return new DepthOfFieldEffect(camera, { focusDistance: 0.02, focusRange: 0.05, bokehScale: 3 });
+      case 'vignette':
+        return new VignetteEffect({ offset: 0.4, darkness: 0.6 });
+      case 'noise':
+        return new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
+      case 'chromatic':
+        return new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.0025, 0.0015) });
+      case 'pixelate':
+        return new PixelationEffect(10);
+      default:
+        return null;
+    }
+  } catch (err) {
+    console.warn('[renderer] channel "' + id + '" failed to build and is disabled:', err);
+    return null;
+  }
+}
+
+/**
+ * Create a render engine bound to a canvas. One instance per Deck/Stage view.
+ * @param {HTMLCanvasElement} canvas
+ * @param {{demo?: boolean}} [opts] demo: build the P1 demo cube/sprite content
+ *   (the Deck wants this; the Stage renders scene entities instead).
+ * @returns {object} engine handle — see returned methods for the API.
+ */
+export function createEngine(canvas, opts = {}) {
+  const withDemo = !!opts.demo;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0e16);
+
+  /**
+   * Persistent home for scene content (Stage entity views live here). It is
+   * NEVER cleared by mode switches — only its owner (the Stage) rebuilds it.
+   */
+  const contentRoot = new THREE.Group();
+  contentRoot.name = 'contentRoot';
+  scene.add(contentRoot);
+
+  /** @type {THREE.OrthographicCamera|THREE.PerspectiveCamera} */
+  let camera = makeCamera('3d', 1);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+  const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+  sun.position.set(3, 5, 4);
+  scene.add(ambient, sun);
+
+  let composer = new EffectComposer(renderer);
+  let renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+  /** @type {EffectPass|null} */
+  let effectPass = null;
+
+  let mode = '3d';
+  let demoMesh = null;
+  let demoSprite = null;
+  const gltfLoader = new GLTFLoader();
+  const clock = new THREE.Clock();
+
+  /**
+   * @param {'2d'|'3d'} m
+   * @param {number} aspect
+   * @returns {THREE.OrthographicCamera|THREE.PerspectiveCamera}
+   */
+  function makeCamera(m, aspect) {
+    if (m === '2d') {
+      const halfH = 3;
+      const halfW = halfH * aspect;
+      const cam = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, 0.1, 100);
+      cam.position.set(0, 0, 10);
+      cam.lookAt(0, 0, 0);
+      return cam;
+    }
+    const cam = new THREE.PerspectiveCamera(50, aspect, 0.1, 100);
+    cam.position.set(2.4, 1.8, 2.4);
+    cam.lookAt(0, 0, 0);
+    return cam;
+  }
+
+  /** Rebuild the EffectPass from a list of channel ids. Cheap to call often. */
+  function rebuildChannels(channelIds) {
+    if (effectPass) {
+      composer.removePass(effectPass);
+      effectPass.dispose();
+      effectPass = null;
+    }
+    const effects = CHANNEL_IDS
+      .filter((id) => channelIds.includes(id))
+      .map((id) => buildEffect(id, camera))
+      .filter(Boolean);
+    if (effects.length) {
+      effectPass = new EffectPass(camera, ...effects);
+      composer.addPass(effectPass);
+    }
+  }
+
+  /**
+   * Switch camera dimension. contentRoot is untouched; demo content (when this
+   * engine was created with demo) is rebuilt to match the mode.
+   * @param {'2d'|'3d'} m
+   */
+  function setMode(m) {
+    mode = m === '2d' ? '2d' : '3d';
+    const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
+    camera = makeCamera(mode, aspect);
+    composer.removeAllPasses();
+    renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    effectPass = null; // caller re-applies channels via rebuildChannels after mode switch
+    if (withDemo) {
+      clearDemoContent();
+      if (mode === '2d') buildDemoSprite(); else buildDemoCube();
+    }
+  }
+
+  function clearDemoContent() {
+    if (demoMesh) { scene.remove(demoMesh); demoMesh = null; }
+    if (demoSprite) { scene.remove(demoSprite); demoSprite = null; }
+  }
+
+  /** Build the fallback demo cube (used until/unless a real GLB is loaded). */
+  function buildDemoCube() {
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x6fb2dc, roughness: 0.55, metalness: 0.15 });
+    demoMesh = new THREE.Mesh(geo, mat);
+    scene.add(demoMesh);
+  }
+
+  /** Build the 2D demo sprite: a canvas-drawn coin on a plane. */
+  function buildDemoSprite() {
+    const tex = makeCanvasTexture((ctx, size) => {
+      ctx.clearRect(0, 0, size, size);
+      const r = size * 0.36;
+      const cx = size / 2, cy = size / 2;
+      const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+      grad.addColorStop(0, '#ffe9a8');
+      grad.addColorStop(1, '#e0a83a');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#8a6416';
+      ctx.lineWidth = size * 0.03;
+      ctx.stroke();
+      ctx.fillStyle = '#8a6416';
+      ctx.font = 'bold ' + Math.round(size * 0.4) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', cx, cy + size * 0.02);
+    });
+    const geo = new THREE.PlaneGeometry(2, 2);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+    demoSprite = new THREE.Mesh(geo, mat);
+    scene.add(demoSprite);
+  }
+
+  /**
+   * Create a CanvasTexture from a draw callback. This IS the 2D sprite path —
+   * no image asset pipeline required yet.
+   * @param {(ctx: CanvasRenderingContext2D, size: number) => void} drawFn
+   * @param {number} [size]
+   * @returns {THREE.CanvasTexture}
+   */
+  function makeCanvasTexture(drawFn, size = 128) {
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    drawFn(ctx, size);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  /**
+   * Load a GLB from a URL and place it in the scene, replacing the demo mesh.
+   * Deck demo path — Stage entity models get their own loader when real GLB
+   * warehouse packs land.
+   * @param {string} url
+   * @returns {Promise<{ok: boolean, meshes: number, vertices: number, triangles: number, error?: string}>}
+   */
+  function loadGLB(url) {
+    return new Promise((resolve) => {
+      gltfLoader.load(
+        url,
+        (gltf) => {
+          clearDemoContent();
+          demoMesh = gltf.scene;
+          scene.add(demoMesh);
+          let meshes = 0, vertices = 0, triangles = 0;
+          demoMesh.traverse((obj) => {
+            if (obj.isMesh) {
+              meshes++;
+              const geo = obj.geometry;
+              vertices += geo.attributes.position ? geo.attributes.position.count : 0;
+              triangles += geo.index ? geo.index.count / 3 : (geo.attributes.position ? geo.attributes.position.count / 3 : 0);
+            }
+          });
+          resolve({ ok: true, meshes, vertices, triangles });
+        },
+        undefined,
+        (err) => {
+          console.warn('[renderer] GLB load failed', err);
+          resolve({ ok: false, meshes: 0, vertices: 0, triangles: 0, error: String(err && err.message || err) });
+        }
+      );
+    });
+  }
+
+  /** @param {keyof typeof TONE_MAPS} name */
+  function setToneMap(name) {
+    renderer.toneMapping = TONE_MAPS[name] !== undefined ? TONE_MAPS[name] : THREE.NoToneMapping;
+  }
+
+  /**
+   * @param {number} width
+   * @param {number} height
+   */
+  function resize(width, height) {
+    if (width <= 0 || height <= 0) return;
+    renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+    if (camera.isPerspectiveCamera) {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    } else {
+      const halfH = 3;
+      const halfW = halfH * (width / height);
+      camera.left = -halfW; camera.right = halfW;
+      camera.top = halfH; camera.bottom = -halfH;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  /** Advance one frame. The caller owns the requestAnimationFrame loop. */
+  function tick() {
+    const dt = clock.getDelta();
+    if (withDemo) {
+      if (demoMesh && mode === '3d') {
+        demoMesh.rotation.y += dt * 0.6;
+        demoMesh.rotation.x += dt * 0.25;
+      }
+      if (demoSprite && mode === '2d') {
+        demoSprite.rotation.z = Math.sin(clock.elapsedTime * 0.8) * 0.15;
+      }
+    }
+    composer.render(dt);
+    return dt;
+  }
+
+  function dispose() {
+    if (effectPass) effectPass.dispose();
+    composer.dispose();
+    renderer.dispose();
+    scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) { if (m.map) m.map.dispose(); m.dispose(); }
+      }
+    });
+  }
+
+  // initial content
+  if (withDemo) buildDemoCube();
+
+  return {
+    get renderer() { return renderer; },
+    get scene() { return scene; },
+    get camera() { return camera; },
+    get mode() { return mode; },
+    get contentRoot() { return contentRoot; },
+    setMode,
+    rebuildChannels,
+    setToneMap,
+    loadGLB,
+    makeCanvasTexture,
+    resize,
+    tick,
+    dispose
+  };
+}

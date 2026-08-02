@@ -1,0 +1,12 @@
+{
+  "id": "strategy",
+  "era": "garage",
+  "tags": ["top", "top-down", "build", "collect", "2d"],
+  "modules": ["motion2d", "triggers", "score", "ai"],
+  "perspective": "top",
+  "starter": "scenes/outpost.json",
+  "prefabs": "prefabs.json",
+  "story": "story.json",
+  "brickPresets": ["ore-node", "watchtower-kiosk", "raider-spawner", "raider", "player-defender"],
+  "questions": ["goal", "tone", "difficulty"]
+}

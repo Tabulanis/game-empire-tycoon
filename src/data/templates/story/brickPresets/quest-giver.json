@@ -1,0 +1,17 @@
+[
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      { "do": "say", "card": "quest-intro" }
+    ]
+  },
+  {
+    "when": "story-card-reached",
+    "card": "quest-accept",
+    "if": [],
+    "do": [
+      { "do": "set-story-flag", "flag": "quest-accepted", "value": true }
+    ]
+  }
+]
