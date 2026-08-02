@@ -59,9 +59,20 @@ export function renderLoftPanel(host, ctx) {
   durationRow.innerHTML = '<span>Duration (s):</span>';
   const durationInput = document.createElement('input');
   durationInput.type = 'number'; durationInput.min = '0.2'; durationInput.step = '0.1';
-  durationInput.addEventListener('change', () => { working.duration = Math.max(0.2, Number(durationInput.value) || 2); });
+  durationInput.addEventListener('change', () => { working.duration = Math.max(0.2, Number(durationInput.value) || 2); refreshTimeline(); });
   durationRow.appendChild(durationInput);
   left.appendChild(durationRow);
+
+  const timelineWrap = document.createElement('div');
+  timelineWrap.innerHTML = '<div class="sub" style="margin-top:8px">Timeline — click a diamond to select, drag to retime, click empty track to add one there.</div>';
+  const track = document.createElement('div');
+  track.style.cssText = 'position:relative;height:44px;background:#12151f;border-radius:6px;margin-top:4px;cursor:pointer;';
+  const playhead = document.createElement('div');
+  playhead.style.cssText = 'position:absolute;top:0;bottom:0;width:2px;background:#ffd166;pointer-events:none;left:0%;';
+  track.appendChild(playhead);
+  timelineWrap.appendChild(track);
+  left.appendChild(timelineWrap);
+
   layout.appendChild(left);
 
   // ---------- right: keyframe list + save ----------
@@ -73,7 +84,7 @@ export function renderLoftPanel(host, ctx) {
   kfCard.innerHTML = '<h3>Keyframes</h3>';
   const kfList = document.createElement('div');
   kfCard.appendChild(kfList);
-  kfCard.appendChild(makeBtn('+ Keyframe', () => { loft.addKeyframe(working); refreshKeyframes(); }));
+  kfCard.appendChild(makeBtn('+ Keyframe', () => { loft.addKeyframe(working); refreshTimeline(); refreshKeyframes(); }));
   right.appendChild(kfCard);
 
   const saveCard = document.createElement('div');
@@ -101,6 +112,64 @@ export function renderLoftPanel(host, ctx) {
   host.appendChild(panel);
 
   /* ---------------------------------------------------------------- */
+  /* timeline: visual keyframe track, drag to retime                    */
+  /* ---------------------------------------------------------------- */
+  let selectedIndex = -1;
+  let draggingIndex = -1;
+
+  function timeToPercent(t) {
+    return Math.max(0, Math.min(100, (t / Math.max(working.duration, 0.0001)) * 100));
+  }
+
+  function refreshTimeline() {
+    track.querySelectorAll('.kf-marker').forEach((el) => el.remove());
+    working.keyframes.forEach((kf, i) => {
+      const marker = document.createElement('div');
+      marker.className = 'kf-marker';
+      marker.title = 't=' + kf.t.toFixed(2) + 's';
+      marker.style.cssText =
+        'position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;' +
+        'transform:rotate(45deg);border:2px solid #0b0e16;cursor:grab;' +
+        'background:' + (i === selectedIndex ? '#ffd166' : '#67e39b') + ';' +
+        'left:' + timeToPercent(kf.t) + '%;';
+      marker.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        draggingIndex = i;
+        selectedIndex = i;
+        marker.setPointerCapture(e.pointerId);
+        refreshKeyframes();
+      });
+      marker.addEventListener('pointermove', (e) => {
+        if (draggingIndex !== i) return;
+        const rect = track.getBoundingClientRect();
+        const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        kf.t = Math.round(frac * working.duration * 100) / 100;
+        marker.style.left = timeToPercent(kf.t) + '%';
+        marker.title = 't=' + kf.t.toFixed(2) + 's';
+      });
+      marker.addEventListener('pointerup', () => {
+        if (draggingIndex !== i) return;
+        draggingIndex = -1;
+        working.keyframes.sort((a, b) => a.t - b.t);
+        refreshTimeline();
+        refreshKeyframes();
+      });
+      track.appendChild(marker);
+    });
+  }
+
+  track.addEventListener('click', (e) => {
+    if (e.target !== track) return; // a marker already handled its own interaction via pointerdown
+    const rect = track.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const t = Math.round(frac * working.duration * 100) / 100;
+    loft.addKeyframe(working, t);
+    selectedIndex = working.keyframes.findIndex((k) => k.t === t);
+    refreshTimeline();
+    refreshKeyframes();
+  });
+
+  /* ---------------------------------------------------------------- */
   /* keyframe list                                                      */
   /* ---------------------------------------------------------------- */
   function refreshKeyframes() {
@@ -109,10 +178,17 @@ export function renderLoftPanel(host, ctx) {
       const row = document.createElement('div');
       row.className = 'brick-row';
       row.style.flexWrap = 'wrap';
+      if (i === selectedIndex) row.style.outline = '2px solid #ffd166';
+      row.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+        selectedIndex = i;
+        refreshTimeline();
+        refreshKeyframes();
+      });
       const tLabel = document.createElement('span'); tLabel.textContent = 't:'; row.appendChild(tLabel);
       const tInput = document.createElement('input');
       tInput.type = 'number'; tInput.step = '0.1'; tInput.style.width = '55px'; tInput.value = String(kf.t);
-      tInput.addEventListener('change', () => { kf.t = Number(tInput.value) || 0; working.keyframes.sort((a,b)=>a.t-b.t); refreshKeyframes(); });
+      tInput.addEventListener('change', () => { kf.t = Number(tInput.value) || 0; working.keyframes.sort((a,b)=>a.t-b.t); refreshTimeline(); refreshKeyframes(); });
       row.appendChild(tInput);
       ['p', 'r', 's'].forEach((field) => {
         const fLabel = document.createElement('span'); fLabel.textContent = field + ':'; fLabel.style.marginLeft='6px'; row.appendChild(fLabel);
@@ -128,6 +204,8 @@ export function renderLoftPanel(host, ctx) {
       delBtn.className = 'bar bad-btn'; delBtn.textContent = '\u2715';
       delBtn.addEventListener('click', () => {
         if (!loft.removeKeyframe(working, i)) { ctx.toast('A clip needs at least 2 keyframes.', true); return; }
+        selectedIndex = -1;
+        refreshTimeline();
         refreshKeyframes();
       });
       row.appendChild(delBtn);
@@ -161,7 +239,9 @@ export function renderLoftPanel(host, ctx) {
   function renderAll() {
     nameInput.value = working.name;
     durationInput.value = String(working.duration);
+    selectedIndex = -1;
     refreshClipSelect();
+    refreshTimeline();
     refreshKeyframes();
   }
 
@@ -193,13 +273,22 @@ export function renderLoftPanel(host, ctx) {
       const dt = Math.min((ts - lastTs) / 1000, 0.1);
       lastTs = ts;
       previewT += dt;
-      if (mesh && working.keyframes.length >= 2) {
-        const offset = sampleClip(working, previewT);
-        mesh.position.set(offset.p[0], offset.p[1], offset.p[2]);
-        mesh.rotation.set(offset.r[0] * Math.PI / 180, offset.r[1] * Math.PI / 180, offset.r[2] * Math.PI / 180);
-        mesh.scale.set(offset.s[0], offset.s[1], offset.s[2]);
+      playhead.style.left = timeToPercent(previewT % Math.max(working.duration, 0.0001)) + '%';
+      try {
+        if (mesh && working.keyframes.length >= 2) {
+          const offset = sampleClip(working, previewT);
+          mesh.position.set(offset.p[0], offset.p[1], offset.p[2]);
+          mesh.rotation.set(offset.r[0] * Math.PI / 180, offset.r[1] * Math.PI / 180, offset.r[2] * Math.PI / 180);
+          mesh.scale.set(offset.s[0], offset.s[1], offset.s[2]);
+        }
+        if (engine) engine.tick();
+      } catch (err) {
+        console.error('[loft] preview crashed:', err);
+        ctx.toast('Preview crashed — see console.', true);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+        return;
       }
-      if (engine) engine.tick();
       rafId = requestAnimationFrame(loop);
     }
     rafId = requestAnimationFrame((ts) => { lastTs = ts; loop(ts); });
