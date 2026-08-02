@@ -2,8 +2,9 @@
  * @file templates.js
  * @description Loads a genre template (manifest + starter scene + brick
  * presets — Constitution Article VI) and populates a fresh cartridge from
- * it. Only "platformer" exists as of Phase 3; more arrive with their own
- * phase gates per src/data/templates/README.md.
+ * it. Generic over any template id; see src/data/templates/ for the full
+ * roster (8 as of this writing) and AVAILABLE_TEMPLATES in pitch-panel.js
+ * for which ones the Pitch Meeting can currently recommend.
  * Ticket P3-10. Phase 3.
  */
 

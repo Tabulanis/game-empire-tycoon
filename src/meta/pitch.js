@@ -120,9 +120,15 @@ export function buildDesignDoc(vector, chosenManifest) {
   const lines = Object.entries(vector)
     .filter(([, value]) => !!value)
     .map(([axis, value]) => ({ axis, value }));
-  const perspectiveAnswered = vector.perspective && vector.perspective !== 'side';
-  const note = perspectiveAnswered
-    ? 'Only side-view templates exist so far — that pick could not be honored exactly, but everything else was.'
-    : '';
+  // Checks the ACTUAL chosen template rather than assuming — this used to
+  // hardcode "only side-view templates exist," which went stale (and
+  // actively wrong) the moment rpg/strategy/collect-a-thon/fps were added.
+  let note = '';
+  if (vector.perspective) {
+    const wantedTag = PERSPECTIVE_TAG_ALIAS[vector.perspective] || vector.perspective;
+    if (!chosenManifest.tags.includes(wantedTag)) {
+      note = 'No template matches that exact perspective yet — the closest overall fit was picked instead, but everything else was honored.';
+    }
+  }
   return { template: chosenManifest.id, lines, note };
 }

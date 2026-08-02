@@ -8,7 +8,6 @@
 
 import * as cart from './cartridge.js';
 import * as backup from './backup.js';
-import { loadTemplate, applyTemplate } from './templates.js';
 import { renderWarehousePanel } from './panels/warehouse-panel.js';
 import { renderBackupsPanel } from './panels/backups-panel.js';
 import { renderStudioPanel } from './panels/studio-panel.js';
@@ -223,24 +222,14 @@ function showTab(id) {
 /* project commands                                                    */
 /* ------------------------------------------------------------------ */
 
-async function doNew() {
-  if (cart.isDirty() && !confirm('Discard unsaved changes and start a new cartridge?')) return;
-  const fromTemplate = confirm('Start from the Platformer template? (Cancel for a blank cartridge)');
-  await backup.makeBackup('pre-new');
-  if (fromTemplate) {
-    try {
-      const loaded = await loadTemplate('platformer');
-      cart.newCartridge('Untitled Game', (c) => applyTemplate(c, loaded));
-      toast('New cartridge started from the Platformer template.');
-    } catch (err) {
-      toast('Could not load the template (' + (err && err.message || err) + ') — starting blank instead.', true);
-      cart.newCartridge();
-    }
-  } else {
-    cart.newCartridge();
-    toast('New cartridge started.');
-  }
-  showTab(currentTab);
+/** "New" used to be a blunt confirm() popup offering Platformer-or-blank —
+ * now it hands off to the Pitch Meeting, which walks through picking (or
+ * being matched to) any of the real templates. The actual unsaved-changes
+ * guard and pre-replace backup now live at the point data is actually
+ * replaced — Pitch Meeting's "Build It" — not here, since just opening the
+ * tab doesn't discard anything. */
+function doNew() {
+  showTab('pitch');
 }
 
 async function doOpen() {

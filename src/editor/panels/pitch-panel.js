@@ -9,16 +9,33 @@
  */
 
 import * as cart from '../cartridge.js';
+import * as backup from '../backup.js';
 import * as pitch from '../../meta/pitch.js';
 import { loadTemplate, applyTemplate } from '../templates.js';
 
-/** Every template this build ships — the assembler can only pick among these. */
-const AVAILABLE_TEMPLATES = ['platformer', 'word', 'side-scroller', 'story'];
+/** Every template this build ships — the assembler can only pick among these.
+ * Was missing rpg/strategy/collect-a-thon/fps until now; they existed and
+ * worked fine, they just weren't reachable from the Pitch Meeting. */
+const AVAILABLE_TEMPLATES = ['platformer', 'word', 'side-scroller', 'story', 'rpg', 'strategy', 'collect-a-thon', 'fps'];
 
 const AXIS_LABELS = {
   perspective: 'Perspective', verb: 'What do you do?', hero: 'Who are you?',
   goal: 'What\u2019s the goal?', tone: 'What\u2019s the tone?', world: 'Where is it?',
   difficulty: 'How hard?'
+};
+
+/** Honest, plain-language answer to "what does picking this actually do?" \u2014
+ * perspective/verb genuinely steer which template you get matched to (2D vs
+ * 3D, the whole genre); the rest mostly shape the story/summary, not the
+ * template match, and say so rather than overclaim. */
+const AXIS_EXPLAIN = {
+  perspective: 'Decides 2D or 3D, and which template fits \u2014 this one really matters.',
+  verb: 'The main thing you\u2019ll DO in the game \u2014 also steers which template fits.',
+  hero: 'Who the player controls. Shows up in your story and title, not the mechanics.',
+  goal: 'What you\u2019re working toward \u2014 shapes the story and how the game can end.',
+  tone: 'The mood/vibe. Mostly flavor, but can nudge which template feels right.',
+  world: 'Where it\u2019s set. Flavor for the story, doesn\u2019t change how it plays.',
+  difficulty: 'How tough things feel. Flavor for now \u2014 tuning it for real comes later.'
 };
 
 let answers = {};
@@ -96,6 +113,12 @@ export function renderPitchPanel(host, ctx) {
       label.className = 'stage-hint';
       label.textContent = AXIS_LABELS[axis] || axis;
       row.appendChild(label);
+      if (AXIS_EXPLAIN[axis]) {
+        const explain = document.createElement('div');
+        explain.style.cssText = 'font-size:11px;color:var(--muted,#8a92a6);margin-top:1px;margin-bottom:2px;';
+        explain.textContent = AXIS_EXPLAIN[axis];
+        row.appendChild(explain);
+      }
       const optRow = document.createElement('div');
       optRow.className = 'stage-bar';
       optRow.style.flexWrap = 'wrap';
@@ -181,6 +204,10 @@ export function renderPitchPanel(host, ctx) {
     buildBtn.addEventListener('click', async () => {
       if (cart.isDirty() && !confirm('Discard unsaved changes and build this new cartridge?')) return;
       try {
+        // This safety backup used to happen inside the old "New" button's
+        // confirm() flow in shell.js — moved here since this is now the
+        // actual point where the current cartridge gets replaced.
+        await backup.makeBackup('pre-new');
         const loaded = await loadTemplate(designDoc.template);
         cart.newCartridge(titleInput.value || 'Untitled Game', (c) => applyTemplate(c, loaded));
         ctx.toast('Built "' + (titleInput.value || 'Untitled Game') + '" from the ' + designDoc.template + ' template.');
