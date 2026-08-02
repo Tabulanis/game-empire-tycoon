@@ -37,7 +37,7 @@ const TABS = [
   { id: 'atelier', label: 'Atelier', render: renderAtelierPanel },
   { id: 'foundry', label: 'Foundry', render: renderFoundryPanel },
   { id: 'soundbooth', label: 'Sound Booth', render: renderSoundboothPanel },
-  { id: 'pitch', label: 'Pitch Meeting', render: renderPitchPanel },
+  { id: 'pitch', label: 'New Game', render: renderPitchPanel },
   { id: 'codex', label: 'Codex', render: renderCodexPanel },
   { id: 'kitbay', label: 'Kit Bay', render: renderKitbayPanel },
   { id: 'loft', label: 'Animation Loft', render: renderLoftPanel },

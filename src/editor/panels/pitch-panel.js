@@ -51,19 +51,19 @@ export function renderPitchPanel(host, ctx) {
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.innerHTML =
-    '<h2>Pitch Meeting</h2>' +
-    '<div class="sub">Answer a few questions, or just pitch your idea in your own words — the staff figures out ' +
-    'which template fits, then shows you exactly what they heard before building anything.</div>';
+    '<h2>New Game</h2>' +
+    '<div class="sub">Answer a few questions, or describe your idea in your own words — we’ll match it to a ' +
+    'template, then show you exactly what was picked before anything gets built.</div>';
 
   const formCard = document.createElement('div');
   formCard.className = 'card';
-  formCard.innerHTML = '<h3>The Interview</h3>';
+  formCard.innerHTML = '<h3>Questions</h3>';
   const axesGrid = document.createElement('div');
   formCard.appendChild(axesGrid);
 
   const pitchLabel = document.createElement('div');
   pitchLabel.className = 'stage-hint';
-  pitchLabel.textContent = 'Or pitch it in your own words:';
+  pitchLabel.textContent = 'Or describe it in your own words:';
   pitchLabel.style.marginTop = '10px';
   formCard.appendChild(pitchLabel);
   const pitchInput = document.createElement('textarea');
@@ -76,7 +76,7 @@ export function renderPitchPanel(host, ctx) {
   const meetBtn = document.createElement('button');
   meetBtn.className = 'bar primary';
   meetBtn.style.width = '100%'; meetBtn.style.marginTop = '10px';
-  meetBtn.textContent = 'Meet with the Staff';
+  meetBtn.textContent = 'Find My Template';
   meetBtn.addEventListener('click', async () => {
     const tagsData = await pitch.loadTagsData();
     const hits = pitch.parsePitchText(pitchText, tagsData);
@@ -93,7 +93,7 @@ export function renderPitchPanel(host, ctx) {
 
   const confirmCard = document.createElement('div');
   confirmCard.className = 'card';
-  confirmCard.innerHTML = '<h3>Did We Hear You Right?</h3>';
+  confirmCard.innerHTML = '<h3>Confirm Your Choices</h3>';
   const confirmBody = document.createElement('div');
   confirmCard.appendChild(confirmBody);
   panel.appendChild(confirmCard);
