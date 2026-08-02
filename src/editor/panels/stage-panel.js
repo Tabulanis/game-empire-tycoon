@@ -868,6 +868,48 @@ export function renderStagePanel(host, ctx) {
   }
 
   /* ---------------------------------------------------------------- */
+  /* debug: crash banner + on-screen HUD                                */
+  /* ---------------------------------------------------------------- */
+  /**
+   * Before this, a throw inside playSession.tick() silently killed the whole
+   * render loop — no error, no message, just a frozen frame. This makes
+   * crashes visible on-screen (not just in devtools) and stops the crashed
+   * play session from being ticked again, without freezing the editor's own
+   * camera/render loop around it.
+   */
+  const crashBanner = document.createElement('div');
+  crashBanner.style.cssText =
+    'display:none;position:absolute;left:8px;right:8px;top:8px;z-index:50;' +
+    'background:#3a0d0d;border:1px solid #ff5555;color:#ffd6d6;padding:10px 12px;' +
+    'font:12px/1.4 monospace;white-space:pre-wrap;border-radius:6px;max-height:40%;overflow:auto;';
+  const dismissBtn = document.createElement('button');
+  dismissBtn.textContent = '✕ dismiss';
+  dismissBtn.style.cssText = 'float:right;background:none;border:1px solid #ff5555;color:#ffd6d6;cursor:pointer;border-radius:4px;padding:2px 6px;';
+  dismissBtn.addEventListener('click', () => { crashBanner.style.display = 'none'; });
+  const crashText = document.createElement('div');
+  crashBanner.appendChild(dismissBtn);
+  crashBanner.appendChild(crashText);
+  canvasWrap.appendChild(crashBanner);
+
+  const debugHud = document.createElement('div');
+  debugHud.style.cssText =
+    'position:absolute;left:8px;bottom:8px;z-index:40;background:rgba(0,0,0,0.55);' +
+    'color:#9be89b;font:11px/1.5 monospace;padding:6px 8px;border-radius:4px;pointer-events:none;white-space:pre;';
+  canvasWrap.appendChild(debugHud);
+
+  let crashed = false;
+  function showCrash(err) {
+    crashed = true;
+    console.error('[stage] play session crashed:', err);
+    crashText.textContent =
+      'GAME CRASHED — ' + (err && err.message || String(err)) + '\n' +
+      (err && err.stack ? err.stack.split('\n').slice(0, 6).join('\n') : '');
+    crashBanner.style.display = 'block';
+  }
+
+  let fpsSmoothed = 0;
+
+  /* ---------------------------------------------------------------- */
   /* render loop                                                       */
   /* ---------------------------------------------------------------- */
   let rafId = null;
@@ -879,8 +921,24 @@ export function renderStagePanel(host, ctx) {
     if (!visible) return;
     const dt = Math.min((ts - lastTs) / 1000, 0.1);
     lastTs = ts;
-    if (playSession) {
-      const { ended } = playSession.tick(dt, playInput);
+    fpsSmoothed = fpsSmoothed ? fpsSmoothed * 0.9 + (1 / Math.max(dt, 0.0001)) * 0.1 : 1 / Math.max(dt, 0.0001);
+    if (playSession && !crashed) {
+      let stepResult;
+      try {
+        stepResult = playSession.tick(dt, playInput);
+      } catch (err) {
+        showCrash(err);
+        stepResult = null;
+      }
+      const info = crashed ? null : playSession.debugInfo;
+      debugHud.textContent = crashed
+        ? 'DEBUG HUD — crashed, see banner above'
+        : 'FPS ' + Math.round(fpsSmoothed) +
+          '  entities ' + info.entities +
+          '  particles ' + info.particleSystems +
+          '  activeMotion ' + info.activeMotion +
+          '  t ' + info.elapsed.toFixed(1) + 's';
+      const ended = stepResult && stepResult.ended;
       if (ended && !announcedEnd) {
         announcedEnd = true;
         logPlay(ended.result === 'win' ? 'You win! ' + (ended.message || '') : 'Game over. ' + (ended.message || ''));

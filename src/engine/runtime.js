@@ -556,7 +556,16 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
     sceneClone: scene,
     session,
     advanceDialogue() { advanceCard(storyState, cartridge, bus); },
-    chooseDialogue(index) { chooseCard(storyState, index, cartridge, bus); }
+    chooseDialogue(index) { chooseCard(storyState, index, cartridge, bus); },
+    /** Live counters for the Stage's debug HUD — read-only, cheap to poll every frame. */
+    get debugInfo() {
+      return {
+        entities: scene.entities.length,
+        particleSystems: liveState.particleSystems.length,
+        activeMotion: activeMotion.size,
+        elapsed: liveState.elapsed
+      };
+    }
   };
 }
 
