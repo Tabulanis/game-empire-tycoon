@@ -101,7 +101,6 @@ export function createParticleSystem(engine, spec) {
 
   const material = new THREE.ShaderMaterial({
     uniforms: { map: { value: tex } },
-    vertexColors: true,
     transparent: true,
     depthWrite: false,
     blending: spec.additive !== false ? THREE.AdditiveBlending : THREE.NormalBlending,
