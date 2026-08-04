@@ -416,3 +416,39 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 }
 
 .sfxedit-region-hint { color: var(--dim); font-size: 11.5px; }
+
+/* ---- Booth palette: track rows + sound chips ---- */
+.booth-ch-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--bg-2); border: 1px solid var(--line);
+  color: var(--ink); font-family: var(--font); font-size: 12px;
+  padding: 7px 9px; margin-bottom: 4px; cursor: pointer; text-align: left;
+}
+.booth-ch-row:hover { border-color: var(--accent); }
+.booth-ch-row.picked { border-color: var(--accent); background: var(--panel); box-shadow: 0 0 0 1px var(--accent); }
+.booth-ch-num {
+  width: 18px; height: 18px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: var(--bg); color: var(--dim); font-size: 10.5px;
+}
+.booth-ch-row.picked .booth-ch-num { background: var(--accent); color: var(--bg); }
+.booth-ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.booth-chip {
+  display: block; width: 100%;
+  background: transparent; border: 1px solid var(--line);
+  color: var(--ink); font-family: var(--font); font-size: 12px;
+  padding: 6px 9px; margin-bottom: 4px; cursor: pointer; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.booth-chip:hover { border-color: var(--accent); color: var(--accent); }
+.booth-chip.active { border-color: var(--good); color: var(--good); }
+
+/* ---- split tracker cells (double-click to divide a beat) ---- */
+.tracker-cell.split { display: flex; padding: 0; }
+.tracker-cell.split .half {
+  flex: 1; display: grid; place-items: center;
+  font-size: 8.5px; overflow: hidden;
+}
+.tracker-cell.split .half:first-child { border-right: 1px dashed var(--line); }
+.tracker-cell.split .half.filled { background: var(--accent); color: var(--bg); }

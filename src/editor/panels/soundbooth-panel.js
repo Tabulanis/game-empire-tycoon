@@ -116,29 +116,43 @@ export function renderSoundboothPanel(host, ctx) {
   const palette = document.createElement('div');
   palette.className = 'booth-palette';
 
+  // Pick a track, then click any sound to put it on that track (and hear
+  // it). No dropdowns — the palette IS the picker.
   const voicesCard = document.createElement('div');
   voicesCard.className = 'card';
-  voicesCard.innerHTML = '<h3>Channel Sounds</h3>';
-  const voiceSelects = [];
-  for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
-    const row = document.createElement('div');
-    row.className = 'brick-row';
-    const label = document.createElement('span');
-    label.textContent = 'Ch' + (ch + 1) + ':';
-    label.style.minWidth = '36px';
-    label.style.fontSize = '11px';
-    row.appendChild(label);
-    const select = document.createElement('select');
-    select.className = 'deck-select';
-    select.style.flex = '1';
-    // options are rebuilt in refreshVoiceSelects so newly saved/imported
-    // sounds show up in the lineup immediately
-    select.addEventListener('change', () => { working.channelVoices[ch] = select.value; });
-    voiceSelects.push(select);
-    row.appendChild(select);
-    voicesCard.appendChild(row);
-  }
+  voicesCard.innerHTML = '<h3>Tracks</h3>';
+  const chRows = document.createElement('div');
+  voicesCard.appendChild(chRows);
   palette.appendChild(voicesCard);
+
+  const soundsCard = document.createElement('div');
+  soundsCard.className = 'card';
+  soundsCard.innerHTML = '<h3>Sounds</h3><div class="stage-hint">Click a sound to hear it and put it on the picked track.</div>';
+  const soundsList = document.createElement('div');
+  soundsCard.appendChild(soundsList);
+  palette.appendChild(soundsCard);
+
+  let selectedChannel = 0;
+  const CHIP_VOICES = ['pulse', 'tri', 'saw', 'noise'];
+
+  function voiceLabel(voice) {
+    if (CHIP_VOICES.includes(voice)) return voice;
+    if (voice && voice.startsWith('sfx:')) {
+      const rec = cart.getCartridge().assets.sfx.find((x) => x.id === voice.slice(4));
+      return rec ? rec.name : '(missing sound)';
+    }
+    return voice || 'pulse';
+  }
+
+  function previewVoice(voice) {
+    if (voice.startsWith('sfx:')) {
+      const rec = cart.getCartridge().assets.sfx.find((x) => x.id === voice.slice(4));
+      if (rec) audio.playSfxAsset(rec);
+      return;
+    }
+    // when=0 is clamped to "now" by WebAudio — a quick A4 taste of the voice
+    audio.scheduleNote(0, 'A4', voice, 0.35, []);
+  }
   layout.appendChild(palette);
 
   // ---------- center: the tracker itself ----------
@@ -248,34 +262,35 @@ export function renderSoundboothPanel(host, ctx) {
     renderAll();
   });
 
-  function refreshVoiceSelects() {
+  function refreshPalette() {
     const live = cart.getCartridge();
-    const chipVoices = ['pulse', 'tri', 'saw', 'noise'];
-    voiceSelects.forEach((select, ch) => {
-      select.innerHTML = '';
-      for (const v of chipVoices) {
-        const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
-        select.appendChild(opt);
-      }
-      if (live.assets.sfx.length) {
-        const group = document.createElement('optgroup');
-        group.label = 'My Sounds';
-        for (const sfx of live.assets.sfx) {
-          const opt = document.createElement('option');
-          opt.value = 'sfx:' + sfx.id;
-          opt.textContent = (sfx.kind === 'sample' ? '🎚 ' : '🔧 ') + sfx.name;
-          group.appendChild(opt);
-        }
-        select.appendChild(group);
-      }
-      select.value = working.channelVoices[ch];
-      if (select.value !== working.channelVoices[ch]) {
-        // saved voice references a sound that no longer exists
-        select.value = 'pulse';
-        working.channelVoices[ch] = 'pulse';
-      }
-    });
+    chRows.innerHTML = '';
+    for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
+      const row = document.createElement('button');
+      row.className = 'booth-ch-row' + (ch === selectedChannel ? ' picked' : '');
+      row.innerHTML = '<span class="booth-ch-num">' + (ch + 1) + '</span><span class="booth-ch-name"></span>';
+      row.querySelector('.booth-ch-name').textContent = voiceLabel(working.channelVoices[ch]);
+      row.addEventListener('click', () => { selectedChannel = ch; refreshPalette(); });
+      chRows.appendChild(row);
+    }
+    soundsList.innerHTML = '';
+    const addChip = (value, text) => {
+      const chip = document.createElement('button');
+      chip.className = 'booth-chip' + (working.channelVoices[selectedChannel] === value ? ' active' : '');
+      chip.textContent = text;
+      chip.addEventListener('click', () => {
+        working.channelVoices[selectedChannel] = value;
+        previewVoice(value);
+        refreshPalette();
+      });
+      soundsList.appendChild(chip);
+    };
+    for (const v of CHIP_VOICES) addChip(v, '🕹 ' + v);
+    for (const sfx of live.assets.sfx) {
+      addChip('sfx:' + sfx.id, (sfx.kind === 'sample' ? '🎚 ' : '🔧 ') + sfx.name);
+    }
   }
+
 
   function refreshPatternSelect() {
     patternSelect.innerHTML = '';
@@ -306,17 +321,58 @@ export function renderSoundboothPanel(host, ctx) {
       grid.appendChild(label);
       for (let step = 0; step < pattern.steps; step++) {
         const cell = document.createElement('div');
-        const note = pattern.channels[ch][step];
-        cell.className = 'tracker-cell' + (note ? ' filled' : '') + (step % 4 === 0 ? ' beat' : '');
-        cell.textContent = note ? note.replace(/[0-9]/, '') : '';
-        cell.title = note || '(empty)';
-        cell.addEventListener('click', () => {
-          sb.setStep(working, currentPatternId, ch, step, note ? null : selectedNote);
-          refreshGrid();
+        renderCell(cell, ch, step);
+        // In-place updates (no grid rebuild) keep the cell node stable so
+        // double-click can fire on it — and clicks feel instant.
+        cell.addEventListener('click', (e) => {
+          const value = working.patterns[currentPatternId].channels[ch][step];
+          if (Array.isArray(value)) {
+            const half = e.target.closest('.half');
+            const i = half && half.dataset.half === '1' ? 1 : 0;
+            const next = value.slice();
+            next[i] = next[i] ? null : selectedNote;
+            sb.setStep(working, currentPatternId, ch, step, next);
+          } else {
+            sb.setStep(working, currentPatternId, ch, step, value ? null : selectedNote);
+          }
+          renderCell(cell, ch, step);
+        });
+        cell.addEventListener('dblclick', () => {
+          // Two clicks just toggled the value twice (back to where it was),
+          // so this is a clean split/merge toggle.
+          const value = working.patterns[currentPatternId].channels[ch][step];
+          if (Array.isArray(value)) {
+            sb.setStep(working, currentPatternId, ch, step, value[0] || value[1] || null);
+          } else {
+            sb.setStep(working, currentPatternId, ch, step, [value, null]);
+          }
+          renderCell(cell, ch, step);
         });
         gridCells[ch][step] = cell;
         grid.appendChild(cell);
       }
+    }
+  }
+
+  function renderCell(cell, ch, step) {
+    const value = working.patterns[currentPatternId].channels[ch][step];
+    const beat = step % 4 === 0 ? ' beat' : '';
+    if (Array.isArray(value)) {
+      cell.className = 'tracker-cell split' + ((value[0] || value[1]) ? ' filled' : '') + beat;
+      cell.innerHTML = '';
+      for (let i = 0; i < 2; i++) {
+        const half = document.createElement('div');
+        half.className = 'half' + (value[i] ? ' filled' : '');
+        half.dataset.half = String(i);
+        half.textContent = value[i] ? value[i].replace(/[0-9]/, '') : '';
+        cell.appendChild(half);
+      }
+      cell.title = (value[0] || '·') + ' / ' + (value[1] || '·') + ' — double-click to merge';
+    } else {
+      cell.className = 'tracker-cell' + (value ? ' filled' : '') + beat;
+      cell.innerHTML = '';
+      cell.textContent = value ? value.replace(/[0-9]/, '') : '';
+      cell.title = (value || '(empty)') + ' — double-click to split';
     }
   }
 
@@ -377,7 +433,7 @@ export function renderSoundboothPanel(host, ctx) {
     nameInput.value = working.name;
     bpmInput.value = String(working.bpm);
     refreshSongSelect();
-    refreshVoiceSelects();
+    refreshPalette();
     refreshPatternSelect();
     refreshGrid();
     refreshChain();

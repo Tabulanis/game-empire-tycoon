@@ -532,10 +532,16 @@ export function playSong(song, sfxList) {
       const pattern = currentPattern();
       if (pattern) {
         pattern.channels.forEach((steps, channelIndex) => {
-          const note = steps[stepIndex];
-          if (note) {
+          const cell = steps[stepIndex];
+          if (cell) {
             const voice = song.channelVoices[channelIndex] || 'pulse';
-            scheduleNote(nextStepTime, note, voice, stepDuration, song.sampleSlots || [], assets);
+            // A split cell (array of two half-notes) plays as two 32nds.
+            if (Array.isArray(cell)) {
+              if (cell[0]) scheduleNote(nextStepTime, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
+              if (cell[1]) scheduleNote(nextStepTime + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
+            } else {
+              scheduleNote(nextStepTime, cell, voice, stepDuration, song.sampleSlots || [], assets);
+            }
           }
         });
       }
@@ -586,10 +592,15 @@ export async function renderSong(song, sfxList) {
     if (!pattern) continue;
     for (let step = 0; step < pattern.steps; step++) {
       pattern.channels.forEach((steps, channelIndex) => {
-        const note = steps[step];
-        if (note) {
+        const cell = steps[step];
+        if (cell) {
           const voice = song.channelVoices[channelIndex] || 'pulse';
-          scheduleNoteInto(ctx, ctx.destination, when, note, voice, stepDuration, song.sampleSlots || [], assets);
+          if (Array.isArray(cell)) {
+            if (cell[0]) scheduleNoteInto(ctx, ctx.destination, when, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
+            if (cell[1]) scheduleNoteInto(ctx, ctx.destination, when + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
+          } else {
+            scheduleNoteInto(ctx, ctx.destination, when, cell, voice, stepDuration, song.sampleSlots || [], assets);
+          }
         }
       });
       when += stepDuration;
