@@ -19,6 +19,7 @@ import { renderStagePanel } from './panels/stage-panel.js';
 import { renderBricksPanel } from './panels/bricks-panel.js';
 import { renderAtelierPanel } from './panels/atelier-panel.js';
 import { renderFoundryPanel } from './panels/foundry-panel.js';
+import { renderSfxeditPanel } from './panels/sfxedit-panel.js';
 import { renderSoundboothPanel } from './panels/soundbooth-panel.js';
 import { renderPitchPanel } from './panels/pitch-panel.js';
 import { renderCodexPanel } from './panels/codex-panel.js';
@@ -38,6 +39,7 @@ const PANELS = {
   bricks: renderBricksPanel,
   atelier: renderAtelierPanel,
   foundry: renderFoundryPanel,
+  sfxedit: renderSfxeditPanel,
   soundbooth: renderSoundboothPanel,
   pitch: renderPitchPanel,
   codex: renderCodexPanel,

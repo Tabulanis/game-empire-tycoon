@@ -38,12 +38,23 @@
     {
       "id": "sound",
       "label": "Sound",
-      "icon": "🎵",
+      "icon": "🔊",
       "voice": "Echo",
-      "title": "The Sound Booth — make some noise",
+      "title": "The SFX Foundry & Sound Editor — make a noise, then bend it",
       "era": "garage",
       "members": [
-        { "tab": "foundry", "label": "Sound FX", "era": "garage" },
+        { "tab": "foundry", "label": "Make", "era": "garage" },
+        { "tab": "sfxedit", "label": "Edit", "era": "garage" }
+      ]
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "icon": "🎵",
+      "voice": "Echo",
+      "title": "The Sound Booth — compose your game's music",
+      "era": "first-office",
+      "members": [
         { "tab": "soundbooth", "label": "Music", "era": "first-office" }
       ]
     },

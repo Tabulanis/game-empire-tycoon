@@ -9,7 +9,9 @@
 
 import * as cart from '../cartridge.js';
 import * as sb from '../soundbooth.js';
+import * as audio from '../../engine/systems/audio.js';
 import { playSong } from '../../engine/systems/audio.js';
+import { encodeWav } from '../wav.js';
 
 let currentSongId = null;
 let working = sb.createSong('Song');
@@ -58,6 +60,32 @@ export function renderSoundboothPanel(host, ctx) {
   const stopBtn = makeBtn('\u25A0 Stop', () => doPreviewStop());
   bar.appendChild(playBtn);
   bar.appendChild(stopBtn);
+  bar.appendChild(makeSep());
+  // "Save as a sound file": render one full pass of the chain offline \u2014
+  // the exact same synthesis as live playback \u2014 and download it as WAV.
+  // (The song itself always saves as data inside the cartridge; this is
+  // the take-it-anywhere copy.)
+  const wavBtn = makeBtn('\uD83D\uDCBE WAV', async () => {
+    if (!working) return;
+    wavBtn.disabled = true;
+    ctx.toast('Rendering song\u2026');
+    try {
+      const rendered = await audio.renderSong(working);
+      const bytes = encodeWav(rendered);
+      const blob = new Blob([bytes], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (working.name || 'song') + '.wav';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      ctx.toast('Downloaded ' + a.download + '!');
+    } catch (e) {
+      ctx.toast('Could not render the song.', true);
+    }
+    wavBtn.disabled = false;
+  });
+  bar.appendChild(wavBtn);
   panel.appendChild(bar);
 
   // note picker
@@ -306,7 +334,9 @@ export function renderSoundboothPanel(host, ctx) {
       select.className = 'deck-select';
       const blank = document.createElement('option'); blank.value = ''; blank.textContent = '(none)';
       select.appendChild(blank);
-      for (const sfx of live.assets.sfx) {
+      // Slots re-synthesize a param sound at each note's pitch; edited
+      // sample sounds have no params, so they can't be slot voices.
+      for (const sfx of live.assets.sfx.filter((s) => s.kind !== 'sample')) {
         const opt = document.createElement('option'); opt.value = sfx.id; opt.textContent = sfx.name;
         if (working.sampleSlots[i] && working.sampleSlots[i].__sourceId === sfx.id) opt.selected = true;
         select.appendChild(opt);

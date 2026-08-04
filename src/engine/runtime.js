@@ -72,7 +72,7 @@ import {
   currentCardView,
   doSetStoryFlag
 } from './systems/story.js';
-import { playSfx, playSong, computePan } from './systems/audio.js';
+import { playSfxAsset, playSong, computePan } from './systems/audio.js';
 
 /** DO actions whose effect is a standing behavior, not a one-off nudge — set
  * once, then re-applied every frame until 'stop' cancels it. Matches how a
@@ -759,7 +759,7 @@ function executeDo(action, entity, ctx) {
         const pan = action.positional
           ? computePan(entity.components.transform.p[0], ctx.playerEntity ? ctx.playerEntity.components.transform.p[0] : 0)
           : 0;
-        playSfx(sfx.params, pan);
+        playSfxAsset(sfx, pan);
       }
       break;
     }

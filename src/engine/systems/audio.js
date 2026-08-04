@@ -1,10 +1,12 @@
 /**
  * @file audio.js
- * @description Bus mixer, positional audio, and song/sfx playback. Reuses
- * the SFX Foundry's parameter-synth model (Phase 3) for both one-shot sfx
- * and the Sound Booth tracker's note playback — one synthesis engine, two
- * ways to trigger it (a saved param set, or a note+voice from a pattern).
- * Ticket P4-2. Phase 4.
+ * @description Bus mixer, positional audio, and song/sfx playback. One
+ * synthesis engine, three ways to trigger it: a saved Foundry param set, a
+ * note+voice from a Sound Booth pattern, or a sample asset (an edited
+ * waveform from the Sound Editor, stored as a WAV data URI). Synthesis is
+ * parameterized over (ctx, destination) so the exact same code renders
+ * offline — the Sound Editor's "open a Foundry sound" and the Sound Booth's
+ * "download as WAV" both reuse it. Ticket P4-2. Phase 4.
  */
 
 let sharedContext = null;
@@ -73,26 +75,24 @@ export function computePan(sourceX, listenerX, range = 10) {
 }
 
 /* ------------------------------------------------------------------ */
-/* one-shot sfx (reuses foundry.js's param model)                       */
+/* param synthesis (Foundry sfx) — shared live/offline                  */
 /* ------------------------------------------------------------------ */
 
 /**
- * Play a Foundry-style param sfx through the sfx bus (optionally panned).
+ * Synthesize one Foundry-style param sfx into any context/destination at an
+ * exact time. The single source of truth for how params become sound.
+ * @param {BaseAudioContext} ctx
+ * @param {AudioNode} destination
+ * @param {number} when  absolute ctx time
  * @param {import('../../editor/foundry.js').SfxParams} params
- * @param {number} [pan]  -1..1
  */
-export function playSfx(params, pan = 0) {
-  const ctx = getContext();
+export function synthesizeParamsInto(ctx, destination, when, params) {
   const duration = params.sustain + params.decay;
   const gain = ctx.createGain();
-  const panner = ctx.createStereoPanner();
-  panner.pan.value = pan;
-  gain.connect(panner);
-  panner.connect(buses.sfx);
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(params.volume, now);
-  gain.gain.setValueAtTime(params.volume, now + params.sustain);
-  gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+  gain.connect(destination);
+  gain.gain.setValueAtTime(params.volume, when);
+  gain.gain.setValueAtTime(params.volume, when + params.sustain);
+  gain.gain.linearRampToValueAtTime(0.0001, when + duration);
 
   if (params.wave === 'noise') {
     const bufferSize = Math.ceil(ctx.sampleRate * duration);
@@ -102,22 +102,96 @@ export function playSfx(params, pan = 0) {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(gain);
-    source.start(now);
-    source.stop(now + duration);
+    source.start(when);
+    source.stop(when + duration);
   } else {
     const osc = ctx.createOscillator();
     osc.type = params.wave;
-    osc.frequency.setValueAtTime(Math.max(20, params.startFreq), now);
+    osc.frequency.setValueAtTime(Math.max(20, params.startFreq), when);
     const endFreq = Math.max(20, params.startFreq + params.freqSlide * duration);
-    osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
+    osc.frequency.linearRampToValueAtTime(endFreq, when + duration);
     osc.connect(gain);
-    osc.start(now);
-    osc.stop(now + duration);
+    osc.start(when);
+    osc.stop(when + duration);
   }
 }
 
+/**
+ * Play a Foundry-style param sfx through the sfx bus (optionally panned).
+ * @param {import('../../editor/foundry.js').SfxParams} params
+ * @param {number} [pan]  -1..1
+ */
+export function playSfx(params, pan = 0) {
+  const ctx = getContext();
+  const panner = ctx.createStereoPanner();
+  panner.pan.value = pan;
+  panner.connect(buses.sfx);
+  synthesizeParamsInto(ctx, panner, ctx.currentTime, params);
+}
+
+/**
+ * Render a param sfx offline to an AudioBuffer (the Sound Editor's "open a
+ * Foundry sound" path).
+ * @param {import('../../editor/foundry.js').SfxParams} params
+ * @returns {Promise<AudioBuffer>}
+ */
+export function renderSfxParams(params) {
+  const rate = 44100;
+  const duration = Math.max(0.05, params.sustain + params.decay) + 0.05;
+  const ctx = new OfflineAudioContext(1, Math.ceil(duration * rate), rate);
+  synthesizeParamsInto(ctx, ctx.destination, 0, params);
+  return ctx.startRendering();
+}
+
 /* ------------------------------------------------------------------ */
-/* note synthesis (Sound Booth tracker)                                 */
+/* sample sfx (edited waveforms from the Sound Editor)                  */
+/* ------------------------------------------------------------------ */
+
+/** Decoded-sample cache. Keyed by record object: saveSfx replaces records
+ * wholesale on edit, so object identity tracks content identity. */
+const sampleCache = new WeakMap();
+
+/**
+ * @param {{wav: string}} record  a kind:'sample' sfx asset
+ * @returns {Promise<AudioBuffer>}
+ */
+export function decodeSample(record) {
+  let promise = sampleCache.get(record);
+  if (!promise) {
+    const ctx = getContext();
+    promise = fetch(record.wav)
+      .then((r) => r.arrayBuffer())
+      .then((bytes) => ctx.decodeAudioData(bytes));
+    sampleCache.set(record, promise);
+  }
+  return promise;
+}
+
+/**
+ * Play any sfx asset record — param kind or sample kind — through the sfx
+ * bus. The one entry point gameplay should use (the Play SFX brick).
+ * @param {any} record  an entry of cartridge.assets.sfx
+ * @param {number} [pan]  -1..1
+ */
+export function playSfxAsset(record, pan = 0) {
+  if (record.kind === 'sample') {
+    const ctx = getContext();
+    decodeSample(record).then((buffer) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const panner = ctx.createStereoPanner();
+      panner.pan.value = pan;
+      source.connect(panner);
+      panner.connect(buses.sfx);
+      source.start();
+    });
+    return;
+  }
+  playSfx(record.params, pan);
+}
+
+/* ------------------------------------------------------------------ */
+/* note synthesis (Sound Booth tracker) — shared live/offline           */
 /* ------------------------------------------------------------------ */
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -137,20 +211,21 @@ export function noteToFrequency(note) {
 }
 
 /**
- * Schedule one tracker note at an exact AudioContext time, on the given
- * voice. Sample-slot voices ('sample0'..'sample3') play a saved Foundry sfx
- * pitched by playbackRate instead of a live oscillator.
- * @param {number} when  ctx.currentTime-relative absolute time
+ * Schedule one tracker note into any context/destination at an exact time.
+ * Sample-slot voices ('sample0'..'sample3') play a saved Foundry sfx as a
+ * pitched oscillator approximation (true noise has no pitch).
+ * @param {BaseAudioContext} ctx
+ * @param {AudioNode} destination
+ * @param {number} when
  * @param {string} note
  * @param {'pulse'|'tri'|'saw'|'noise'|'sample0'|'sample1'|'sample2'|'sample3'} voice
  * @param {number} stepDuration  seconds — the note rings for roughly this long
  * @param {Array<any>} sampleSlots  song.sampleSlots — Foundry SfxParams or null, indexed 0-3
  */
-export function scheduleNote(when, note, voice, stepDuration, sampleSlots) {
-  const ctx = getContext();
+export function scheduleNoteInto(ctx, destination, when, note, voice, stepDuration, sampleSlots) {
   const freq = noteToFrequency(note);
   const gain = ctx.createGain();
-  gain.connect(buses.music);
+  gain.connect(destination);
   const duration = stepDuration * 0.9; // slight gap between notes, even at full step length
   gain.gain.setValueAtTime(0.35, when);
   gain.gain.linearRampToValueAtTime(0.0001, when + duration);
@@ -158,10 +233,8 @@ export function scheduleNote(when, note, voice, stepDuration, sampleSlots) {
   if (voice.startsWith('sample')) {
     const slot = sampleSlots[parseInt(voice.slice(6), 10)];
     if (!slot) return;
-    // Re-synthesize the saved sfx, re-pitched: playbackRate is expressed as
-    // a frequency ratio against the sfx's own base pitch (440 Hz reference).
     const osc = ctx.createOscillator();
-    osc.type = slot.wave === 'noise' ? 'square' : slot.wave; // noise sfx as a note: approximate with square, true noise has no pitch
+    osc.type = slot.wave === 'noise' ? 'square' : slot.wave;
     osc.frequency.setValueAtTime(freq, when);
     osc.connect(gain);
     osc.start(when);
@@ -189,6 +262,19 @@ export function scheduleNote(when, note, voice, stepDuration, sampleSlots) {
     osc.start(when);
     osc.stop(when + duration);
   }
+}
+
+/**
+ * Schedule one tracker note on the live music bus.
+ * @param {number} when  ctx.currentTime-relative absolute time
+ * @param {string} note
+ * @param {string} voice
+ * @param {number} stepDuration
+ * @param {Array<any>} sampleSlots
+ */
+export function scheduleNote(when, note, voice, stepDuration, sampleSlots) {
+  const ctx = getContext();
+  scheduleNoteInto(ctx, buses.music, when, note, voice, stepDuration, sampleSlots);
 }
 
 /* ------------------------------------------------------------------ */
@@ -257,4 +343,40 @@ export function playSong(song) {
       return { patternId: song.chain[idx], chainIndex: idx, stepIndex };
     }
   };
+}
+
+/**
+ * Render one full pass of a song's pattern chain (no looping) to an
+ * AudioBuffer — the Sound Booth's "download as WAV". Reuses the exact same
+ * note synthesis as live playback.
+ * @param {any} song
+ * @returns {Promise<AudioBuffer>}
+ */
+export function renderSong(song) {
+  const rate = 44100;
+  const stepDuration = 60 / song.bpm / 4;
+  let totalSteps = 0;
+  for (const patternId of song.chain) {
+    const pattern = song.patterns[patternId];
+    if (pattern) totalSteps += pattern.steps;
+  }
+  const duration = Math.max(0.5, totalSteps * stepDuration) + 1.0; // ring-out tail
+  const ctx = new OfflineAudioContext(2, Math.ceil(duration * rate), rate);
+
+  let when = 0;
+  for (const patternId of song.chain) {
+    const pattern = song.patterns[patternId];
+    if (!pattern) continue;
+    for (let step = 0; step < pattern.steps; step++) {
+      pattern.channels.forEach((steps, channelIndex) => {
+        const note = steps[step];
+        if (note) {
+          const voice = song.channelVoices[channelIndex] || 'pulse';
+          scheduleNoteInto(ctx, ctx.destination, when, note, voice, stepDuration, song.sampleSlots || []);
+        }
+      });
+      when += stepDuration;
+    }
+  }
+  return ctx.startRendering();
 }

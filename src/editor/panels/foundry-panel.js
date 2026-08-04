@@ -176,11 +176,14 @@ export function renderFoundryPanel(host, ctx) {
   function refreshLibrary() {
     const live = cart.getCartridge();
     libList.innerHTML = '';
-    if (!live.assets.sfx.length) {
+    // Edited (sample-kind) sounds have no params to tweak here — they live
+    // next door in the Sound Editor. This library is param sounds only.
+    const paramSfx = live.assets.sfx.filter((s) => s.kind !== 'sample');
+    if (!paramSfx.length) {
       libList.innerHTML = '<div class="stage-hint">No saved sounds yet.</div>';
       return;
     }
-    for (const sfx of live.assets.sfx) {
+    for (const sfx of paramSfx) {
       const row = document.createElement('div');
       row.className = 'stage-prefab-row';
       const label = document.createElement('span');
