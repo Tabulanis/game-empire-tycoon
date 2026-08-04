@@ -21,6 +21,9 @@ import { synthesizeParamsInto } from '../engine/systems/audio.js';
  * @property {number} volume  0..1
  * @property {number} [tone]  0..1 lowpass brightness (1 = fully open, the default)
  * @property {number} [wobble]  0..1 vibrato amount (0 = off)
+ * @property {number} [wah]  0..1 auto-wah amount (0 = off)
+ * @property {number} [chorus]  0..1 chorus shimmer (0 = off)
+ * @property {number} [crunch]  0..1 distortion drive (0 = off)
  * @property {number} [echo]  0..1 feedback-delay mix (0 = off)
  * @property {number} [reverb]  0..1 reverb mix (0 = off)
  */
@@ -39,7 +42,7 @@ export const PRESETS = {
 export function blankParams() {
   return {
     wave: 'square', startFreq: 440, freqSlide: 0, sustain: 0.08, decay: 0.15, volume: 0.5,
-    tone: 1, wobble: 0, echo: 0, reverb: 0
+    tone: 1, wobble: 0, wah: 0, chorus: 0, crunch: 0, echo: 0, reverb: 0
   };
 }
 
@@ -63,6 +66,9 @@ export function mutate(params) {
     volume: Math.min(1, Math.max(0.05, jitter(params.volume, 0.1))),
     tone: Math.min(1, Math.max(0.2, jitter(params.tone == null ? 1 : params.tone, 0.15))),
     wobble: clamp01(jitter(params.wobble || 0, 0.12)),
+    wah: clamp01(jitter(params.wah || 0, 0.12)),
+    chorus: clamp01(jitter(params.chorus || 0, 0.12)),
+    crunch: clamp01(jitter(params.crunch || 0, 0.1)),
     echo: clamp01(jitter(params.echo || 0, 0.12)),
     reverb: clamp01(jitter(params.reverb || 0, 0.12))
   };

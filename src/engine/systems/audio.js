@@ -120,6 +120,9 @@ export function synthesizeParamsInto(ctx, destination, when, params) {
   const duration = params.sustain + params.decay;
   const tone = params.tone == null ? 1 : params.tone;
   const wobble = params.wobble || 0;
+  const wah = params.wah || 0;
+  const chorus = params.chorus || 0;
+  const crunch = params.crunch || 0;
   const echo = params.echo || 0;
   const reverb = params.reverb || 0;
 
@@ -130,17 +133,73 @@ export function synthesizeParamsInto(ctx, destination, when, params) {
   env.gain.setValueAtTime(params.volume, when + params.sustain);
   env.gain.linearRampToValueAtTime(0.0001, when + duration);
 
+  // Series chain built back-to-front: source → crunch → wah → tone → env.
   /** @type {AudioNode} where the raw source connects */
   let head = env;
   if (tone < 0.98) {
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 300 + tone * tone * 7700; // 300 Hz shut … 8 kHz open
-    filter.connect(env);
+    filter.connect(head);
     head = filter;
+  }
+  if (wah > 0.02) {
+    // Auto-wah: an LFO-swept bandpass. Depth and resonance scale together
+    // so the dial goes from a gentle vowel to a full funk pedal.
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 800;
+    bp.Q.value = 1.5 + wah * 6;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 2.2;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 200 + wah * 900;
+    lfo.connect(lfoGain);
+    lfoGain.connect(bp.frequency);
+    lfo.start(when);
+    lfo.stop(when + duration + 0.1);
+    bp.connect(head);
+    head = bp;
+  }
+  if (crunch > 0.02) {
+    // Waveshaper distortion with output level compensation.
+    const shaper = ctx.createWaveShaper();
+    const drive = 1 + crunch * 24;
+    const curve = new Float32Array(512);
+    for (let i = 0; i < 512; i++) {
+      const x = (i / 511) * 2 - 1;
+      curve[i] = Math.tanh(x * drive);
+    }
+    shaper.curve = curve;
+    shaper.oversample = '2x';
+    const trim = ctx.createGain();
+    trim.gain.value = 1 / (1 + crunch * 1.2);
+    shaper.connect(trim);
+    trim.connect(head);
+    head = shaper;
   }
 
   env.connect(destination);
+  if (chorus > 0.02) {
+    // Two detuned modulated delays in parallel — the classic shimmer.
+    const wet = ctx.createGain();
+    wet.gain.value = chorus * 0.55;
+    for (const [delayS, rate] of [[0.013, 0.8], [0.021, 1.15]]) {
+      const d = ctx.createDelay(0.1);
+      d.delayTime.value = delayS;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = rate;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.004;
+      lfo.connect(lfoGain);
+      lfoGain.connect(d.delayTime);
+      lfo.start(when);
+      lfo.stop(when + duration + 0.2);
+      env.connect(d);
+      d.connect(wet);
+    }
+    wet.connect(destination);
+  }
   if (echo > 0.02) {
     const send = ctx.createGain();
     send.gain.value = echo * 0.7;
@@ -306,22 +365,57 @@ export function noteToFrequency(note) {
 }
 
 /**
+ * @typedef {Object} VoiceAssets  looked-up resources for 'sfx:<id>' voices
+ * @property {Array<any>} sfxList  cartridge.assets.sfx
+ * @property {Object<string, AudioBuffer>} sampleBuffers  pre-decoded sample
+ *   waveforms by sfx id (samples must be decoded before scheduling; see
+ *   prepareVoiceAssets)
+ */
+
+/**
  * Schedule one tracker note into any context/destination at an exact time.
- * Sample-slot voices ('sample0'..'sample3') play a saved Foundry sfx as a
- * pitched oscillator approximation (true noise has no pitch).
+ * Voices: pulse/tri/saw/noise are chip oscillators; 'sfx:<id>' plays one of
+ * the kid's own saved sounds as a pitched instrument — param sounds are
+ * re-synthesized at the note's frequency with their full effects chain,
+ * sample sounds play at a playback rate relative to A4 (a real sampler);
+ * legacy 'sample0'..'sample3' slots re-pitch a stored param set.
  * @param {BaseAudioContext} ctx
  * @param {AudioNode} destination
  * @param {number} when
  * @param {string} note
- * @param {'pulse'|'tri'|'saw'|'noise'|'sample0'|'sample1'|'sample2'|'sample3'} voice
+ * @param {string} voice
  * @param {number} stepDuration  seconds — the note rings for roughly this long
  * @param {Array<any>} sampleSlots  song.sampleSlots — Foundry SfxParams or null, indexed 0-3
+ * @param {VoiceAssets} [assets]
  */
-export function scheduleNoteInto(ctx, destination, when, note, voice, stepDuration, sampleSlots) {
+export function scheduleNoteInto(ctx, destination, when, note, voice, stepDuration, sampleSlots, assets) {
   const freq = noteToFrequency(note);
+  const duration = stepDuration * 0.9; // slight gap between notes, even at full step length
+
+  if (voice.startsWith('sfx:')) {
+    const id = voice.slice(4);
+    const record = assets && assets.sfxList.find((s) => s.id === id);
+    if (!record) return;
+    if (record.kind === 'sample') {
+      const buffer = assets.sampleBuffers[id];
+      if (!buffer) return; // not decoded yet — the note is skipped, not late
+      const gain = ctx.createGain();
+      gain.gain.value = 0.5;
+      gain.connect(destination);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = freq / 440; // A4 plays the sample as recorded
+      source.connect(gain);
+      source.start(when);
+      return;
+    }
+    // Param sound as an instrument: same synthesis, note-pitched.
+    synthesizeParamsInto(ctx, destination, when, { ...record.params, startFreq: freq });
+    return;
+  }
+
   const gain = ctx.createGain();
   gain.connect(destination);
-  const duration = stepDuration * 0.9; // slight gap between notes, even at full step length
   gain.gain.setValueAtTime(0.35, when);
   gain.gain.linearRampToValueAtTime(0.0001, when + duration);
 
@@ -360,6 +454,31 @@ export function scheduleNoteInto(ctx, destination, when, note, voice, stepDurati
 }
 
 /**
+ * Build the VoiceAssets a song needs: find every 'sfx:<id>' voice, decode
+ * the sample-kind ones up front. Live playback fills buffers as decodes
+ * land (first notes may skip for a few ms on a cold cache); offline render
+ * awaits everything.
+ * @param {any} song
+ * @param {Array<any>} sfxList  cartridge.assets.sfx
+ * @returns {{assets: VoiceAssets, ready: Promise<void>}}
+ */
+export function prepareVoiceAssets(song, sfxList) {
+  const assets = { sfxList: sfxList || [], sampleBuffers: {} };
+  const pending = [];
+  for (const voice of song.channelVoices || []) {
+    if (typeof voice === 'string' && voice.startsWith('sfx:')) {
+      const record = assets.sfxList.find((s) => s.id === voice.slice(4));
+      if (record && record.kind === 'sample') {
+        pending.push(decodeSample(record).then((buffer) => {
+          assets.sampleBuffers[record.id] = buffer;
+        }).catch(() => {}));
+      }
+    }
+  }
+  return { assets, ready: Promise.all(pending).then(() => {}) };
+}
+
+/**
  * Schedule one tracker note on the live music bus.
  * @param {number} when  ctx.currentTime-relative absolute time
  * @param {string} note
@@ -367,9 +486,9 @@ export function scheduleNoteInto(ctx, destination, when, note, voice, stepDurati
  * @param {number} stepDuration
  * @param {Array<any>} sampleSlots
  */
-export function scheduleNote(when, note, voice, stepDuration, sampleSlots) {
+export function scheduleNote(when, note, voice, stepDuration, sampleSlots, assets) {
   const ctx = getContext();
-  scheduleNoteInto(ctx, buses.music, when, note, voice, stepDuration, sampleSlots);
+  scheduleNoteInto(ctx, buses.music, when, note, voice, stepDuration, sampleSlots, assets);
 }
 
 /* ------------------------------------------------------------------ */
@@ -393,8 +512,9 @@ const SCHEDULE_INTERVAL = 25; // ms — how often the lookahead timer fires
  *   4-channel tracker convention.
  * @returns {SongPlayer}
  */
-export function playSong(song) {
+export function playSong(song, sfxList) {
   const ctx = getContext();
+  const { assets } = prepareVoiceAssets(song, sfxList || []);
   const stepDuration = 60 / song.bpm / 4; // 16th-note steps at the given bpm
   let chainIndex = 0;
   let stepIndex = 0;
@@ -415,7 +535,7 @@ export function playSong(song) {
           const note = steps[stepIndex];
           if (note) {
             const voice = song.channelVoices[channelIndex] || 'pulse';
-            scheduleNote(nextStepTime, note, voice, stepDuration, song.sampleSlots || []);
+            scheduleNote(nextStepTime, note, voice, stepDuration, song.sampleSlots || [], assets);
           }
         });
       }
@@ -447,8 +567,10 @@ export function playSong(song) {
  * @param {any} song
  * @returns {Promise<AudioBuffer>}
  */
-export function renderSong(song) {
+export async function renderSong(song, sfxList) {
   const rate = 44100;
+  const { assets, ready } = prepareVoiceAssets(song, sfxList || []);
+  await ready;
   const stepDuration = 60 / song.bpm / 4;
   let totalSteps = 0;
   for (const patternId of song.chain) {
@@ -467,7 +589,7 @@ export function renderSong(song) {
         const note = steps[step];
         if (note) {
           const voice = song.channelVoices[channelIndex] || 'pulse';
-          scheduleNoteInto(ctx, ctx.destination, when, note, voice, stepDuration, song.sampleSlots || []);
+          scheduleNoteInto(ctx, ctx.destination, when, note, voice, stepDuration, song.sampleSlots || [], assets);
         }
       });
       when += stepDuration;

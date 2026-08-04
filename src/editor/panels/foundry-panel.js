@@ -151,6 +151,9 @@ export function renderFoundryPanel(host, ctx) {
     // until a kid reaches for them. Synthesis lives in engine audio.js.
     paramGrid.appendChild(sliderRow('Brightness', params.tone == null ? 1 : params.tone, 0, 1, 0.01, (v) => { params.tone = v; }));
     paramGrid.appendChild(sliderRow('Wobble', params.wobble || 0, 0, 1, 0.01, (v) => { params.wobble = v; }));
+    paramGrid.appendChild(sliderRow('Wah', params.wah || 0, 0, 1, 0.01, (v) => { params.wah = v; }));
+    paramGrid.appendChild(sliderRow('Chorus', params.chorus || 0, 0, 1, 0.01, (v) => { params.chorus = v; }));
+    paramGrid.appendChild(sliderRow('Crunch', params.crunch || 0, 0, 1, 0.01, (v) => { params.crunch = v; }));
     paramGrid.appendChild(sliderRow('Echo', params.echo || 0, 0, 1, 0.01, (v) => { params.echo = v; }));
     paramGrid.appendChild(sliderRow('Reverb', params.reverb || 0, 0, 1, 0.01, (v) => { params.reverb = v; }));
   }

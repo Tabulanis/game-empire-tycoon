@@ -767,7 +767,7 @@ function executeDo(action, entity, ctx) {
       const song = (ctx.cartridge.assets.songs || []).find((s) => s.id === action.song);
       if (song) {
         if (ctx.liveState.musicPlayer) ctx.liveState.musicPlayer.stop();
-        ctx.liveState.musicPlayer = playSong(song);
+        ctx.liveState.musicPlayer = playSong(song, ctx.cartridge.assets.sfx || []);
       }
       break;
     }

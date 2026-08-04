@@ -70,7 +70,7 @@ export function renderSoundboothPanel(host, ctx) {
     wavBtn.disabled = true;
     ctx.toast('Rendering song\u2026');
     try {
-      const rendered = await audio.renderSong(working);
+      const rendered = await audio.renderSong(working, cart.getCartridge().assets.sfx);
       const bytes = encodeWav(rendered);
       const blob = new Blob([bytes], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
@@ -131,10 +131,8 @@ export function renderSoundboothPanel(host, ctx) {
     const select = document.createElement('select');
     select.className = 'deck-select';
     select.style.flex = '1';
-    for (const v of sb.VOICES) {
-      const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
-      select.appendChild(opt);
-    }
+    // options are rebuilt in refreshVoiceSelects so newly saved/imported
+    // sounds show up in the lineup immediately
     select.addEventListener('change', () => { working.channelVoices[ch] = select.value; });
     voiceSelects.push(select);
     row.appendChild(select);
@@ -185,14 +183,6 @@ export function renderSoundboothPanel(host, ctx) {
   left.appendChild(chainCard);
 
   layout.appendChild(left);
-
-  // sample slots join the palette rail — they're sounds you play with
-  const slotsCard = document.createElement('div');
-  slotsCard.className = 'card';
-  slotsCard.innerHTML = '<h3>Sample Slots</h3><div class="stage-hint">Pull in a sound from the Sound room.</div>';
-  const slotsList = document.createElement('div');
-  slotsCard.appendChild(slotsList);
-  palette.appendChild(slotsCard);
 
   // ---------- right: library + save ----------
   const right = document.createElement('div');
@@ -259,7 +249,32 @@ export function renderSoundboothPanel(host, ctx) {
   });
 
   function refreshVoiceSelects() {
-    voiceSelects.forEach((select, ch) => { select.value = working.channelVoices[ch]; });
+    const live = cart.getCartridge();
+    const chipVoices = ['pulse', 'tri', 'saw', 'noise'];
+    voiceSelects.forEach((select, ch) => {
+      select.innerHTML = '';
+      for (const v of chipVoices) {
+        const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
+        select.appendChild(opt);
+      }
+      if (live.assets.sfx.length) {
+        const group = document.createElement('optgroup');
+        group.label = 'My Sounds';
+        for (const sfx of live.assets.sfx) {
+          const opt = document.createElement('option');
+          opt.value = 'sfx:' + sfx.id;
+          opt.textContent = (sfx.kind === 'sample' ? '🎚 ' : '🔧 ') + sfx.name;
+          group.appendChild(opt);
+        }
+        select.appendChild(group);
+      }
+      select.value = working.channelVoices[ch];
+      if (select.value !== working.channelVoices[ch]) {
+        // saved voice references a sound that no longer exists
+        select.value = 'pulse';
+        working.channelVoices[ch] = 'pulse';
+      }
+    });
   }
 
   function refreshPatternSelect() {
@@ -333,36 +348,6 @@ export function renderSoundboothPanel(host, ctx) {
     refreshChain();
   });
 
-  function refreshSlots() {
-    const live = cart.getCartridge();
-    slotsList.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
-      const row = document.createElement('div');
-      row.className = 'brick-row';
-      const label = document.createElement('span');
-      label.textContent = 'Slot ' + i + ':';
-      label.style.minWidth = '50px';
-      row.appendChild(label);
-      const select = document.createElement('select');
-      select.className = 'deck-select';
-      const blank = document.createElement('option'); blank.value = ''; blank.textContent = '(none)';
-      select.appendChild(blank);
-      // Slots re-synthesize a param sound at each note's pitch; edited
-      // sample sounds have no params, so they can't be slot voices.
-      for (const sfx of live.assets.sfx.filter((s) => s.kind !== 'sample')) {
-        const opt = document.createElement('option'); opt.value = sfx.id; opt.textContent = sfx.name;
-        if (working.sampleSlots[i] && working.sampleSlots[i].__sourceId === sfx.id) opt.selected = true;
-        select.appendChild(opt);
-      }
-      select.addEventListener('change', () => {
-        const sfx = live.assets.sfx.find((s) => s.id === select.value);
-        working.sampleSlots[i] = sfx ? { ...sfx.params, __sourceId: sfx.id } : null;
-      });
-      row.appendChild(select);
-      slotsList.appendChild(row);
-    }
-  }
-
   function refreshLibrary() {
     const live = cart.getCartridge();
     libList.innerHTML = '';
@@ -396,7 +381,6 @@ export function renderSoundboothPanel(host, ctx) {
     refreshPatternSelect();
     refreshGrid();
     refreshChain();
-    refreshSlots();
     refreshLibrary();
   }
 
@@ -439,7 +423,7 @@ export function renderSoundboothPanel(host, ctx) {
 
   function doPreviewPlay() {
     doPreviewStop();
-    previewPlayer = playSong(working);
+    previewPlayer = playSong(working, cart.getCartridge().assets.sfx);
     playBtn.disabled = true;
     stopBtn.disabled = false;
     playRafId = requestAnimationFrame(pollPlayback);
