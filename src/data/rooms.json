@@ -1,0 +1,113 @@
+{
+  "comment": "Kid-facing shell navigation: the studio's rooms. Era gating implements Constitution Article II — rooms and members appear as locked doors until the cartridge's era reaches them. All kid-facing strings live here, not in code (CLAUDE.md Code Style).",
+  "eras": ["garage", "first-office", "annex", "tower", "skunkworks", "public"],
+  "eraNames": {
+    "garage": "The Garage",
+    "first-office": "the First Office",
+    "annex": "the Annex",
+    "tower": "the Tower",
+    "skunkworks": "the Skunkworks",
+    "public": "Going Public"
+  },
+  "lockedLine": "opens when your studio reaches",
+  "rooms": [
+    {
+      "id": "build",
+      "label": "Build",
+      "icon": "🏗️",
+      "voice": "Watts",
+      "title": "The Level Stage — where your world gets built",
+      "era": "garage",
+      "members": [
+        { "tab": "stage", "label": "Level", "era": "garage" },
+        { "tab": "warehouse", "label": "Toy Chest", "era": "garage" }
+      ]
+    },
+    {
+      "id": "art",
+      "label": "Art",
+      "icon": "🎨",
+      "voice": "Pix",
+      "title": "The Pixel Atelier — draw your heroes",
+      "era": "garage",
+      "members": [
+        { "tab": "atelier", "label": "Pixels", "era": "garage" },
+        { "tab": "kitbay", "label": "3D Shop", "era": "tower" }
+      ]
+    },
+    {
+      "id": "sound",
+      "label": "Sound",
+      "icon": "🎵",
+      "voice": "Echo",
+      "title": "The Sound Booth — make some noise",
+      "era": "garage",
+      "members": [
+        { "tab": "foundry", "label": "Sound FX", "era": "garage" },
+        { "tab": "soundbooth", "label": "Music", "era": "first-office" }
+      ]
+    },
+    {
+      "id": "rules",
+      "label": "Rules",
+      "icon": "🧩",
+      "voice": "Scout",
+      "title": "The Brick Workshop — when this happens, do that",
+      "era": "garage",
+      "members": [
+        { "tab": "bricks", "label": "Rule Cards", "era": "garage" },
+        { "tab": "codex", "label": "Guidebook", "era": "garage" }
+      ]
+    },
+    {
+      "id": "animate",
+      "label": "Animate",
+      "icon": "🕺",
+      "voice": "Watts",
+      "title": "The Animation Loft — make things move",
+      "era": "tower",
+      "members": [
+        { "tab": "loft", "label": "Animate", "era": "tower" }
+      ]
+    },
+    {
+      "id": "effects",
+      "label": "Effects",
+      "icon": "✨",
+      "voice": "Sparks",
+      "title": "The Particle Lab — fire, smoke, magic, sparkle",
+      "era": "skunkworks",
+      "members": [
+        { "tab": "lab", "label": "Effects", "era": "skunkworks" }
+      ]
+    },
+    {
+      "id": "ship",
+      "label": "Ship It",
+      "icon": "🚀",
+      "voice": "The Founder",
+      "title": "The Cartridge Press — box it up and put it on the shelf",
+      "era": "garage",
+      "members": [
+        { "tab": "press", "label": "Ship It", "era": "garage" },
+        { "tab": "tycoon", "label": "My Studio", "era": "garage" }
+      ]
+    }
+  ],
+  "play": {
+    "tab": "deck",
+    "label": "Play",
+    "icon": "▶",
+    "title": "Try your game right now"
+  },
+  "office": {
+    "label": "Office",
+    "icon": "🗄️",
+    "title": "Grown-up stuff: checkups, backups, about",
+    "members": [
+      { "tab": "studio", "label": "Checkup" },
+      { "tab": "backups", "label": "Backups" },
+      { "tab": "about", "label": "About" }
+    ]
+  }
+}

@@ -1,13 +1,15 @@
 /**
  * @file shell.js
- * @description The app frame: top bar, tab strip, panel host, status bar, and
- * project management wiring. Ticket P0-1. Panels beyond Warehouse/Backups are
- * intentionally stubs until their phase opens (Constitution Article XII).
- * Phase 0.
+ * @description The app frame: top bar, room strip, panel host, status bar, and
+ * project management wiring. Ticket P0-1, reshaped for the garage-era shell:
+ * flat tabs became rooms (Constitution Article II — departments open era by
+ * era; locked rooms stay visible as doors to look forward to). Room structure
+ * and every kid-facing string live in src/data/rooms.json.
  */
 
 import * as cart from './cartridge.js';
 import * as backup from './backup.js';
+import ROOMS from '../data/rooms.json';
 import { renderWarehousePanel } from './panels/warehouse-panel.js';
 import { renderBackupsPanel } from './panels/backups-panel.js';
 import { renderStudioPanel } from './panels/studio-panel.js';
@@ -26,29 +28,35 @@ import { renderLabPanel } from './panels/lab-panel.js';
 import { renderTycoonPanel } from './panels/tycoon-panel.js';
 import { renderPressPanel } from './panels/press-panel.js';
 
-/** Tab registry. `locked` marks phases not yet open. */
-const TABS = [
-  { id: 'studio', label: 'Studio', render: renderStudioPanel },
-  { id: 'warehouse', label: 'Warehouse', render: renderWarehousePanel },
-  { id: 'deck', label: 'Deck', render: renderDeckPanel },
-  { id: 'backups', label: 'Backups', render: renderBackupsPanel },
-  { id: 'stage', label: 'Stage', render: renderStagePanel },
-  { id: 'bricks', label: 'Bricks', render: renderBricksPanel },
-  { id: 'atelier', label: 'Atelier', render: renderAtelierPanel },
-  { id: 'foundry', label: 'Foundry', render: renderFoundryPanel },
-  { id: 'soundbooth', label: 'Sound Booth', render: renderSoundboothPanel },
-  { id: 'pitch', label: 'New Game', render: renderPitchPanel },
-  { id: 'codex', label: 'Codex', render: renderCodexPanel },
-  { id: 'kitbay', label: 'Kit Bay', render: renderKitbayPanel },
-  { id: 'loft', label: 'Animation Loft', render: renderLoftPanel },
-  { id: 'lab', label: 'Particle Lab', render: renderLabPanel },
-  { id: 'tycoon', label: 'Tycoon Shell', render: renderTycoonPanel },
-  { id: 'about', label: 'About', render: renderAboutPanel }
-];
+/** Panel registry: tab id → renderer. Structure/labels live in rooms.json. */
+const PANELS = {
+  studio: renderStudioPanel,
+  warehouse: renderWarehousePanel,
+  deck: renderDeckPanel,
+  backups: renderBackupsPanel,
+  stage: renderStagePanel,
+  bricks: renderBricksPanel,
+  atelier: renderAtelierPanel,
+  foundry: renderFoundryPanel,
+  soundbooth: renderSoundboothPanel,
+  pitch: renderPitchPanel,
+  codex: renderCodexPanel,
+  kitbay: renderKitbayPanel,
+  loft: renderLoftPanel,
+  lab: renderLabPanel,
+  tycoon: renderTycoonPanel,
+  press: renderPressPanel,
+  about: renderAboutPanel
+};
 
-let currentTab = 'studio';
+/** Current view: a room id, 'play', or 'office'. */
+let currentRoom = 'build';
+/** Remembered member tab per room (and for the office). */
+const roomMemory = {};
 /** @type {HTMLElement} */
 let host;
+/** @type {HTMLElement} */
+let roomStrip;
 /** @type {HTMLElement} */
 let statusText;
 /** @type {HTMLElement} */
@@ -63,7 +71,8 @@ let titleInput;
 export function bootShell(root) {
   root.innerHTML = '';
   root.appendChild(buildTopBar());
-  root.appendChild(buildTabs());
+  roomStrip = buildRoomStrip();
+  root.appendChild(roomStrip);
 
   host = document.createElement('div');
   host.className = 'panel-host';
@@ -99,7 +108,32 @@ export function bootShell(root) {
     }
   });
 
-  showTab(currentTab);
+  showRoom(currentRoom);
+}
+
+/* ------------------------------------------------------------------ */
+/* eras                                                                */
+/* ------------------------------------------------------------------ */
+
+/** @param {string} era @returns {number} index in the era ladder (-1 unknown) */
+function eraIndex(era) {
+  return ROOMS.eras.indexOf(era);
+}
+
+/** Current cartridge era index (unknown eras behave like garage). */
+function currentEraIndex() {
+  const i = eraIndex(cart.getCartridge().meta.era);
+  return i === -1 ? 0 : i;
+}
+
+/** @param {string} required @returns {boolean} */
+function eraOpen(required) {
+  return currentEraIndex() >= eraIndex(required);
+}
+
+/** Warm locked-door message for a room or member. */
+function lockedMessage(label, requiredEra) {
+  return '🔒 ' + label + ' ' + ROOMS.lockedLine + ' ' + ROOMS.eraNames[requiredEra] + '!';
 }
 
 /* ------------------------------------------------------------------ */
@@ -149,24 +183,86 @@ function barButton(label, fn, primary = false) {
   return b;
 }
 
-function buildTabs() {
+/** The room strip: every door in the studio, locked ones included. */
+function buildRoomStrip() {
   const strip = document.createElement('div');
-  strip.className = 'tabs';
-  for (const tab of TABS) {
-    const b = document.createElement('button');
-    b.className = 'tab';
-    b.dataset.tab = tab.id;
-    b.setAttribute('role', 'tab');
-    b.textContent = tab.label;
-    if (tab.locked) {
-      b.disabled = true;
-      b.title = 'Opens in ' + tab.locked;
-    } else {
-      b.addEventListener('click', () => showTab(tab.id));
-    }
-    strip.appendChild(b);
+  strip.className = 'rooms';
+
+  for (const room of ROOMS.rooms) {
+    strip.appendChild(roomButton({
+      id: room.id,
+      icon: room.icon,
+      label: room.label,
+      title: room.title,
+      locked: !eraOpen(room.era),
+      lockedEra: room.era,
+      onOpen: () => showRoom(room.id)
+    }));
   }
+
+  strip.appendChild(roomButton({
+    id: 'play',
+    icon: ROOMS.play.icon,
+    label: ROOMS.play.label,
+    title: ROOMS.play.title,
+    extraClass: 'play',
+    onOpen: () => showRoom('play')
+  }));
+
+  strip.appendChild(roomButton({
+    id: 'office',
+    icon: ROOMS.office.icon,
+    label: ROOMS.office.label,
+    title: ROOMS.office.title,
+    extraClass: 'office',
+    onOpen: () => showRoom('office')
+  }));
+
   return strip;
+}
+
+/**
+ * @param {{id:string, icon:string, label:string, title:string,
+ *          locked?:boolean, lockedEra?:string, extraClass?:string,
+ *          onOpen:Function}} spec
+ */
+function roomButton(spec) {
+  const b = document.createElement('button');
+  b.className = 'room' + (spec.extraClass ? ' ' + spec.extraClass : '') + (spec.locked ? ' locked' : '');
+  b.dataset.room = spec.id;
+  b.title = spec.title;
+  b.setAttribute('role', 'tab');
+
+  const icon = document.createElement('span');
+  icon.className = 'room-icon';
+  icon.textContent = spec.locked ? '🔒' : spec.icon;
+  b.appendChild(icon);
+
+  const label = document.createElement('span');
+  label.className = 'room-label';
+  label.textContent = spec.label;
+  b.appendChild(label);
+
+  if (spec.locked) {
+    b.addEventListener('click', () => toast(lockedMessage(spec.label, spec.lockedEra)));
+  } else {
+    b.addEventListener('click', () => spec.onOpen());
+  }
+  return b;
+}
+
+/** Rebuild the room strip in place (era may have changed). */
+function refreshRoomStrip() {
+  const fresh = buildRoomStrip();
+  roomStrip.replaceWith(fresh);
+  roomStrip = fresh;
+  markSelectedRoom();
+}
+
+function markSelectedRoom() {
+  for (const b of roomStrip.querySelectorAll('.room')) {
+    b.setAttribute('aria-selected', String(b.dataset.room === currentRoom));
+  }
 }
 
 function buildStatusBar() {
@@ -194,42 +290,153 @@ function buildStatusBar() {
   return bar;
 }
 
+let lastSeenEra = null;
+
 /** Refresh title field + status line from cartridge state. */
 function syncChrome() {
   const c = cart.getCartridge();
+  // Era changes (pitch build, open, switcher) re-gate the room strip.
+  if (lastSeenEra !== null && lastSeenEra !== c.meta.era) refreshRoomStrip();
+  lastSeenEra = c.meta.era;
   if (document.activeElement !== titleInput) titleInput.value = c.meta.title;
   const dirty = cart.isDirty();
   statusDot.className = 'dot ' + (dirty ? 'dirty' : 'saved');
   const file = cart.getFileName();
   statusText.textContent =
     (dirty ? 'unsaved changes' : 'saved') +
-    ' \u00B7 ' + (file || 'no file bound') +
-    ' \u00B7 era: ' + c.meta.era;
+    ' · ' + (file || 'no file bound') +
+    ' · era: ' + (ROOMS.eraNames[c.meta.era] || c.meta.era);
 }
 
-/** @param {string} id */
-function showTab(id) {
-  currentTab = id;
-  for (const b of document.querySelectorAll('.tab')) {
-    b.setAttribute('aria-selected', String(b.dataset.tab === id));
-  }
-  const tab = TABS.find((t) => t.id === id);
+/* ------------------------------------------------------------------ */
+/* rooms & panels                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Open a room (or 'play' / 'office' / 'pitch').
+ * @param {string} id
+ */
+function showRoom(id) {
+  currentRoom = id;
+  markSelectedRoom();
   host.innerHTML = '';
-  if (tab && tab.render) tab.render(host, { toast, refresh: () => showTab(id) });
+
+  if (id === 'play') {
+    renderPanelInto(host, ROOMS.play.tab);
+    return;
+  }
+  if (id === 'office') {
+    renderMemberView(ROOMS.office.members.map((m) => ({ ...m, open: true })), 'office', buildEraSwitcher());
+    return;
+  }
+  if (id === 'pitch') {
+    renderPanelInto(host, 'pitch');
+    return;
+  }
+
+  const room = ROOMS.rooms.find((r) => r.id === id);
+  if (!room) return;
+
+  const members = room.members.map((m) => ({
+    ...m,
+    open: eraOpen(m.era)
+  }));
+  renderMemberView(members, room.id, null);
+}
+
+/**
+ * Render a room's member tabs (locked ones stay visible) plus the active panel.
+ * @param {Array<{tab:string,label:string,era?:string,open:boolean}>} members
+ * @param {string} memoryKey
+ * @param {HTMLElement|null} extraChrome appended after the member strip
+ */
+function renderMemberView(members, memoryKey, extraChrome) {
+  const openMembers = members.filter((m) => m.open);
+  if (openMembers.length === 0) return;
+
+  let active = roomMemory[memoryKey] || openMembers[0].tab;
+  if (!openMembers.some((m) => m.tab === active)) active = openMembers[0].tab;
+  roomMemory[memoryKey] = active;
+
+  // A room with a single visible door skips the inner strip entirely.
+  if (members.length > 1) {
+    const strip = document.createElement('div');
+    strip.className = 'tabs room-sub';
+    for (const m of members) {
+      const b = document.createElement('button');
+      b.className = 'tab';
+      b.dataset.tab = m.tab;
+      b.setAttribute('role', 'tab');
+      b.textContent = m.open ? m.label : '🔒 ' + m.label;
+      b.setAttribute('aria-selected', String(m.tab === active));
+      if (m.open) {
+        b.addEventListener('click', () => {
+          roomMemory[memoryKey] = m.tab;
+          showRoom(currentRoom);
+        });
+      } else {
+        b.addEventListener('click', () => toast(lockedMessage(m.label, m.era)));
+      }
+      strip.appendChild(b);
+    }
+    host.appendChild(strip);
+  }
+
+  if (extraChrome) host.appendChild(extraChrome);
+
+  const panelHost = document.createElement('div');
+  panelHost.className = 'room-panel';
+  host.appendChild(panelHost);
+  renderPanelInto(panelHost, active);
+}
+
+/**
+ * @param {HTMLElement} target
+ * @param {string} tabId
+ */
+function renderPanelInto(target, tabId) {
+  const render = PANELS[tabId];
+  if (render) render(target, { toast, refresh: () => showRoom(currentRoom) });
+}
+
+/** Office-only: let a grown-up (or tester) move the studio between eras. */
+function buildEraSwitcher() {
+  const wrap = document.createElement('div');
+  wrap.className = 'card era-switcher';
+
+  const label = document.createElement('label');
+  label.textContent = 'Studio era (grown-ups & testing): ';
+  const sel = document.createElement('select');
+  for (const era of ROOMS.eras) {
+    const opt = document.createElement('option');
+    opt.value = era;
+    opt.textContent = ROOMS.eraNames[era] || era;
+    sel.appendChild(opt);
+  }
+  sel.value = cart.getCartridge().meta.era;
+  if (!ROOMS.eras.includes(sel.value)) sel.value = ROOMS.eras[0];
+  sel.addEventListener('change', () => {
+    cart.getCartridge().meta.era = sel.value;
+    cart.touch();
+    refreshRoomStrip();
+    toast('Studio era: ' + (ROOMS.eraNames[sel.value] || sel.value));
+  });
+  label.appendChild(sel);
+  wrap.appendChild(label);
+  return wrap;
 }
 
 /* ------------------------------------------------------------------ */
 /* project commands                                                    */
 /* ------------------------------------------------------------------ */
 
-/** "New" used to be a blunt confirm() popup offering Platformer-or-blank —
- * now it hands off to the Pitch Meeting, which walks through picking (or
- * being matched to) any of the real templates. The actual unsaved-changes
- * guard and pre-replace backup now live at the point data is actually
- * replaced — Pitch Meeting's "Build It" — not here, since just opening the
- * tab doesn't discard anything. */
+/** "New" hands off to the Pitch Meeting, which walks through picking (or
+ * being matched to) any of the real templates. The unsaved-changes guard and
+ * pre-replace backup live at the point data is actually replaced — Pitch
+ * Meeting's "Build It" — not here, since just opening the tab doesn't
+ * discard anything. */
 function doNew() {
-  showTab('pitch');
+  showRoom('pitch');
 }
 
 async function doOpen() {
@@ -246,7 +453,8 @@ async function doOpen() {
   } else {
     toast('Cartridge loaded.');
   }
-  showTab(currentTab);
+  refreshRoomStrip();
+  showRoom(currentRoom);
 }
 
 /** @param {boolean} forcePicker */
