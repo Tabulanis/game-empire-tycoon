@@ -108,31 +108,43 @@ export function renderSoundboothPanel(host, ctx) {
   panel.appendChild(noteBar);
 
   const layout = document.createElement('div');
-  layout.className = 'stage-layout';
+  layout.className = 'booth-layout';
 
-  // ---------- left: tracker grid + channel voices ----------
-  const left = document.createElement('div');
+  // ---------- left rail: the sound palette (voices + samples) ----------
+  // DAW convention: the sounds you play WITH live on one side, the music
+  // you're MAKING is the big center, and saved work sits on the other side.
+  const palette = document.createElement('div');
+  palette.className = 'booth-palette';
 
-  const voiceBar = document.createElement('div');
-  voiceBar.className = 'stage-bar';
-  voiceBar.style.flexWrap = 'wrap';
+  const voicesCard = document.createElement('div');
+  voicesCard.className = 'card';
+  voicesCard.innerHTML = '<h3>Channel Sounds</h3>';
   const voiceSelects = [];
   for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
+    const row = document.createElement('div');
+    row.className = 'brick-row';
     const label = document.createElement('span');
     label.textContent = 'Ch' + (ch + 1) + ':';
+    label.style.minWidth = '36px';
     label.style.fontSize = '11px';
-    voiceBar.appendChild(label);
+    row.appendChild(label);
     const select = document.createElement('select');
     select.className = 'deck-select';
+    select.style.flex = '1';
     for (const v of sb.VOICES) {
       const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
       select.appendChild(opt);
     }
     select.addEventListener('change', () => { working.channelVoices[ch] = select.value; });
     voiceSelects.push(select);
-    voiceBar.appendChild(select);
+    row.appendChild(select);
+    voicesCard.appendChild(row);
   }
-  left.appendChild(voiceBar);
+  palette.appendChild(voicesCard);
+  layout.appendChild(palette);
+
+  // ---------- center: the tracker itself ----------
+  const left = document.createElement('div');
 
   const gridCard = document.createElement('div');
   gridCard.className = 'card';
@@ -174,16 +186,17 @@ export function renderSoundboothPanel(host, ctx) {
 
   layout.appendChild(left);
 
-  // ---------- right: sample slots + library + save ----------
-  const right = document.createElement('div');
-  right.className = 'deck-right';
-
+  // sample slots join the palette rail — they're sounds you play with
   const slotsCard = document.createElement('div');
   slotsCard.className = 'card';
-  slotsCard.innerHTML = '<h3>Sample Slots</h3><div class="stage-hint">Pull in a sound from the SFX Foundry.</div>';
+  slotsCard.innerHTML = '<h3>Sample Slots</h3><div class="stage-hint">Pull in a sound from the Sound room.</div>';
   const slotsList = document.createElement('div');
   slotsCard.appendChild(slotsList);
-  right.appendChild(slotsCard);
+  palette.appendChild(slotsCard);
+
+  // ---------- right: library + save ----------
+  const right = document.createElement('div');
+  right.className = 'deck-right';
 
   const libCard = document.createElement('div');
   libCard.className = 'card';

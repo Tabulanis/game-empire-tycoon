@@ -9,9 +9,10 @@ import * as cart from '../cartridge.js';
 import * as fx from '../sfxedit.js';
 import { renderSfxParams, decodeSample } from '../../engine/systems/audio.js';
 
-/** The six one-click effects, kid-labeled. */
+/** The one-click effects, kid-labeled. */
 const EFFECTS = [
-  { label: '✨ Echo', apply: (b) => fx.applyEcho(b) },
+  { label: '✨ Reverb', apply: (b) => fx.applyReverb(b) },
+  { label: '📣 Echo', apply: (b) => fx.applyEcho(b) },
   { label: '🤖 Robot', apply: (b) => fx.applyRobot(b) },
   { label: '🐿️ Faster', apply: (b) => fx.applySpeed(b, 1.3) },
   { label: '🐢 Slower', apply: (b) => fx.applySpeed(b, 0.75) },
@@ -36,6 +37,8 @@ export function renderSfxeditPanel(host, ctx) {
   let history = [];
   let currentName = '';
   let busy = false;
+  /** @type {{start: number, end: number}|null} selected region, in frames */
+  let selection = null;
 
   /* ---- source row ---- */
   const sourceBar = document.createElement('div');
@@ -54,6 +57,7 @@ export function renderSfxeditPanel(host, ctx) {
     load.then((loaded) => {
       buffer = loaded;
       history = [];
+      selection = null;
       currentName = sfx.name;
       nameInput.value = currentName;
       setBusy(false);
@@ -77,6 +81,7 @@ export function renderSfxeditPanel(host, ctx) {
       .then((decoded) => {
         buffer = decoded;
         history = [];
+      selection = null;
         currentName = file.name.replace(/\.[^.]+$/, '');
         nameInput.value = currentName;
         setBusy(false);
@@ -92,11 +97,69 @@ export function renderSfxeditPanel(host, ctx) {
   sourceBar.appendChild(makeBtn('Import File…', () => importInput.click()));
   panel.appendChild(sourceBar);
 
-  /* ---- waveform ---- */
+  /* ---- waveform (drag across it to select a piece) ---- */
   const wave = document.createElement('canvas');
   wave.className = 'sfxedit-wave';
   wave.height = 110;
   panel.appendChild(wave);
+
+  let dragStartX = null;
+  wave.addEventListener('pointerdown', (e) => {
+    if (!buffer) return;
+    dragStartX = e.offsetX;
+    wave.setPointerCapture(e.pointerId);
+  });
+  wave.addEventListener('pointermove', (e) => {
+    if (dragStartX === null || !buffer) return;
+    setSelectionFromPixels(dragStartX, e.offsetX);
+    redraw();
+  });
+  wave.addEventListener('pointerup', (e) => {
+    if (dragStartX === null || !buffer) return;
+    if (Math.abs(e.offsetX - dragStartX) < 4) {
+      selection = null;             // a plain click clears the selection
+    } else {
+      setSelectionFromPixels(dragStartX, e.offsetX);
+    }
+    dragStartX = null;
+    redraw();
+  });
+
+  function setSelectionFromPixels(x1, x2) {
+    const width = wave.width || 1;
+    const a = Math.max(0, Math.min(x1, x2)) / width;
+    const b = Math.min(width, Math.max(x1, x2)) / width;
+    selection = {
+      start: Math.floor(a * buffer.length),
+      end: Math.ceil(b * buffer.length)
+    };
+  }
+
+  /* ---- region tools (appear when something is selected) ---- */
+  const regionBar = document.createElement('div');
+  regionBar.className = 'stage-bar';
+  const regionHint = document.createElement('span');
+  regionHint.className = 'sfxedit-region-hint';
+  regionHint.textContent = 'Drag across the wave to pick a piece →';
+  regionBar.appendChild(regionHint);
+  const regionButtons = [];
+  const addRegionBtn = (label, op) => {
+    const b = makeBtn(label, () => {
+      if (!buffer || !selection || busy) return;
+      history.push(buffer);
+      buffer = op(buffer, selection.start, selection.end);
+      selection = null;
+      redraw();
+      doPlay();
+    });
+    regionButtons.push(b);
+    regionBar.appendChild(b);
+    return b;
+  };
+  addRegionBtn('✂️ Cut', fx.cutRegion);
+  addRegionBtn('🎯 Keep', fx.keepRegion);
+  addRegionBtn('🤫 Quiet', fx.silenceRegion);
+  panel.appendChild(regionBar);
 
   /* ---- effect buttons ---- */
   const fxBar = document.createElement('div');
@@ -194,9 +257,12 @@ export function renderSfxeditPanel(host, ctx) {
 
   function doPlay() {
     if (!buffer) return;
+    // With a selection, play just that piece — instant "did I grab the
+    // right part?" feedback.
+    const toPlay = selection ? fx.sliceRegion(buffer, selection.start, selection.end) : buffer;
     const ctx2 = new AudioContext();
     const source = ctx2.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = toPlay;
     source.connect(ctx2.destination);
     source.onended = () => ctx2.close();
     source.start();
@@ -205,6 +271,8 @@ export function renderSfxeditPanel(host, ctx) {
   function setBusy(next) {
     busy = next;
     for (const b of fxButtons) b.disabled = next || !buffer;
+    for (const b of regionButtons) b.disabled = next || !buffer || !selection;
+    regionHint.style.opacity = selection ? '0.4' : '1';
     saveBtn.disabled = next || !buffer;
     playBtn.disabled = next || !buffer;
     undoBtn.disabled = next || !history.length;
@@ -236,6 +304,15 @@ export function renderSfxeditPanel(host, ctx) {
       g.lineTo(x + 0.5, mid - min * (mid - 4) + 1);
     }
     g.stroke();
+
+    if (selection) {
+      const x1 = (selection.start / buffer.length) * wave.width;
+      const x2 = (selection.end / buffer.length) * wave.width;
+      g.fillStyle = 'rgba(111, 211, 255, 0.18)';
+      g.fillRect(x1, 0, x2 - x1, wave.height);
+      g.strokeStyle = '#6fd3ff';
+      g.strokeRect(x1 + 0.5, 0.5, x2 - x1 - 1, wave.height - 1);
+    }
   }
 }
 

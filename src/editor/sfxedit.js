@@ -9,6 +9,7 @@
  */
 
 import { encodeWavDataURI } from './wav.js';
+import { makeImpulseResponse } from '../engine/systems/audio.js';
 
 /**
  * @param {number} channels
@@ -39,11 +40,42 @@ export function applyEcho(buffer) {
   delay.delayTime.value = 0.17;
   const feedback = ctx.createGain();
   feedback.gain.value = 0.42;
+  const darken = ctx.createBiquadFilter();
+  darken.type = 'lowpass';
+  darken.frequency.value = 2400; // darker repeats sound like echo, not a glitch
   source.connect(ctx.destination);
   source.connect(delay);
-  delay.connect(feedback);
+  delay.connect(darken);
+  darken.connect(feedback);
   feedback.connect(delay);
   delay.connect(ctx.destination);
+  source.start(0);
+  return ctx.startRendering();
+}
+
+/**
+ * Reverb: convolution with the app's shared procedural impulse — the same
+ * room the Foundry's reverb dial uses.
+ * @param {AudioBuffer} buffer
+ * @returns {Promise<AudioBuffer>}
+ */
+export function applyReverb(buffer) {
+  const tail = 1.8;
+  const ctx = new OfflineAudioContext(
+    Math.max(2, buffer.numberOfChannels),
+    buffer.length + Math.ceil(tail * buffer.sampleRate),
+    buffer.sampleRate
+  );
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const convolver = ctx.createConvolver();
+  convolver.buffer = makeImpulseResponse(ctx);
+  const wet = ctx.createGain();
+  wet.gain.value = 0.7;
+  source.connect(ctx.destination);
+  source.connect(convolver);
+  convolver.connect(wet);
+  wet.connect(ctx.destination);
   source.start(0);
   return ctx.startRendering();
 }
@@ -150,6 +182,87 @@ export function normalize(buffer) {
     for (let i = 0; i < src.length; i++) dst[i] = src[i] * gainFactor;
   }
   return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* region editing (drag a selection on the waveform, then...)          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Cut: remove frames [start, end) and close the gap.
+ * @param {AudioBuffer} buffer
+ * @param {number} start  frame index
+ * @param {number} end  frame index
+ * @returns {AudioBuffer}
+ */
+export function cutRegion(buffer, start, end) {
+  start = Math.max(0, Math.min(buffer.length, Math.floor(start)));
+  end = Math.max(start, Math.min(buffer.length, Math.floor(end)));
+  const frames = buffer.length - (end - start);
+  const out = makeBuffer(buffer.numberOfChannels, frames, buffer.sampleRate);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const src = buffer.getChannelData(c);
+    const dst = out.getChannelData(c);
+    dst.set(src.subarray(0, start), 0);
+    dst.set(src.subarray(end), start);
+  }
+  return out;
+}
+
+/**
+ * Keep: crop to frames [start, end) — everything else goes.
+ * @param {AudioBuffer} buffer
+ * @param {number} start
+ * @param {number} end
+ * @returns {AudioBuffer}
+ */
+export function keepRegion(buffer, start, end) {
+  start = Math.max(0, Math.min(buffer.length, Math.floor(start)));
+  end = Math.max(start + 1, Math.min(buffer.length, Math.floor(end)));
+  const out = makeBuffer(buffer.numberOfChannels, end - start, buffer.sampleRate);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    out.getChannelData(c).set(buffer.getChannelData(c).subarray(start, end), 0);
+  }
+  return out;
+}
+
+/**
+ * Quiet: silence frames [start, end) in place-shape (with 3 ms edge ramps
+ * so the silence doesn't click).
+ * @param {AudioBuffer} buffer
+ * @param {number} start
+ * @param {number} end
+ * @returns {AudioBuffer}
+ */
+export function silenceRegion(buffer, start, end) {
+  start = Math.max(0, Math.min(buffer.length, Math.floor(start)));
+  end = Math.max(start, Math.min(buffer.length, Math.floor(end)));
+  const out = makeBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  const ramp = Math.floor(buffer.sampleRate * 0.003);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const src = buffer.getChannelData(c);
+    const dst = out.getChannelData(c);
+    dst.set(src);
+    for (let i = start; i < end; i++) {
+      let g = 0;
+      if (i - start < ramp) g = 1 - (i - start) / ramp;
+      else if (end - i < ramp) g = 1 - (end - i) / ramp;
+      dst[i] = src[i] * g;
+    }
+  }
+  return out;
+}
+
+/**
+ * Copy a region out as its own little buffer (used to play just the
+ * selection).
+ * @param {AudioBuffer} buffer
+ * @param {number} start
+ * @param {number} end
+ * @returns {AudioBuffer}
+ */
+export function sliceRegion(buffer, start, end) {
+  return keepRegion(buffer, start, end);
 }
 
 /* ------------------------------------------------------------------ */

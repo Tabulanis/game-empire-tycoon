@@ -147,6 +147,12 @@ export function renderFoundryPanel(host, ctx) {
     paramGrid.appendChild(sliderRow('Sustain (s)', params.sustain, 0, 0.5, 0.01, (v) => { params.sustain = v; }));
     paramGrid.appendChild(sliderRow('Decay (s)', params.decay, 0.02, 1, 0.01, (v) => { params.decay = v; }));
     paramGrid.appendChild(sliderRow('Volume', params.volume, 0, 1, 0.01, (v) => { params.volume = v; }));
+    // The power dials — default off/neutral, so old sounds are unchanged
+    // until a kid reaches for them. Synthesis lives in engine audio.js.
+    paramGrid.appendChild(sliderRow('Brightness', params.tone == null ? 1 : params.tone, 0, 1, 0.01, (v) => { params.tone = v; }));
+    paramGrid.appendChild(sliderRow('Wobble', params.wobble || 0, 0, 1, 0.01, (v) => { params.wobble = v; }));
+    paramGrid.appendChild(sliderRow('Echo', params.echo || 0, 0, 1, 0.01, (v) => { params.echo = v; }));
+    paramGrid.appendChild(sliderRow('Reverb', params.reverb || 0, 0, 1, 0.01, (v) => { params.reverb = v; }));
   }
 
   function sliderRow(label, value, min, max, step, onInput) {

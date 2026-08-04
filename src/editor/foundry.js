@@ -9,6 +9,8 @@
  * "play sfx" brick into real gameplay arrives with Phase 4's audio.js.
  */
 
+import { synthesizeParamsInto } from '../engine/systems/audio.js';
+
 /**
  * @typedef {Object} SfxParams
  * @property {'square'|'sine'|'sawtooth'|'triangle'|'noise'} wave
@@ -17,6 +19,10 @@
  * @property {number} sustain  seconds at full volume
  * @property {number} decay  seconds fading to silence after sustain
  * @property {number} volume  0..1
+ * @property {number} [tone]  0..1 lowpass brightness (1 = fully open, the default)
+ * @property {number} [wobble]  0..1 vibrato amount (0 = off)
+ * @property {number} [echo]  0..1 feedback-delay mix (0 = off)
+ * @property {number} [reverb]  0..1 reverb mix (0 = off)
  */
 
 /** Hand-tuned starting points for the six preset buttons Article IX calls for. */
@@ -31,7 +37,10 @@ export const PRESETS = {
 
 /** @returns {SfxParams} a neutral starting point when no preset is picked */
 export function blankParams() {
-  return { wave: 'square', startFreq: 440, freqSlide: 0, sustain: 0.08, decay: 0.15, volume: 0.5 };
+  return {
+    wave: 'square', startFreq: 440, freqSlide: 0, sustain: 0.08, decay: 0.15, volume: 0.5,
+    tone: 1, wobble: 0, echo: 0, reverb: 0
+  };
 }
 
 /**
@@ -44,13 +53,18 @@ export function blankParams() {
  */
 export function mutate(params) {
   const jitter = (v, amount) => v + (Math.random() * 2 - 1) * amount;
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
   return {
     wave: params.wave,
     startFreq: Math.max(40, jitter(params.startFreq, params.startFreq * 0.25)),
     freqSlide: jitter(params.freqSlide, Math.abs(params.freqSlide) * 0.4 + 40),
     sustain: Math.max(0, jitter(params.sustain, 0.03)),
     decay: Math.max(0.02, jitter(params.decay, 0.08)),
-    volume: Math.min(1, Math.max(0.05, jitter(params.volume, 0.1)))
+    volume: Math.min(1, Math.max(0.05, jitter(params.volume, 0.1))),
+    tone: Math.min(1, Math.max(0.2, jitter(params.tone == null ? 1 : params.tone, 0.15))),
+    wobble: clamp01(jitter(params.wobble || 0, 0.12)),
+    echo: clamp01(jitter(params.echo || 0, 0.12)),
+    reverb: clamp01(jitter(params.reverb || 0, 0.12))
   };
 }
 
@@ -59,43 +73,20 @@ let sharedContext = null;
 /** @returns {AudioContext} a lazily-created, reused audio context */
 function getContext() {
   if (!sharedContext) sharedContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (sharedContext.state === 'suspended') sharedContext.resume();
   return sharedContext;
 }
 
 /**
- * Synthesize and play params immediately, on the shared audio context.
+ * Synthesize and play params immediately — authoring preview. The actual
+ * synthesis (including the tone/wobble/echo/reverb dials) is the engine's
+ * synthesizeParamsInto: one recipe for preview, gameplay, and offline
+ * render alike.
  * @param {SfxParams} params
  */
 export function play(params) {
   const ctx = getContext();
-  const duration = params.sustain + params.decay;
-  const gain = ctx.createGain();
-  gain.connect(ctx.destination);
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(params.volume, now);
-  gain.gain.setValueAtTime(params.volume, now + params.sustain);
-  gain.gain.linearRampToValueAtTime(0.0001, now + duration);
-
-  if (params.wave === 'noise') {
-    const bufferSize = Math.ceil(ctx.sampleRate * duration);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gain);
-    source.start(now);
-    source.stop(now + duration);
-  } else {
-    const osc = ctx.createOscillator();
-    osc.type = params.wave;
-    osc.frequency.setValueAtTime(Math.max(20, params.startFreq), now);
-    const endFreq = Math.max(20, params.startFreq + params.freqSlide * duration);
-    osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
-    osc.connect(gain);
-    osc.start(now);
-    osc.stop(now + duration);
-  }
+  synthesizeParamsInto(ctx, ctx.destination, ctx.currentTime, params);
 }
 
 /* ------------------------------------------------------------------ */

@@ -78,9 +78,39 @@ export function computePan(sourceX, listenerX, range = 10) {
 /* param synthesis (Foundry sfx) — shared live/offline                  */
 /* ------------------------------------------------------------------ */
 
+/** Per-context procedural reverb impulse cache (contexts are long-lived). */
+const impulseCache = new WeakMap();
+
+/**
+ * Procedural reverb impulse: exponentially decaying stereo noise. One
+ * recipe for the whole app — the Foundry's reverb dial and the Sound
+ * Editor's reverb button sound like the same room.
+ * @param {BaseAudioContext} ctx
+ * @param {number} [seconds]
+ * @returns {AudioBuffer}
+ */
+export function makeImpulseResponse(ctx, seconds = 1.6) {
+  let impulse = impulseCache.get(ctx);
+  if (impulse && impulse.duration >= seconds) return impulse;
+  const rate = ctx.sampleRate;
+  const frames = Math.ceil(seconds * rate);
+  impulse = ctx.createBuffer(2, frames, rate);
+  for (let c = 0; c < 2; c++) {
+    const data = impulse.getChannelData(c);
+    for (let i = 0; i < frames; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / frames, 2.4);
+    }
+  }
+  impulseCache.set(ctx, impulse);
+  return impulse;
+}
+
 /**
  * Synthesize one Foundry-style param sfx into any context/destination at an
  * exact time. The single source of truth for how params become sound.
+ * Optional power dials (all default to off/neutral so old saved sounds are
+ * untouched): tone (lowpass brightness 0..1), wobble (vibrato 0..1),
+ * echo (feedback-delay mix 0..1), reverb (convolver mix 0..1).
  * @param {BaseAudioContext} ctx
  * @param {AudioNode} destination
  * @param {number} when  absolute ctx time
@@ -88,11 +118,55 @@ export function computePan(sourceX, listenerX, range = 10) {
  */
 export function synthesizeParamsInto(ctx, destination, when, params) {
   const duration = params.sustain + params.decay;
-  const gain = ctx.createGain();
-  gain.connect(destination);
-  gain.gain.setValueAtTime(params.volume, when);
-  gain.gain.setValueAtTime(params.volume, when + params.sustain);
-  gain.gain.linearRampToValueAtTime(0.0001, when + duration);
+  const tone = params.tone == null ? 1 : params.tone;
+  const wobble = params.wobble || 0;
+  const echo = params.echo || 0;
+  const reverb = params.reverb || 0;
+
+  // Envelope first, then effect sends — so echo/reverb tails keep ringing
+  // after the envelope has closed.
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(params.volume, when);
+  env.gain.setValueAtTime(params.volume, when + params.sustain);
+  env.gain.linearRampToValueAtTime(0.0001, when + duration);
+
+  /** @type {AudioNode} where the raw source connects */
+  let head = env;
+  if (tone < 0.98) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300 + tone * tone * 7700; // 300 Hz shut … 8 kHz open
+    filter.connect(env);
+    head = filter;
+  }
+
+  env.connect(destination);
+  if (echo > 0.02) {
+    const send = ctx.createGain();
+    send.gain.value = echo * 0.7;
+    const delay = ctx.createDelay(1);
+    delay.delayTime.value = 0.17;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.4;
+    const darken = ctx.createBiquadFilter();
+    darken.type = 'lowpass';
+    darken.frequency.value = 2400; // darker repeats read as "echo", not "bug"
+    env.connect(send);
+    send.connect(delay);
+    delay.connect(darken);
+    darken.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(destination);
+  }
+  if (reverb > 0.02) {
+    const send = ctx.createGain();
+    send.gain.value = reverb * 0.8;
+    const convolver = ctx.createConvolver();
+    convolver.buffer = makeImpulseResponse(ctx);
+    env.connect(send);
+    send.connect(convolver);
+    convolver.connect(destination);
+  }
 
   if (params.wave === 'noise') {
     const bufferSize = Math.ceil(ctx.sampleRate * duration);
@@ -101,7 +175,7 @@ export function synthesizeParamsInto(ctx, destination, when, params) {
     for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(gain);
+    source.connect(head);
     source.start(when);
     source.stop(when + duration);
   } else {
@@ -110,10 +184,31 @@ export function synthesizeParamsInto(ctx, destination, when, params) {
     osc.frequency.setValueAtTime(Math.max(20, params.startFreq), when);
     const endFreq = Math.max(20, params.startFreq + params.freqSlide * duration);
     osc.frequency.linearRampToValueAtTime(endFreq, when + duration);
-    osc.connect(gain);
+    if (wobble > 0.02) {
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 9;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = Math.max(4, params.startFreq * 0.08) * wobble;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(when);
+      lfo.stop(when + duration);
+    }
+    osc.connect(head);
     osc.start(when);
     osc.stop(when + duration);
   }
+}
+
+/**
+ * @param {import('../../editor/foundry.js').SfxParams} params
+ * @returns {number} seconds of tail the effect sends need to ring out
+ */
+export function paramsTailSeconds(params) {
+  const echo = params.echo || 0;
+  const reverb = params.reverb || 0;
+  if (echo > 0.02 || reverb > 0.02) return 1.6;
+  return 0.05;
 }
 
 /**
@@ -137,7 +232,7 @@ export function playSfx(params, pan = 0) {
  */
 export function renderSfxParams(params) {
   const rate = 44100;
-  const duration = Math.max(0.05, params.sustain + params.decay) + 0.05;
+  const duration = Math.max(0.05, params.sustain + params.decay) + paramsTailSeconds(params);
   const ctx = new OfflineAudioContext(1, Math.ceil(duration * rate), rate);
   synthesizeParamsInto(ctx, ctx.destination, 0, params);
   return ctx.startRendering();
