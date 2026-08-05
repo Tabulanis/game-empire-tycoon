@@ -220,24 +220,55 @@ export function buildModelMesh(model) {
   // nested THREE.Group — move a parent part, its children ride along.
   if (Array.isArray(model.parts) && model.parts.length) {
     const nodes = model.parts.map((part, index) => {
-      const material = buildModelMaterial({ swatch: part.swatch, shader: null });
       const mat = part.mat || {};
-      if (mat.rough != null) material.roughness = mat.rough;
-      if (mat.metal != null) material.metalness = mat.metal;
-      if (mat.glow) {
-        material.emissive = new THREE.Color(part.swatch || '#6fb2dc');
-        material.emissiveIntensity = mat.glow;
-      }
-      if (mat.textureData) {
-        // texture rides inside the part data, so prefabs stay self-contained
-        const tex = new THREE.TextureLoader().load(mat.textureData);
+      // Texture with a movable placement: the geometry's own UVs are the
+      // "basic unwrap" (BoxGeometry per-face 0..1, SphereGeometry equirect);
+      // uv = {ox, oy, scale, rot} slides/scales/spins it on the surface.
+      const applyTexture = (material, texData, uv) => {
+        const tex = new THREE.TextureLoader().load(texData);
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.magFilter = THREE.NearestFilter;  // pixel art stays crisp
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.center.set(0.5, 0.5);
+        if (uv) {
+          tex.offset.set(uv.ox || 0, uv.oy || 0);
+          const sc = uv.scale || 1;
+          tex.repeat.set(sc, sc);
+          tex.rotation = uv.rot || 0;
+        }
         material.map = tex;
         material.color = new THREE.Color('#ffffff');
+      };
+      const makeBase = () => {
+        const m = buildModelMaterial({ swatch: part.swatch, shader: null });
+        if (mat.rough != null) m.roughness = mat.rough;
+        if (mat.metal != null) m.metalness = mat.metal;
+        if (mat.glow) {
+          m.emissive = new THREE.Color(part.swatch || '#6fb2dc');
+          m.emissiveIntensity = mat.glow;
+        }
+        return m;
+      };
+      const shape = part.shape || 'box';
+      let material;
+      if (shape === 'box' && !(part.bevel > 0)) {
+        // Boxes always carry a 6-material array so a raycast hit's
+        // materialIndex IS the face — and each face can wear its own
+        // texture with its own placement. Group order: +x -x +y -y +z -z.
+        material = [];
+        for (let f = 0; f < 6; f++) {
+          const m = makeBase();
+          const face = part.faces && part.faces[f];
+          if (face && face.textureData) applyTexture(m, face.textureData, face);
+          else if (mat.textureData) applyTexture(m, mat.textureData, mat.uv);
+          material.push(m);
+        }
+      } else {
+        material = makeBase();
+        if (mat.textureData) applyTexture(material, mat.textureData, mat.uv);
       }
       const mesh = new THREE.Mesh(
-        buildPartGeo(part.shape || 'box', part.size || [1, 1, 1], part.bevel || 0),
+        buildPartGeo(shape, part.size || [1, 1, 1], part.bevel || 0),
         material
       );
       mesh.userData.partIndex = index; // raycast picking in the Kit Bay

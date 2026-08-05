@@ -16,6 +16,7 @@ import { buildEntityObject } from '../../engine/meshes.js';
 
 let working = kitbay.createProp('box');
 let selectedPart = 0;
+let selectedFace = null; // box face index (0-5), picked by clicking the box
 
 /**
  * @param {HTMLElement} host
@@ -349,6 +350,81 @@ export function renderKitbayPanel(host, ctx) {
     });
     texRow.appendChild(texSel);
     tuneBody.appendChild(texRow);
+
+    const uvSliders = (target, label) => {
+      const head = document.createElement('div');
+      head.className = 'stage-hint';
+      head.textContent = label;
+      tuneBody.appendChild(head);
+      const uvRow = (name, min, max, step, value, set) => {
+        const row = document.createElement('div');
+        row.className = 'brick-row';
+        const l = document.createElement('span');
+        l.textContent = name; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+        row.appendChild(l);
+        const input = document.createElement('input');
+        input.type = 'range'; input.min = String(min); input.max = String(max); input.step = String(step);
+        input.value = String(value); input.style.flex = '1';
+        input.addEventListener('input', () => { set(Number(input.value)); rebuildPreviewMesh(); });
+        row.appendChild(input);
+        tuneBody.appendChild(row);
+      };
+      uvRow('Slide X', -1, 1, 0.02, target.ox || 0, (v) => { target.ox = v; });
+      uvRow('Slide Y', -1, 1, 0.02, target.oy || 0, (v) => { target.oy = v; });
+      uvRow('Tiling', 0.25, 8, 0.05, target.scale || 1, (v) => { target.scale = v; });
+      uvRow('Spin', 0, 6.28, 0.05, target.rot || 0, (v) => { target.rot = v; });
+    };
+
+    // whole-surface placement (any shape with a texture)
+    if (part.mat.textureData) {
+      if (!part.mat.uv) part.mat.uv = {};
+      uvSliders(part.mat.uv, 'Texture placement');
+    }
+
+    // per-face texturing for plain boxes (bevel uses one wrap-around surface)
+    if (part.shape === 'box' && !(part.bevel > 0)) {
+      const FACE_NAMES = ['Right', 'Left', 'Top', 'Bottom', 'Front', 'Back'];
+      const faceHead = document.createElement('div');
+      faceHead.className = 'stage-hint';
+      faceHead.textContent = selectedFace == null
+        ? 'Faces — click the box again in the viewport to pick one'
+        : 'Face: ' + FACE_NAMES[selectedFace] + ' (click elsewhere on the box to switch)';
+      tuneBody.appendChild(faceHead);
+      if (selectedFace != null) {
+        if (!part.faces) part.faces = {};
+        if (!part.faces[selectedFace]) part.faces[selectedFace] = {};
+        const face = part.faces[selectedFace];
+        const fRow = document.createElement('div');
+        fRow.className = 'brick-row';
+        fRow.innerHTML = '<span>Face texture:</span>';
+        const fSel = document.createElement('select');
+        fSel.className = 'deck-select';
+        const fNone = document.createElement('option');
+        fNone.value = ''; fNone.textContent = '(use part texture)';
+        fSel.appendChild(fNone);
+        for (const sprite of cart.getCartridge().assets.sprites) {
+          const opt = document.createElement('option');
+          opt.value = sprite.id; opt.textContent = sprite.name;
+          if (face.textureName === sprite.id) opt.selected = true;
+          fSel.appendChild(opt);
+        }
+        fSel.addEventListener('change', () => {
+          if (!fSel.value) {
+            delete face.textureData; delete face.textureName;
+          } else {
+            const sprite = cart.getCartridge().assets.sprites.find((sp) => sp.id === fSel.value);
+            if (sprite) {
+              face.textureData = (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail;
+              face.textureName = sprite.id;
+            }
+          }
+          rebuildPreviewMesh();
+        });
+        fRow.appendChild(fSel);
+        tuneBody.appendChild(fRow);
+        if (face.textureData) uvSliders(face, 'Face placement');
+      }
+    }
   }
 
   function renderAll() {
@@ -395,9 +471,14 @@ export function renderKitbayPanel(host, ctx) {
     mesh.traverse((obj) => {
       if (obj.userData.partIndex != null) {
         holders[obj.userData.partIndex] = obj.parent; // the transform holder Group
-        if (obj.userData.partIndex === selectedPart && obj.material && obj.material.emissive) {
-          obj.material.emissive = new THREE.Color('#6fd3ff');
-          obj.material.emissiveIntensity = 0.35;
+        if (obj.userData.partIndex === selectedPart) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach((m, f) => {
+            if (!m || !m.emissive) return;
+            const isFace = selectedFace != null && f === selectedFace;
+            m.emissive = new THREE.Color(isFace ? '#f0c463' : '#6fd3ff');
+            m.emissiveIntensity = isFace ? 0.5 : 0.25;
+          });
         }
       }
     });
@@ -423,7 +504,14 @@ export function renderKitbayPanel(host, ctx) {
     const hits = raycaster.intersectObject(mesh, true);
     for (const hit of hits) {
       if (hit.object.userData.partIndex != null) {
-        selectedPart = hit.object.userData.partIndex;
+        const idx = hit.object.userData.partIndex;
+        if (idx === selectedPart && Array.isArray(hit.object.material)) {
+          // second click on the same box: pick the face under the cursor
+          selectedFace = hit.face.materialIndex;
+        } else {
+          selectedPart = idx;
+          selectedFace = null;
+        }
         renderAll();
         rebuildPreviewMesh();
         break;
