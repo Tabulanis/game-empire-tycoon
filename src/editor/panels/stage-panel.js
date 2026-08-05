@@ -604,7 +604,9 @@ export function renderStagePanel(host, ctx) {
       }
       tile.addEventListener('click', () => {
         if (tool === 'terrain' && entry) {
-          t.layers[activeSlot] = { id: entry.id, dataURL: entry.dataURL };
+          t.layers[activeSlot] = entry.maps
+            ? { id: entry.id, dataURL: entry.dataURL, maps: entry.maps }
+            : { id: entry.id, dataURL: entry.dataURL };
         } else if (entry) {
           t.texture = entry.dataURL; t.textureName = entry.id;
         } else {
@@ -703,6 +705,10 @@ export function renderStagePanel(host, ctx) {
     const live = cart.getCartridge();
     const sprite = (live.assets.sprites || []).find((s) => s.id === assetId);
     return sprite && sprite.frames && sprite.frames[0] ? sprite.frames[0].dataURL : null;
+  };
+  engine.resolveModelAsset = (assetId) => {
+    const live = cart.getCartridge();
+    return (live.assets.models || []).find((m) => m.id === assetId) || null;
   };
   engine.setMode(c.settings.mode);
 

@@ -232,6 +232,18 @@ export function entityFromWarehouseItem(payload, item, mode) {
         prefab: payload.itemId,
         components: { sprite: { swatch, asset }, tags: [] }
       });
+    case 'charmodel':
+      // a rigged character saved from the Animate room — model component
+      // carries the asset id; meshes.js loads/clones/animates it
+      return createEntity({
+        name: payload.name,
+        prefab: payload.itemId,
+        components: {
+          model: { asset: payload.assetId, height: 1.2 },
+          body: { type: 'dynamic', size: [0.6, 1.2] },
+          tags: []
+        }
+      });
     case 'character':
       return createEntity({
         name: payload.name,

@@ -376,8 +376,12 @@ export function createEngine(canvas, opts = {}) {
   }
 
   /** Advance one frame. The caller owns the requestAnimationFrame loop. */
+  /** AnimationMixers for placed characters — updated every frame */
+  const mixers = new Set();
+
   function tick() {
     const dt = clock.getDelta();
+    for (const m of mixers) m.update(dt);
     if (withDemo) {
       if (demoMesh && mode === '3d') {
         demoMesh.rotation.y += dt * 0.6;
@@ -413,6 +417,7 @@ export function createEngine(canvas, opts = {}) {
     get camera() { return camera; },
     get mode() { return mode; },
     get contentRoot() { return contentRoot; },
+    get mixers() { return mixers; },
     setLighting,
     get lighting() { return lighting; },
     setMode,

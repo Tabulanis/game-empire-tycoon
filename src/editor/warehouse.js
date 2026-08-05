@@ -79,6 +79,14 @@ function cartridgeItems() {
       tags: ['custom'], swatch: '#e0a83a', assetId: sfx.id
     });
   }
+  for (const model of (cartridge.assets.models || [])) {
+    if (model.kind !== 'character') continue;
+    out.push({
+      id: model.id, name: model.name, kind: 'charmodel',
+      packId: 'cartridge', packName: 'My Assets', license: 'yours', source: 'cartridge',
+      tags: ['custom', 'character'], swatch: '#8a6bd6', assetId: model.id
+    });
+  }
   for (const song of (cartridge.assets.songs || [])) {
     out.push({
       id: song.id, name: song.name, kind: 'song',

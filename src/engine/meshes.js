@@ -13,6 +13,8 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { LOGIC_COLORS, findEntity } from './entities.js';
 
 /**
@@ -91,6 +93,22 @@ export function buildTerrainMesh(terrain) {
     });
     const slotMaterial = (slotIndex, row, col) => {
       const slot = (terrain.layers || terrain.palette || [])[slotIndex];
+      if (slot && slot.maps) {
+        // a Material Maker shader painting the ground
+        const m2 = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
+        const loadMap = (data, srgb) => {
+          const t = new THREE.TextureLoader().load(data);
+          if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+          t.magFilter = THREE.NearestFilter;
+          t.wrapS = t.wrapT = THREE.RepeatWrapping;
+          return t;
+        };
+        if (slot.maps.diffuse) m2.map = loadMap(slot.maps.diffuse, true);
+        if (slot.maps.roughness) { m2.roughnessMap = loadMap(slot.maps.roughness); }
+        if (slot.maps.specular) { m2.metalnessMap = loadMap(slot.maps.specular); m2.metalness = 1; }
+        if (slot.maps.normal) m2.normalMap = loadMap(slot.maps.normal);
+        return m2;
+      }
       const tex = layerTexture(slotIndex);
       if (!tex) return baseMaterial;
       const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 });
@@ -190,6 +208,9 @@ function clearGroup(group) {
 
 /** @param {THREE.Object3D} obj */
 function disposeObject(obj) {
+  if (obj.userData && obj.userData.mixer && obj.userData.mixer._root) {
+    obj.userData.mixer.stopAllAction();
+  }
   obj.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
     if (o.material) {
@@ -205,6 +226,19 @@ function disposeObject(obj) {
  * @param {any} entity
  * @returns {THREE.Object3D|null}
  */
+const _glbCache = new Map();
+/** @param {{id: string, glb: string}} record @returns {Promise<{scene: any, clips: any[]}>} */
+function loadCharacterGLB(record) {
+  if (_glbCache.has(record.id)) return _glbCache.get(record.id);
+  const promise = fetch(record.glb)
+    .then((r) => r.arrayBuffer())
+    .then((buffer) => new Promise((resolve, reject) => {
+      new GLTFLoader().parse(buffer, '', (gltf) => resolve({ scene: gltf.scene, clips: gltf.animations || [] }), reject);
+    }));
+  _glbCache.set(record.id, promise);
+  return promise;
+}
+
 let _blobTexture = null;
 function blobShadowTexture() {
   if (_blobTexture) return _blobTexture;
@@ -228,7 +262,32 @@ export function buildEntityObject(engine, entity) {
 
   if (c.tilemap) group.add(buildTilemapMesh(c.tilemap));
   if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite));
-  if (c.model) group.add(buildModelMesh(c.model));
+  if (c.model && c.model.asset && typeof engine.resolveModelAsset === 'function') {
+    // a saved character: GLB decoded once per asset, cloned per placement
+    // (SkeletonUtils.clone keeps skinned meshes bound to their own bones),
+    // its clip playing through the engine's mixer registry
+    const record = engine.resolveModelAsset(c.model.asset);
+    if (record && record.glb) {
+      loadCharacterGLB(record).then(({ scene, clips }) => {
+        const inst = SkeletonUtils.clone(scene);
+        const box = new THREE.Box3().setFromObject(inst);
+        const height = Math.max(0.001, box.max.y - box.min.y);
+        const scale = (c.model.height || 1.2) / height;
+        inst.scale.setScalar(scale);
+        box.setFromObject(inst);
+        inst.position.y -= box.min.y;
+        inst.traverse((obj) => { if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; } });
+        group.add(inst);
+        if (clips.length && engine.mixers) {
+          const mixer = new THREE.AnimationMixer(inst);
+          const wanted = c.model.clip && clips.find((cl) => cl.name === c.model.clip);
+          mixer.clipAction(wanted || clips[0]).play();
+          engine.mixers.add(mixer);
+          group.userData.mixer = mixer; // disposed with the object
+        }
+      }).catch(() => {});
+    }
+  } else if (c.model) group.add(buildModelMesh(c.model));
 
   // shadow participation + a hidden blob plane (visible only in blob mode —
   // engine.setLighting toggles them, so no scene rebuild on switching)

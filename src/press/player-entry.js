@@ -36,6 +36,10 @@ function boot() {
     const sprite = (cartridge.assets.sprites || []).find((s) => s.id === assetId);
     return sprite && sprite.frames && sprite.frames[0] ? sprite.frames[0].dataURL : null;
   };
+  engine.resolveModelAsset = (assetId) => {
+    const live = cartridge;
+    return (live.assets.models || []).find((m) => m.id === assetId) || null;
+  };
   engine.setMode(cartridge.settings.mode);
 
   function resize() {
