@@ -45,5 +45,211 @@
       "title": "Try it! ▶",
       "text": "The most important button in the whole studio. Press Play and your level runs right here — jump around, see what feels good, press Stop, fix, Play again. Great games are made by playing them every few minutes."
     }
+  ],
+  "atelier": [
+    {
+      "target": null,
+      "title": "The art table 🎨",
+      "text": "Draw images for your game — or edit ones you bring in. Quick walk-through?"
+    },
+    {
+      "targetText": "Layers",
+      "title": "Layers",
+      "text": "Clear plastic sheets stacked up. Draw the body on one, the face on another — fix one without wrecking the other. The checkbox hides a sheet, the slider makes it see-through."
+    },
+    {
+      "target": null,
+      "title": "The tools",
+      "text": "Draw and Erase are pencil and rubber. Fill pours color into a shape. Line and Box drag corner to corner. Pick steals a color you already used. Select draws a dashed box so Blur and Clear only touch what's inside. Mirror doubles your strokes — great for faces."
+    },
+    {
+      "targetText": "Export",
+      "title": "Getting art out",
+      "text": "PNG keeps see-through parts. JPEG doesn't. 'Sprite File' keeps your layers so you can edit later. And Save to Warehouse puts it in the game."
+    },
+    {
+      "target": null,
+      "title": "One more trick",
+      "text": "Import PNG brings any picture in at its real size. On a tablet, the camera button snaps a photo straight onto the canvas. Your face can be in your game in ten seconds."
+    }
+  ],
+  "materials": [
+    {
+      "target": null,
+      "title": "The Material Maker ✨",
+      "text": "A material is more than a picture — it's how a surface behaves in light. You build one with sliders, not paint."
+    },
+    {
+      "targetText": "Diffuse",
+      "title": "Diffuse — the color",
+      "text": "Pick a pattern and two colors to blend through it. This is the material's face."
+    },
+    {
+      "targetText": "Specular",
+      "title": "Specular — the shine",
+      "text": "Where this map is bright, the surface gleams like metal. Where it's dark, it stays matte."
+    },
+    {
+      "targetText": "Roughness",
+      "title": "Roughness — the dullness",
+      "text": "Chalk versus wet paint, decided pixel by pixel."
+    },
+    {
+      "targetText": "Normal",
+      "title": "Normal — the bumps",
+      "text": "This one fakes carving: it tilts how light hits each pixel so flat surfaces look grooved. Crank Depth and watch the sphere — the bumps catch the light as it spins."
+    },
+    {
+      "targetText": "Save",
+      "title": "Use it anywhere",
+      "text": "Save it and it appears in the 3D Shop's palette with a ✨ — paint any part and the whole shader rides along, into the shipped game too."
+    }
+  ],
+  "kitbay": [
+    {
+      "target": null,
+      "title": "The 3D Shop 🏗️",
+      "text": "Build objects out of parts, like snapping bricks together. Quick tour of the machines?"
+    },
+    {
+      "targetText": "Parts",
+      "title": "Parts and linking",
+      "text": "Add a shape and it attaches to whichever part is picked — that's its parent. Move the parent, children ride along. That's how a car works: body first, wheels attached."
+    },
+    {
+      "target": null,
+      "title": "The gizmo",
+      "text": "Click a part in the viewport and grab the arrows to move, rings to rotate, cubes to scale. Click a box a SECOND time to pick one face and put a texture on just that face."
+    },
+    {
+      "targetText": "Tune Part",
+      "title": "Tune everything",
+      "text": "Size, position, rotation, color, roughness, metal, glow — and Bevel, which rounds a box's edges. Real things never have perfectly sharp corners, which is why bevel instantly looks better. Modifiers below: Taper squeezes, Twist spirals, Bumpy roughens."
+    },
+    {
+      "targetText": "Textures",
+      "title": "The texture palette",
+      "text": "Built-in patterns, your own drawings, and ✨ materials from the Material Maker. Click to paint the picked part — or the picked face."
+    },
+    {
+      "targetText": "Save",
+      "title": "Save it",
+      "text": "Your prop lands in the Warehouse, ready to drag into the Build room. Spinning parts (wheels!) get their Connection set to 'Spins'."
+    }
+  ],
+  "foundry": [
+    {
+      "target": null,
+      "title": "The sound kitchen 🔊",
+      "text": "Every sound here is a recipe of sliders, never a recording — so you can tweak it forever."
+    },
+    {
+      "targetText": "Presets",
+      "title": "Start from a preset",
+      "text": "Jump, Coin, Boom... click one and tweak from there. Mutate rolls the dice — great when you're close but not quite."
+    },
+    {
+      "targetText": "Parameters",
+      "title": "The dials",
+      "text": "Top sliders shape the sound. The power dials polish it: Brightness muffles, Wobble waves, Wah funks, Chorus thickens, Crunch distorts, Echo repeats, Reverb adds room."
+    },
+    {
+      "targetText": "Save",
+      "title": "Save it",
+      "text": "Saved sounds play in your game AND become instruments in the Music room. One sound, two lives."
+    }
+  ],
+  "sfxedit": [
+    {
+      "target": null,
+      "title": "The sound editor ✂️",
+      "text": "This edits real audio — saved sounds or imported files, even recordings of your voice."
+    },
+    {
+      "target": null,
+      "title": "Clean Up first",
+      "text": "Trim Silence chops dead air — do it first on anything recorded. Normalize evens the volume. Louder saturates instead of crackling. Fades smooth the ends."
+    },
+    {
+      "target": null,
+      "title": "Then get weird",
+      "text": "Reverb, Echo, Robot, Faster, Slower, Backwards. Every press plays the result instantly, and Undo steps back."
+    },
+    {
+      "target": null,
+      "title": "Surgery",
+      "text": "Drag across the waveform to select a piece — Cut removes it, Keep throws away everything else, Quiet silences just that bit. Play plays only your selection so you know you grabbed right."
+    }
+  ],
+  "soundbooth": [
+    {
+      "target": null,
+      "title": "The music room 🎵",
+      "text": "A song is a grid: each row is a track, each column a moment. Let me show you the desk."
+    },
+    {
+      "targetText": "Tracks",
+      "title": "Tracks and sounds",
+      "text": "Pick a track, then click any sound to put it on that track — chip sounds or anything you made. Your own sounds play at different pitches, like a real sampler."
+    },
+    {
+      "target": null,
+      "title": "Play the keyboard",
+      "text": "Q through P are notes. The number row above: sharps. The A row below: flats. Z and X change octave. Whatever you play becomes the note you place in the grid."
+    },
+    {
+      "target": null,
+      "title": "The grid",
+      "text": "Click cells to place notes. Double-click a cell to split it into two quick notes — drum fills! 2× Double stretches the whole pattern, ½ Halve squeezes it, zoom gets you close."
+    },
+    {
+      "targetText": "Track FX",
+      "title": "The mixing desk",
+      "text": "Every track has Volume, Pan, and the effect dials. Turn them WHILE the song loops — changes land on the next pass. That's real mixing."
+    },
+    {
+      "target": null,
+      "title": "Ship the song",
+      "text": "Chain patterns into a full song. WAV downloads it as a real audio file you can use anywhere."
+    }
+  ],
+  "rig": [
+    {
+      "target": null,
+      "title": "Characters 🕺",
+      "text": "Rigged characters have a skeleton inside — move the bones, the skin follows. This bench loads them and teaches them moves."
+    },
+    {
+      "targetText": "Character",
+      "title": "Load one",
+      "text": "GLB files, or FBX straight from mixamo.com — free characters and thousands of animations. Download 'FBX Binary, With Skin' for the character itself."
+    },
+    {
+      "targetText": "Animations",
+      "title": "Teach it moves",
+      "text": "Click an animation to play it. Import Animations adds moves from other files — Mixamo downloads 'Without Skin' snap right on, because the bones match by name."
+    },
+    {
+      "targetText": "Save",
+      "title": "Keep it or convert it",
+      "text": "Save to Game stores the character with all its moves. Download as GLB is also a converter: FBX in, one tidy GLB out."
+    }
+  ],
+  "bricks": [
+    {
+      "target": null,
+      "title": "Rule Cards 🧩",
+      "text": "Rules read like sentences: WHEN this happens, IF this is true, DO that. That's real game logic — no typing code."
+    },
+    {
+      "target": null,
+      "title": "Sheets",
+      "text": "Cards live on a sheet attached to a thing in your game. They run top to bottom, like reading. The Behavior Shelf's pieces keep their sheets here — open 'shelf-coin' to see exactly how a coin thinks."
+    },
+    {
+      "target": null,
+      "title": "When you're stuck",
+      "text": "The Guidebook explains every card with a little playground where you can try it safely. Understanding a card is how you unlock the advanced ones."
+    }
   ]
 }

@@ -31,7 +31,14 @@ export function startTour(name, scope) {
   function show() {
     const step = steps[index];
     if (highlighted) highlighted.classList.remove('tour-highlight');
-    highlighted = step.target ? scope.querySelector('[data-tour="' + step.target + '"]') : null;
+    highlighted = null;
+    if (step.target) highlighted = scope.querySelector('[data-tour="' + step.target + '"]');
+    if (!highlighted && step.targetText) {
+      // find the card whose heading contains the text — no per-panel tagging needed
+      for (const h of scope.querySelectorAll('.card h3, .panel h2')) {
+        if (h.textContent.includes(step.targetText)) { highlighted = h.closest('.card') || h.parentElement; break; }
+      }
+    }
     if (highlighted) {
       highlighted.classList.add('tour-highlight');
       highlighted.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

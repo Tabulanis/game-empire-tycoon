@@ -115,6 +115,29 @@ export function renderAtelierPanel(host, ctx) {
   });
   bar.appendChild(importInput);
   bar.appendChild(makeBtn('🖼 Import PNG…', () => importInput.click()));
+  // tablets/phones: snap a photo straight onto the canvas
+  const camInput = document.createElement('input');
+  camInput.type = 'file'; camInput.accept = 'image/*'; camInput.style.display = 'none';
+  camInput.setAttribute('capture', 'environment');
+  camInput.addEventListener('change', () => {
+    const file = camInput.files && camInput.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const res = atelier.importImageNative(img);
+      working.w = res.w; working.h = res.h; working.size = Math.max(res.w, res.h);
+      working.frames = [res.frame];
+      currentFrame = 0; currentLayer = 0; sel = null;
+      URL.revokeObjectURL(img.src);
+      renderAll();
+      ctx.toast('📷 Snapped at ' + res.w + '×' + res.h + '!');
+    };
+    img.onerror = () => ctx.toast('Could not read that photo.', true);
+    img.src = URL.createObjectURL(file);
+    camInput.value = '';
+  });
+  bar.appendChild(camInput);
+  bar.appendChild(makeBtn('📷 Camera', () => camInput.click()));
 
   left.appendChild(bar);
 

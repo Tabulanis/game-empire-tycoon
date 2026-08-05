@@ -566,3 +566,5 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 .shelf-tile:hover { border-color: var(--gold); transform: translateY(-2px); }
 .shelf-icon { font-size: 20px; line-height: 1; }
 .shelf-name { font-size: 9.5px; color: var(--dim); text-align: center; line-height: 1.2; }
+
+.tour-fab { right: 38px; background: var(--accent); font-size: 14px; }

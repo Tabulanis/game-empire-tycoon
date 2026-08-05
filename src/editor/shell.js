@@ -12,6 +12,8 @@ import * as undoSvc from './undo.js';
 import * as backup from './backup.js';
 import ROOMS from '../data/rooms.json';
 import HELP from '../data/help.json';
+import TOURS from '../data/tours.json';
+import { startTour } from './tour.js';
 import { renderWarehousePanel } from './panels/warehouse-panel.js';
 import { renderBackupsPanel } from './panels/backups-panel.js';
 import { renderStudioPanel } from './panels/studio-panel.js';
@@ -445,6 +447,19 @@ function renderPanelInto(target, tabId) {
     fab.addEventListener('click', () => note.classList.toggle('open'));
     wrap.appendChild(fab);
     wrap.appendChild(note);
+    if (TOURS[tabId] && tabId !== 'stage') {
+      // every toured room gets the 🎓 next to the ? — and offers itself once
+      const tourFab = document.createElement('button');
+      tourFab.className = 'help-fab tour-fab';
+      tourFab.textContent = '🎓';
+      tourFab.title = 'Show me around';
+      tourFab.addEventListener('click', () => startTour(tabId, target));
+      wrap.appendChild(tourFab);
+      if (!localStorage.getItem('get-tour-' + tabId)) {
+        localStorage.setItem('get-tour-' + tabId, 'seen');
+        setTimeout(() => startTour(tabId, target), 600);
+      }
+    }
     target.appendChild(wrap);
   }
   render(target, { toast, refresh: () => showRoom(currentRoom) });
