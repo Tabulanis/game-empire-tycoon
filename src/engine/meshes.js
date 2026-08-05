@@ -152,8 +152,8 @@ function buildSmoothTerrainMesh(terrain) {
           'diffuseColor *= blended;'
         ].join('\n'));
   };
-  // distinct programs per terrain build (uniforms differ)
-  mat.customProgramCacheKey = () => 'terrain-splat-' + Math.random();
+  // one stable program for all splat terrains (uniforms rebind per material)
+  mat.customProgramCacheKey = () => 'terrain-splat-v1';
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = -0.01;

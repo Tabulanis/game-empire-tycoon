@@ -217,8 +217,13 @@ export function renderStagePanel(host, ctx) {
   canvasWrap.appendChild(canvas);
   layout.appendChild(canvasWrap);
 
+  // two rails, each with its own scroll, viewport always visible between:
+  // LEFT = what you're editing (Scene, Inspector, Play Log)
+  // RIGHT = what you're adding (Shelf, Prefabs, Brush, Light, Terrain)
+  const leftRail = document.createElement('div');
+  leftRail.className = 'stage-rail';
   const right = document.createElement('div');
-  right.className = 'deck-right';
+  right.className = 'stage-rail';
 
   const treeCard = document.createElement('div');
   treeCard.dataset.tour = 'scene';
@@ -227,14 +232,14 @@ export function renderStagePanel(host, ctx) {
   const treeList = document.createElement('div');
   treeList.className = 'stage-tree';
   treeCard.appendChild(treeList);
-  right.appendChild(treeCard);
+  leftRail.appendChild(treeCard);
 
   const inspCard = document.createElement('div');
   inspCard.className = 'card';
   inspCard.innerHTML = '<h3>Inspector</h3>';
   const inspMount = document.createElement('div');
   inspCard.appendChild(inspMount);
-  right.appendChild(inspCard);
+  leftRail.appendChild(inspCard);
 
   const shelfCard = document.createElement('div');
   shelfCard.dataset.tour = 'shelf';
@@ -389,16 +394,16 @@ export function renderStagePanel(host, ctx) {
     splatCanvas = document.createElement('canvas');
     splatCanvas.width = splatCanvas.height = SPLAT_SIZE;
     splatCtx = splatCanvas.getContext('2d', { willReadFrequently: true });
+    splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
     if (t.splat) {
       const img = new Image();
       img.onload = () => {
+        // don't clobber blobs painted while the saved mask was decoding
+        if (splatDirty) return;
         splatCtx.drawImage(img, 0, 0, SPLAT_SIZE, SPLAT_SIZE);
         splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
       };
       img.src = t.splat;
-      splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
-    } else {
-      splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
     }
   }
 
@@ -545,6 +550,23 @@ export function renderStagePanel(host, ctx) {
         const entry = t.cells[key];
         if (brushOp === 'paint') {
           if (entry.l !== activeSlot) { entry.l = activeSlot; changed = true; }
+        } else if (brushOp === 'soften' || brushOp === 'roughen') {
+          const dist = Math.hypot(cx - pt[0], cz - pt[2]) / r;
+          const fall = (1 - dist) * (1 - dist);
+          if (brushOp === 'soften') {
+            // pull toward the neighbor average — irons out bumps and steps
+            const n = (dr, dc) => {
+              const e2 = t.cells[(row + dr) + ',' + (col + dc)];
+              return e2 ? (e2.h || 0) : 0;
+            };
+            const avg = (n(-1, 0) + n(1, 0) + n(0, -1) + n(0, 1)) / 4;
+            entry.h = Math.max(0, Math.min(8, (entry.h || 0) + (avg - (entry.h || 0)) * 0.35 * fall));
+          } else {
+            scatterSeed = (scatterSeed * 16807) % 2147483647;
+            const jitter = (scatterSeed / 2147483647 - 0.5) * 0.5;
+            entry.h = Math.max(0, Math.min(8, (entry.h || 0) + jitter * fall));
+          }
+          changed = true;
         } else if (t.smooth) {
           // smooth sculpting: fractional height with quadratic falloff —
           // continuous while dragging, so hills grow like clay
@@ -638,7 +660,7 @@ export function renderStagePanel(host, ctx) {
       if (tool === 'terrain') {
         const opRow = document.createElement('div');
         opRow.className = 'stage-bar';
-        for (const [op, label] of [['raise', '▲ Raise'], ['lower', '▼ Lower'], ['paint', '🖌 Paint'], ['scatter', '🌲 Scatter']]) {
+        for (const [op, label] of [['raise', '▲ Raise'], ['lower', '▼ Lower'], ['soften', '🫧 Soften'], ['roughen', '⛰ Roughen'], ['paint', '🖌 Paint'], ['scatter', '🌲 Scatter']]) {
           const b = makeBtn(label, () => { brushOp = op; refreshTerrainCard(); });
           if (brushOp === op) b.className += ' active';
           opRow.appendChild(b);
@@ -871,9 +893,10 @@ export function renderStagePanel(host, ctx) {
   const logList = document.createElement('div');
   logList.className = 'deck-log';
   logCard.appendChild(logList);
-  right.appendChild(logCard);
+  leftRail.appendChild(logCard);
 
   layout.appendChild(right);
+  layout.insertBefore(leftRail, layout.firstChild);
   panel.appendChild(layout);
   host.appendChild(panel);
 
