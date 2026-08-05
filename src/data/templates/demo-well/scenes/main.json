@@ -1,0 +1,993 @@
+{
+  "id": "main",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            9,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "🙂",
+          "swatch": "#7cc6ff",
+          "size": [
+            0.5,
+            0.7
+          ]
+        },
+        "body": {
+          "type": "dynamic",
+          "size": [
+            0.5,
+            0.7
+          ]
+        },
+        "health": {
+          "max": 3,
+          "current": 3
+        },
+        "bricks": {
+          "sheet": "player-shooter"
+        },
+        "tags": [
+          "player"
+        ]
+      }
+    },
+    {
+      "id": "wall-l",
+      "name": "Left wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.75,
+            -10,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#3a3f4c",
+          "size": [
+            1.5,
+            46
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            1.5,
+            46
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall-r",
+      "name": "Right wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.75,
+            -10,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#3a3f4c",
+          "size": [
+            1.5,
+            46
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            1.5,
+            46
+          ]
+        }
+      }
+    },
+    {
+      "id": "top",
+      "name": "Well mouth",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            11,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#3a3f4c",
+          "size": [
+            15,
+            1
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            15,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "id": "floor",
+      "name": "Well floor",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -31.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#2c3140",
+          "size": [
+            15,
+            1.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            15,
+            1.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge0",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            6.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge1",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3,
+            2.6,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge2",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.2,
+            -1.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge3",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.2,
+            -5.0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge4",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3,
+            -9.0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge5",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3,
+            -13.0,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge6",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.2,
+            -19.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "ledge7",
+      "name": "Ledge",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.2,
+            -23.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "swatch": "#4a5266",
+          "size": [
+            4.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            4.5,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "id": "turret0",
+      "name": "Wall turret",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.8,
+            3.4,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            -1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "🔫",
+          "swatch": "#ff8b6b",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "bricks": {
+          "sheet": "turret"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "turret1",
+      "name": "Wall turret",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.8,
+            -4.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "🔫",
+          "swatch": "#ff8b6b",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "bricks": {
+          "sheet": "turret"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "turret2",
+      "name": "Wall turret",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.8,
+            -12.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            -1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "🔫",
+          "swatch": "#ff8b6b",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "bricks": {
+          "sheet": "turret"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "turret3",
+      "name": "Wall turret",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.8,
+            -22.7,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "🔫",
+          "swatch": "#ff8b6b",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.6,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "bricks": {
+          "sheet": "turret"
+        },
+        "tags": [
+          "enemy"
+        ]
+      }
+    },
+    {
+      "id": "pool0",
+      "name": "Water pool",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -7.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "water",
+          "size": [
+            6,
+            2.2
+          ]
+        }
+      }
+    },
+    {
+      "id": "pool1",
+      "name": "Water pool",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -16.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "water",
+          "size": [
+            7,
+            2.2
+          ]
+        }
+      }
+    },
+    {
+      "id": "pool2",
+      "name": "Water pool",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -29.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "water",
+          "size": [
+            12,
+            2.2
+          ]
+        }
+      }
+    },
+    {
+      "id": "gem0",
+      "name": "Gem",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            0.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "💎",
+          "swatch": "#8be9fd",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "bricks": {
+          "sheet": "gem"
+        }
+      }
+    },
+    {
+      "id": "gem1",
+      "name": "Gem",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.5,
+            -15.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "💎",
+          "swatch": "#8be9fd",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "bricks": {
+          "sheet": "gem"
+        }
+      }
+    },
+    {
+      "id": "gem2",
+      "name": "Gem",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.5,
+            -27.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sprite": {
+          "glyph": "💎",
+          "swatch": "#8be9fd",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.5,
+            0.5
+          ]
+        },
+        "bricks": {
+          "sheet": "gem"
+        }
+      }
+    },
+    {
+      "id": "mid",
+      "name": "Checkpoint",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -14.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            13,
+            1.5
+          ]
+        },
+        "bricks": {
+          "sheet": "checkpoint"
+        }
+      }
+    },
+    {
+      "id": "goal",
+      "name": "Bottom of the well",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -30.2,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            13,
+            1.6
+          ]
+        },
+        "bricks": {
+          "sheet": "goal"
+        }
+      }
+    }
+  ]
+}

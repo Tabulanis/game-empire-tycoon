@@ -1,0 +1,13 @@
+[
+  {
+    "when": "player-enters-zone",
+    "if": [],
+    "do": [
+      {
+        "do": "end-game",
+        "result": "win",
+        "message": "You crossed Flood Canyon!"
+      }
+    ]
+  }
+]

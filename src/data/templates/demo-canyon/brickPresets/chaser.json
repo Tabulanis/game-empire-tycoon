@@ -1,0 +1,51 @@
+[
+  {
+    "when": "game-start",
+    "if": [],
+    "do": [
+      {
+        "do": "chase",
+        "target": "player",
+        "speed": 2
+      }
+    ]
+  },
+  {
+    "when": "touched",
+    "by": "projectile",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "when": "bumped",
+    "from": "side",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "other"
+      }
+    ]
+  },
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      {
+        "do": "defeat-self"
+      },
+      {
+        "do": "award-points",
+        "key": "targets",
+        "amount": 1
+      }
+    ]
+  }
+]

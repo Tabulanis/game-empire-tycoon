@@ -1,0 +1,31 @@
+{
+  "id": "demo-well",
+  "era": "garage",
+  "demo": true,
+  "title": "The Deep Well",
+  "icon": "🕳️",
+  "blurb": "Descend a flooded shaft. Land in the pools to break your fall, shoot the wall turrets, reach the bottom.",
+  "tags": [
+    "2d",
+    "shoot",
+    "side"
+  ],
+  "perspective": "side",
+  "input": {
+    "shoot": [
+      "KeyX",
+      "KeyJ"
+    ]
+  },
+  "starter": "scenes/main.json",
+  "brickPresets": [
+    "player-shooter",
+    "projectile",
+    "enemy-shot",
+    "turret",
+    "goal",
+    "checkpoint",
+    "gem"
+  ],
+  "questions": []
+}

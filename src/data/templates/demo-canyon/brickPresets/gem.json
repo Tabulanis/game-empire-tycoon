@@ -1,0 +1,17 @@
+[
+  {
+    "when": "touched",
+    "by": "player",
+    "if": [],
+    "do": [
+      {
+        "do": "award-points",
+        "key": "score",
+        "amount": 5
+      },
+      {
+        "do": "destroy-self"
+      }
+    ]
+  }
+]

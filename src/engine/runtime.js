@@ -471,6 +471,8 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
         const playerAabb = { x: pos.x, y: pos.y, z: is3D ? pos.z : undefined, ...sizeAsWH(playerEntity) };
         for (const wz of session.zones) {
           if (wz.kind !== 'water' || !session.dummy) continue;
+          // buoyancy pushes screen-up; only side view has an up to push toward
+          if (is3D || (cartridge.settings.perspective || 'side') === 'top') break;
           const pp = phys.bodyPosition(session, playerEntity.id);
           if (!pp) continue;
           if (Math.abs(pp.x - wz.x) <= wz.w / 2 && Math.abs(pp.y - wz.y) <= wz.h / 2) {

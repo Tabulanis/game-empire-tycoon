@@ -1,0 +1,11 @@
+[
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      {
+        "do": "respawn-at-checkpoint"
+      }
+    ]
+  }
+]

@@ -53,6 +53,9 @@ export function applyTemplate(cartridge, loaded) {
   if (manifest.input) {
     cartridge.settings.input = { ...cartridge.settings.input, ...manifest.input };
   }
+  if (manifest.lighting) {
+    cartridge.settings.lighting = JSON.parse(JSON.stringify(manifest.lighting));
+  }
   cartridge.scenes = [JSON.parse(JSON.stringify(starterScene))];
   for (const [presetId, cards] of Object.entries(brickPresets)) {
     cartridge.bricksheets[presetId] = JSON.parse(JSON.stringify(cards));

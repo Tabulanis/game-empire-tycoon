@@ -1,0 +1,26 @@
+[
+  {
+    "when": "touched",
+    "by": "player",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "other"
+      },
+      {
+        "do": "destroy-self"
+      }
+    ]
+  },
+  {
+    "when": "touched",
+    "if": [],
+    "do": [
+      {
+        "do": "destroy-self"
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+[
+  {
+    "when": "player-enters-zone",
+    "if": [],
+    "do": [
+      {
+        "do": "end-game",
+        "result": "win",
+        "message": "You reached the bottom of the well!"
+      }
+    ]
+  }
+]

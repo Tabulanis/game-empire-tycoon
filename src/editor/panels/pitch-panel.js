@@ -17,6 +17,8 @@ import { loadTemplate, applyTemplate } from '../templates.js';
  * Was missing rpg/strategy/collect-a-thon/fps until now; they existed and
  * worked fine, they just weren't reachable from the Pitch Meeting. */
 const AVAILABLE_TEMPLATES = ['platformer', 'word', 'side-scroller', 'story', 'rpg', 'strategy', 'collect-a-thon', 'fps'];
+/** finished mini-games on the Demo Shelf — open, play, take apart */
+const DEMO_TEMPLATES = ['demo-well', 'demo-canyon', 'demo-moat', 'demo-lake', 'demo-lagoon'];
 
 const AXIS_LABELS = {
   perspective: 'Perspective', verb: 'What do you do?', hero: 'Who are you?',
@@ -90,6 +92,43 @@ export function renderPitchPanel(host, ctx) {
   });
   formCard.appendChild(meetBtn);
   panel.appendChild(formCard);
+
+  /* -- Demo Shelf: complete little games, ready to play and take apart -- */
+  const demoCard = document.createElement('div');
+  demoCard.className = 'card';
+  demoCard.innerHTML = '<h3>🕹 Demo Shelf</h3><div class="stage-hint">Finished mini-games. Open one, hit Play in the Build room, then take it apart and make it yours.</div>';
+  const demoBody = document.createElement('div');
+  demoCard.appendChild(demoBody);
+  Promise.all(DEMO_TEMPLATES.map((id) =>
+    fetch(new URL(`../../data/templates/${id}/manifest.json`, import.meta.url)).then((r) => r.json()).catch(() => null)
+  )).then((manifests) => {
+    for (const m of manifests) {
+      if (!m) continue;
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      row.style.alignItems = 'center';
+      const label = document.createElement('div');
+      label.style.flex = '1';
+      label.innerHTML = '<strong>' + m.icon + ' ' + m.title + '</strong><div class="stage-hint" style="margin:2px 0 0;">' + m.blurb + '</div>';
+      row.appendChild(label);
+      const openBtn = document.createElement('button');
+      openBtn.className = 'bar primary';
+      openBtn.textContent = '▶ Open';
+      openBtn.addEventListener('click', async () => {
+        try {
+          const loaded = await loadTemplate(m.id);
+          cart.newCartridge(m.title, (c) => applyTemplate(c, loaded));
+          ctx.toast('"' + m.title + '" is loaded — head to the Build room and hit Play!');
+          ctx.refresh();
+        } catch (err) {
+          ctx.toast('Could not open the demo: ' + (err && err.message || err), true);
+        }
+      });
+      row.appendChild(openBtn);
+      demoBody.appendChild(row);
+    }
+  });
+  panel.appendChild(demoCard);
 
   const confirmCard = document.createElement('div');
   confirmCard.className = 'card';

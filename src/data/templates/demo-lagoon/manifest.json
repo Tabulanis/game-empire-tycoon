@@ -1,0 +1,42 @@
+{
+  "id": "demo-lagoon",
+  "era": "garage",
+  "demo": true,
+  "title": "VR Lagoon",
+  "icon": "🥽",
+  "blurb": "A lagoon built for headsets (plays flat too). Wade island to island and gather the five glowing orbs — mind the drifters.",
+  "tags": [
+    "3d",
+    "first-person",
+    "explore"
+  ],
+  "controlScheme": "fps",
+  "lighting": {
+    "shadows": "pcfsoft",
+    "bounce": 0.5,
+    "sunAngle": 300,
+    "sunHeight": 35,
+    "fog": {
+      "on": true,
+      "color": "#cfd8e8",
+      "density": 0.012
+    },
+    "clouds": {
+      "on": true,
+      "count": 18,
+      "height": 13,
+      "size": 3.6,
+      "drift": 0.8,
+      "opacity": 0.85,
+      "color": "#fff4e8"
+    }
+  },
+  "starter": "scenes/main.json",
+  "brickPresets": [
+    "player-hardy",
+    "orb",
+    "chaser",
+    "win-checker"
+  ],
+  "questions": []
+}

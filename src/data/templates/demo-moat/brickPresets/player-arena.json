@@ -1,0 +1,25 @@
+[
+  {
+    "when": "key-pressed",
+    "action": "shoot",
+    "if": [],
+    "do": [
+      {
+        "do": "shoot",
+        "speed": 12,
+        "sheet": "projectile"
+      }
+    ]
+  },
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      {
+        "do": "end-game",
+        "result": "lose",
+        "message": "The arena wins this time!"
+      }
+    ]
+  }
+]
