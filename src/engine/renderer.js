@@ -113,7 +113,67 @@ export function createEngine(canvas, opts = {}) {
   const ambient = new THREE.AmbientLight(0xffffff, 0.55);
   const sun = new THREE.DirectionalLight(0xffffff, 1.1);
   sun.position.set(3, 5, 4);
-  scene.add(ambient, sun);
+  // Bounce light: hemisphere = cool sky above, warm ground reflection below —
+  // the honest cheap stand-in for global illumination. Intensity is the
+  // Bounce slider; 0 = off (classic flat look).
+  const hemi = new THREE.HemisphereLight(0xbfd6ff, 0xc9915c, 0);
+  scene.add(ambient, sun, hemi);
+
+  /** current lighting config — see setLighting */
+  let lighting = { shadows: 'off', bounce: 0, sunAngle: 40, sunHeight: 55 };
+
+  const SHADOW_TYPES = {
+    basic: THREE.BasicShadowMap,
+    pcf: THREE.PCFShadowMap,
+    pcfsoft: THREE.PCFSoftShadowMap,
+    vsm: THREE.VSMShadowMap
+  };
+
+  /**
+   * Apply a lighting/shadow configuration. Shadow ladder, cheap→pretty:
+   * off · blob (projected fake circles, toggled on tagged meshes) ·
+   * basic (sharp unfiltered map) · pcf (smoothed edges) · pcfsoft
+   * (softer) · vsm (blurry-soft). Bounce 0..1 drives the hemisphere
+   * light and eases the flat ambient down so it doesn't wash out.
+   * @param {{shadows?: string, bounce?: number, sunAngle?: number, sunHeight?: number}} cfg
+   */
+  function setLighting(cfg = {}) {
+    lighting = { ...lighting, ...cfg };
+    const mapped = SHADOW_TYPES[lighting.shadows];
+    renderer.shadowMap.enabled = !!mapped;
+    if (mapped) {
+      renderer.shadowMap.type = mapped;
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      const d = 25;
+      sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
+      sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
+      sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 60;
+      sun.shadow.bias = lighting.shadows === 'vsm' ? 0 : -0.0005;
+      if (lighting.shadows === 'vsm') sun.shadow.blurSamples = 12;
+      sun.shadow.camera.updateProjectionMatrix();
+      renderer.shadowMap.needsUpdate = true;
+    } else {
+      sun.castShadow = false;
+    }
+    // sun direction from angle (azimuth °) + height (elevation °)
+    const az = (lighting.sunAngle || 0) * Math.PI / 180;
+    const el = Math.max(5, Math.min(89, lighting.sunHeight || 55)) * Math.PI / 180;
+    const r = 12;
+    sun.position.set(r * Math.cos(el) * Math.cos(az), r * Math.sin(el), r * Math.cos(el) * Math.sin(az));
+    // bounce vs ambient balance
+    const bounce = Math.max(0, Math.min(1, lighting.bounce || 0));
+    hemi.intensity = bounce * 0.9;
+    ambient.intensity = 0.55 - bounce * 0.25;
+    // blob shadows + changed shadow types need material/visibility refresh
+    scene.traverse((obj) => {
+      if (obj.userData && obj.userData.blobShadow) obj.visible = lighting.shadows === 'blob';
+      if (obj.isMesh) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) if (m) m.needsUpdate = true;
+      }
+    });
+  }
 
   let composer = new EffectComposer(renderer);
   let renderPass = new RenderPass(scene, camera);
@@ -353,6 +413,8 @@ export function createEngine(canvas, opts = {}) {
     get camera() { return camera; },
     get mode() { return mode; },
     get contentRoot() { return contentRoot; },
+    setLighting,
+    get lighting() { return lighting; },
     setMode,
     rebuildChannels,
     setToneMap,

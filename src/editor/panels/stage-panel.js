@@ -240,6 +240,70 @@ export function renderStagePanel(host, ctx) {
   brushCard.style.display = c.settings.mode === '2d' ? '' : 'none';
   right.appendChild(brushCard);
 
+  const lightCard = document.createElement('div');
+  lightCard.className = 'card';
+  lightCard.innerHTML = '<h3>Light & Shadows</h3>';
+  const lightBody = document.createElement('div');
+  lightCard.appendChild(lightBody);
+  right.appendChild(lightCard);
+
+  function getLighting() {
+    const live = cart.getCartridge();
+    if (!live.settings.lighting) live.settings.lighting = { shadows: 'pcf', bounce: 0.35, sunAngle: 40, sunHeight: 55 };
+    return live.settings.lighting;
+  }
+
+  function refreshLightCard() {
+    const cfg = getLighting();
+    lightBody.innerHTML = '';
+    const selRow = document.createElement('div');
+    selRow.className = 'brick-row';
+    selRow.innerHTML = '<span style="font-size:11px;min-width:70px;">Shadows:</span>';
+    const sel = document.createElement('select');
+    sel.className = 'deck-select';
+    for (const [v, label] of [
+      ['off', 'Off (fastest)'],
+      ['blob', 'Blob — round fakes, very fast'],
+      ['basic', 'Sharp — basic map'],
+      ['pcf', 'Smooth — PCF'],
+      ['pcfsoft', 'Soft — PCF soft'],
+      ['vsm', 'Softest — VSM blur']
+    ]) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = label;
+      if (cfg.shadows === v) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', () => {
+      cfg.shadows = sel.value;
+      cart.touch();
+      engine.setLighting(cfg);
+    });
+    selRow.appendChild(sel);
+    lightBody.appendChild(selRow);
+
+    const slide = (label, value, min, max, step, set) => {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = String(min); input.max = String(max); input.step = String(step);
+      input.value = String(value); input.style.flex = '1';
+      input.addEventListener('input', () => { set(Number(input.value)); cart.touch(); engine.setLighting(cfg); });
+      row.appendChild(input);
+      lightBody.appendChild(row);
+    };
+    slide('Bounce', cfg.bounce, 0, 1, 0.02, (v) => { cfg.bounce = v; });
+    slide('Sun angle', cfg.sunAngle, 0, 360, 1, (v) => { cfg.sunAngle = v; });
+    slide('Sun height', cfg.sunHeight, 10, 85, 1, (v) => { cfg.sunHeight = v; });
+    const hint = document.createElement('div');
+    hint.className = 'stage-hint';
+    hint.textContent = 'Blob is cheap and cartoony; the map modes trade speed for softer, realer shadows. Bounce fakes light bouncing off the ground back up.';
+    lightBody.appendChild(hint);
+  }
+
   const terrainCard = document.createElement('div');
   terrainCard.className = 'card';
   terrainCard.innerHTML = '<h3>Terrain</h3><div class="stage-hint">The ground under your level.</div>';
@@ -614,6 +678,8 @@ export function renderStagePanel(host, ctx) {
   // initial scene view
   const firstScene = ent.getScene(c, currentSceneId);
   const view = buildSceneView(engine, firstScene, { play: false });
+  engine.setLighting(getLighting());
+  refreshLightCard();
   refreshTerrainCard();
 
   /* ---------------------------------------------------------------- */

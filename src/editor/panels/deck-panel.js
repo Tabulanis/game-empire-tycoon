@@ -182,6 +182,10 @@ export function renderDeckPanel(host, ctx) {
 
   // ---- engine wiring ----
   engine = createEngine(canvas, { demo: true });
+  {
+    const lcfg = cart.getCartridge().settings.lighting;
+    if (lcfg && engine.setLighting) engine.setLighting(lcfg);
+  }
   deck = createDebugDeck();
   deck.logEvent('Deck opened. Mode: ' + c.settings.mode + '.');
 

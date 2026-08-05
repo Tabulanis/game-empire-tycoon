@@ -31,6 +31,7 @@ function boot() {
   const overlayBtn = document.getElementById('game-overlay-btn');
 
   const engine = createEngine(canvas, { demo: false });
+  { const _l = (typeof cart !== 'undefined' && cart.getCartridge) ? cart.getCartridge().settings.lighting : (typeof cartridge !== 'undefined' && cartridge.settings ? cartridge.settings.lighting : null); if (_l && engine.setLighting) engine.setLighting(_l); }
   engine.resolveSpriteAsset = (assetId) => {
     const sprite = (cartridge.assets.sprites || []).find((s) => s.id === assetId);
     return sprite && sprite.frames && sprite.frames[0] ? sprite.frames[0].dataURL : null;

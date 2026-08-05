@@ -65,6 +65,7 @@ export function buildTerrainMesh(terrain) {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -0.01; // a hair under the entities so nothing z-fights
   mesh.userData.terrain = true;
+  mesh.receiveShadow = true;
 
   // Grid mode's painted/sculpted cells: each is a box slab — textured from
   // the terrain's numbered palette slots, raised in 0.5-unit steps.
@@ -123,6 +124,8 @@ export function buildTerrainMesh(terrain) {
         -size[1] / 2 + (row + 0.5) * cell
       );
       box.userData.terrain = true;
+      box.castShadow = true;
+      box.receiveShadow = true;
       group.add(box);
     }
     group.userData.terrain = true;
@@ -202,6 +205,21 @@ function disposeObject(obj) {
  * @param {any} entity
  * @returns {THREE.Object3D|null}
  */
+let _blobTexture = null;
+function blobShadowTexture() {
+  if (_blobTexture) return _blobTexture;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+  g.addColorStop(0, 'rgba(0,0,0,0.45)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  _blobTexture = new THREE.CanvasTexture(c);
+  return _blobTexture;
+}
+
 export function buildEntityObject(engine, entity) {
   const group = new THREE.Group();
   group.name = entity.id;
@@ -211,6 +229,26 @@ export function buildEntityObject(engine, entity) {
   if (c.tilemap) group.add(buildTilemapMesh(c.tilemap));
   if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite));
   if (c.model) group.add(buildModelMesh(c.model));
+
+  // shadow participation + a hidden blob plane (visible only in blob mode —
+  // engine.setLighting toggles them, so no scene rebuild on switching)
+  group.traverse((obj) => {
+    if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
+  });
+  {
+    const box = new THREE.Box3().setFromObject(group);
+    const w = Math.max(0.3, (box.max.x - box.min.x) || 0.6);
+    const d = Math.max(0.3, (box.max.z - box.min.z) || 0.6);
+    const blob = new THREE.Mesh(
+      new THREE.PlaneGeometry(w * 1.15, d * 1.15),
+      new THREE.MeshBasicMaterial({ map: blobShadowTexture(), transparent: true, depthWrite: false })
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.y = (isFinite(box.min.y) ? box.min.y : 0) + 0.012;
+    blob.userData.blobShadow = true;
+    blob.visible = engine && engine.lighting ? engine.lighting.shadows === 'blob' : false;
+    group.add(blob);
+  }
   if (c.logic) group.add(buildLogicMesh(engine, c.logic));
 
   if (group.children.length === 0) {
