@@ -492,6 +492,136 @@ export function scheduleNote(when, note, voice, stepDuration, sampleSlots, asset
 }
 
 /* ------------------------------------------------------------------ */
+/* per-channel FX chains (tracker mixer strips)                         */
+/* ------------------------------------------------------------------ */
+
+/** @returns {any} neutral per-channel effects */
+export function defaultChannelFx() {
+  return { volume: 0.8, pan: 0, tone: 1, wah: 0, crunch: 0, chorus: 0, echo: 0, reverb: 0 };
+}
+
+/**
+ * Build one channel's mixer strip: input → crunch → wah → tone →
+ * (dry + chorus + echo + reverb) → volume → pan → destination. Same
+ * effect recipes as the Foundry dials, so a track effect and a sound
+ * effect are the same effect.
+ * @param {BaseAudioContext} ctx
+ * @param {AudioNode} destination
+ * @param {any} fx  defaultChannelFx()-shaped
+ * @returns {{input: AudioNode, stop: () => void}}
+ */
+export function createChannelChain(ctx, destination, fx) {
+  fx = { ...defaultChannelFx(), ...(fx || {}) };
+  const lfos = [];
+  const post = ctx.createGain();
+  post.gain.value = fx.volume;
+  const panner = ctx.createStereoPanner();
+  panner.pan.value = Math.max(-1, Math.min(1, fx.pan));
+  post.connect(panner);
+  panner.connect(destination);
+
+  const mixBus = ctx.createGain(); // pre-volume sum of dry + wets
+  mixBus.connect(post);
+
+  let head = mixBus;
+  if (fx.tone < 0.98) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300 + fx.tone * fx.tone * 7700;
+    filter.connect(head);
+    head = filter;
+  }
+  if (fx.wah > 0.02) {
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 800;
+    bp.Q.value = 1.5 + fx.wah * 6;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 2.2;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 200 + fx.wah * 900;
+    lfo.connect(lfoGain);
+    lfoGain.connect(bp.frequency);
+    lfo.start();
+    lfos.push(lfo);
+    bp.connect(head);
+    head = bp;
+  }
+  if (fx.crunch > 0.02) {
+    const shaper = ctx.createWaveShaper();
+    const drive = 1 + fx.crunch * 24;
+    const curve = new Float32Array(512);
+    for (let i = 0; i < 512; i++) {
+      const x = (i / 511) * 2 - 1;
+      curve[i] = Math.tanh(x * drive);
+    }
+    shaper.curve = curve;
+    shaper.oversample = '2x';
+    const trim = ctx.createGain();
+    trim.gain.value = 1 / (1 + fx.crunch * 1.2);
+    shaper.connect(trim);
+    trim.connect(head);
+    head = shaper;
+  }
+
+  const input = ctx.createGain();
+  input.connect(head);
+
+  if (fx.chorus > 0.02) {
+    const wet = ctx.createGain();
+    wet.gain.value = fx.chorus * 0.55;
+    for (const [delayS, rate] of [[0.013, 0.8], [0.021, 1.15]]) {
+      const d = ctx.createDelay(0.1);
+      d.delayTime.value = delayS;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = rate;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 0.004;
+      lfo.connect(lfoGain);
+      lfoGain.connect(d.delayTime);
+      lfo.start();
+      lfos.push(lfo);
+      input.connect(d);
+      d.connect(wet);
+    }
+    wet.connect(post);
+  }
+  if (fx.echo > 0.02) {
+    const send = ctx.createGain();
+    send.gain.value = fx.echo * 0.7;
+    const delay = ctx.createDelay(1);
+    delay.delayTime.value = 0.22;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.4;
+    const darken = ctx.createBiquadFilter();
+    darken.type = 'lowpass';
+    darken.frequency.value = 2400;
+    input.connect(send);
+    send.connect(delay);
+    delay.connect(darken);
+    darken.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(post);
+  }
+  if (fx.reverb > 0.02) {
+    const send = ctx.createGain();
+    send.gain.value = fx.reverb * 0.8;
+    const convolver = ctx.createConvolver();
+    convolver.buffer = makeImpulseResponse(ctx);
+    input.connect(send);
+    send.connect(convolver);
+    convolver.connect(post);
+  }
+
+  return { input, stop() { for (const l of lfos) { try { l.stop(); } catch (e) {} } } };
+}
+
+/** @param {any} song @returns {boolean} any channel has time-based fx (needs render tail) */
+function songHasFxTail(song) {
+  return (song.channelFx || []).some((fx) => fx && ((fx.echo || 0) > 0.02 || (fx.reverb || 0) > 0.02));
+}
+
+/* ------------------------------------------------------------------ */
 /* song playback — pattern-chain scheduler                              */
 /* ------------------------------------------------------------------ */
 
@@ -515,6 +645,10 @@ const SCHEDULE_INTERVAL = 25; // ms — how often the lookahead timer fires
 export function playSong(song, sfxList) {
   const ctx = getContext();
   const { assets } = prepareVoiceAssets(song, sfxList || []);
+  const chains = [];
+  for (let ch = 0; ch < 4; ch++) {
+    chains.push(createChannelChain(ctx, buses.music, (song.channelFx || [])[ch]));
+  }
   const stepDuration = 60 / song.bpm / 4; // 16th-note steps at the given bpm
   let chainIndex = 0;
   let stepIndex = 0;
@@ -536,11 +670,12 @@ export function playSong(song, sfxList) {
           if (cell) {
             const voice = song.channelVoices[channelIndex] || 'pulse';
             // A split cell (array of two half-notes) plays as two 32nds.
+            const dest = chains[channelIndex].input;
             if (Array.isArray(cell)) {
-              if (cell[0]) scheduleNote(nextStepTime, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
-              if (cell[1]) scheduleNote(nextStepTime + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
+              if (cell[0]) scheduleNoteInto(ctx, dest, nextStepTime, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
+              if (cell[1]) scheduleNoteInto(ctx, dest, nextStepTime + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
             } else {
-              scheduleNote(nextStepTime, cell, voice, stepDuration, song.sampleSlots || [], assets);
+              scheduleNoteInto(ctx, dest, nextStepTime, cell, voice, stepDuration, song.sampleSlots || [], assets);
             }
           }
         });
@@ -557,7 +692,7 @@ export function playSong(song, sfxList) {
   scheduler();
 
   return {
-    stop() { stopped = true; },
+    stop() { stopped = true; for (const c of chains) c.stop(); },
     /** Live playback position, for a UI playhead — polled, not pushed. */
     getPosition() {
       const idx = chainIndex % song.chain.length;
@@ -583,8 +718,12 @@ export async function renderSong(song, sfxList) {
     const pattern = song.patterns[patternId];
     if (pattern) totalSteps += pattern.steps;
   }
-  const duration = Math.max(0.5, totalSteps * stepDuration) + 1.0; // ring-out tail
+  const duration = Math.max(0.5, totalSteps * stepDuration) + (songHasFxTail(song) ? 2.0 : 1.0);
   const ctx = new OfflineAudioContext(2, Math.ceil(duration * rate), rate);
+  const chains = [];
+  for (let ch = 0; ch < 4; ch++) {
+    chains.push(createChannelChain(ctx, ctx.destination, (song.channelFx || [])[ch]));
+  }
 
   let when = 0;
   for (const patternId of song.chain) {
@@ -595,11 +734,12 @@ export async function renderSong(song, sfxList) {
         const cell = steps[step];
         if (cell) {
           const voice = song.channelVoices[channelIndex] || 'pulse';
+          const dest = chains[channelIndex].input;
           if (Array.isArray(cell)) {
-            if (cell[0]) scheduleNoteInto(ctx, ctx.destination, when, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
-            if (cell[1]) scheduleNoteInto(ctx, ctx.destination, when + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
+            if (cell[0]) scheduleNoteInto(ctx, dest, when, cell[0], voice, stepDuration / 2, song.sampleSlots || [], assets);
+            if (cell[1]) scheduleNoteInto(ctx, dest, when + stepDuration / 2, cell[1], voice, stepDuration / 2, song.sampleSlots || [], assets);
           } else {
-            scheduleNoteInto(ctx, ctx.destination, when, cell, voice, stepDuration, song.sampleSlots || [], assets);
+            scheduleNoteInto(ctx, dest, when, cell, voice, stepDuration, song.sampleSlots || [], assets);
           }
         }
       });

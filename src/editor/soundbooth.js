@@ -40,6 +40,7 @@ export function createSong(name) {
   return {
     id: '', name, bpm: 120,
     channelVoices: ['pulse', 'tri', 'saw', 'noise'],
+    channelFx: [null, null, null, null],  // per-track mixer strips; null = neutral
     patterns: { 'pattern-1': createPattern() },
     chain: ['pattern-1'],
     sampleSlots: [null, null, null, null]

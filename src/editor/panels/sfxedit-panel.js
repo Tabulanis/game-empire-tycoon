@@ -9,15 +9,23 @@ import * as cart from '../cartridge.js';
 import * as fx from '../sfxedit.js';
 import { renderSfxParams, decodeSample } from '../../engine/systems/audio.js';
 
-/** The one-click effects, kid-labeled. */
+/** One-click operations, kid-labeled, in two rows: fix the sound up,
+ * then get weird with it. */
+const CLEANUP = [
+  { label: '📊 Normalize', apply: (b) => fx.normalize(b) },
+  { label: '🔊 Louder', apply: (b) => fx.applyGain(b, 1.5) },
+  { label: '🔉 Softer', apply: (b) => fx.applyGain(b, 0.65) },
+  { label: '✂ Trim Silence', apply: (b) => fx.trimSilence(b) },
+  { label: '🌅 Fade In', apply: (b) => fx.applyFadeIn(b) },
+  { label: '🌙 Fade Out', apply: (b) => fx.applyFade(b) }
+];
 const EFFECTS = [
   { label: '✨ Reverb', apply: (b) => fx.applyReverb(b) },
   { label: '📣 Echo', apply: (b) => fx.applyEcho(b) },
   { label: '🤖 Robot', apply: (b) => fx.applyRobot(b) },
   { label: '🐿️ Faster', apply: (b) => fx.applySpeed(b, 1.3) },
   { label: '🐢 Slower', apply: (b) => fx.applySpeed(b, 0.75) },
-  { label: '🔁 Backwards', apply: (b) => fx.applyReverse(b) },
-  { label: '🌙 Fade', apply: (b) => fx.applyFade(b) }
+  { label: '🔁 Backwards', apply: (b) => fx.applyReverse(b) }
 ];
 
 /**
@@ -161,31 +169,42 @@ export function renderSfxeditPanel(host, ctx) {
   addRegionBtn('🤫 Quiet', fx.silenceRegion);
   panel.appendChild(regionBar);
 
-  /* ---- effect buttons ---- */
-  const fxBar = document.createElement('div');
-  fxBar.className = 'stage-bar sfxedit-fx';
+  /* ---- clean-up + effect buttons ---- */
   const fxButtons = [];
-  for (const effect of EFFECTS) {
-    const b = makeBtn(effect.label, () => {
-      if (!buffer || busy) return;
-      history.push(buffer);
-      setBusy(true);
-      Promise.resolve(effect.apply(buffer)).then((next) => {
-        buffer = next;
-        setBusy(false);
-        redraw();
-        doPlay();
-      }).catch(() => {
-        buffer = history.pop() || buffer;
-        setBusy(false);
-        ctx.toast('That effect fizzled — try again.', true);
+  const buildOpBar = (ops, title) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'sfxedit-group';
+    const label = document.createElement('div');
+    label.className = 'sfxedit-group-label';
+    label.textContent = title;
+    wrap.appendChild(label);
+    const bar = document.createElement('div');
+    bar.className = 'stage-bar sfxedit-fx';
+    for (const op of ops) {
+      const b = makeBtn(op.label, () => {
+        if (!buffer || busy) return;
+        history.push(buffer);
+        setBusy(true);
+        Promise.resolve(op.apply(buffer)).then((next) => {
+          buffer = next;
+          setBusy(false);
+          redraw();
+          doPlay();
+        }).catch(() => {
+          buffer = history.pop() || buffer;
+          setBusy(false);
+          ctx.toast('That one fizzled — try again.', true);
+        });
       });
-    });
-    b.classList.add('sfxedit-fx-btn');
-    fxButtons.push(b);
-    fxBar.appendChild(b);
-  }
-  panel.appendChild(fxBar);
+      b.classList.add('sfxedit-fx-btn');
+      fxButtons.push(b);
+      bar.appendChild(b);
+    }
+    wrap.appendChild(bar);
+    panel.appendChild(wrap);
+  };
+  buildOpBar(CLEANUP, 'Clean Up');
+  buildOpBar(EFFECTS, 'Effects');
 
   /* ---- transport / save row ---- */
   const actionBar = document.createElement('div');

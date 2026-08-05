@@ -125,6 +125,13 @@ export function renderSoundboothPanel(host, ctx) {
   voicesCard.appendChild(chRows);
   palette.appendChild(voicesCard);
 
+  const fxCard = document.createElement('div');
+  fxCard.className = 'card';
+  fxCard.innerHTML = '<h3>Track FX</h3>';
+  const fxList = document.createElement('div');
+  fxCard.appendChild(fxList);
+  palette.appendChild(fxCard);
+
   const soundsCard = document.createElement('div');
   soundsCard.className = 'card';
   soundsCard.innerHTML = '<h3>Sounds</h3><div class="stage-hint">Click a sound to hear it and put it on the picked track.</div>';
@@ -273,6 +280,7 @@ export function renderSoundboothPanel(host, ctx) {
       row.addEventListener('click', () => { selectedChannel = ch; refreshPalette(); });
       chRows.appendChild(row);
     }
+    refreshFx();
     soundsList.innerHTML = '';
     const addChip = (value, text) => {
       const chip = document.createElement('button');
@@ -352,6 +360,38 @@ export function renderSoundboothPanel(host, ctx) {
         grid.appendChild(cell);
       }
     }
+  }
+
+  const FX_KNOBS = [
+    ['volume', 'Volume', 0, 1], ['pan', 'Pan', -1, 1], ['tone', 'Brightness', 0, 1],
+    ['wah', 'Wah', 0, 1], ['crunch', 'Crunch', 0, 1], ['chorus', 'Chorus', 0, 1],
+    ['echo', 'Echo', 0, 1], ['reverb', 'Reverb', 0, 1]
+  ];
+
+  function refreshFx() {
+    if (!working.channelFx) working.channelFx = [null, null, null, null];
+    const fx = working.channelFx[selectedChannel] = { ...audio.defaultChannelFx(), ...(working.channelFx[selectedChannel] || {}) };
+    fxList.innerHTML = '';
+    for (const [key, label, min, max] of FX_KNOBS) {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label;
+      l.style.minWidth = '68px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(min); input.max = String(max); input.step = '0.01';
+      input.value = String(fx[key]);
+      input.style.flex = '1';
+      input.addEventListener('input', () => { fx[key] = Number(input.value); });
+      row.appendChild(input);
+      fxList.appendChild(row);
+    }
+    const hint = document.createElement('div');
+    hint.className = 'stage-hint';
+    hint.textContent = 'Track ' + (selectedChannel + 1) + ' — effects apply on the next ▶ Play.';
+    fxList.appendChild(hint);
   }
 
   function renderCell(cell, ch, step) {

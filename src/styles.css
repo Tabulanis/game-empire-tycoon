@@ -452,3 +452,10 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 }
 .tracker-cell.split .half:first-child { border-right: 1px dashed var(--line); }
 .tracker-cell.split .half.filled { background: var(--accent); color: var(--bg); }
+
+/* ---- Sound Editor groups ---- */
+.sfxedit-group { margin-top: 10px; }
+.sfxedit-group-label {
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 4px;
+}

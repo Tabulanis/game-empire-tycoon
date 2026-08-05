@@ -184,6 +184,64 @@ export function normalize(buffer) {
   return out;
 }
 
+/**
+ * Louder/Softer: multiply by a factor (soft-clipped so Louder can't fold
+ * over into digital nasty).
+ * @param {AudioBuffer} buffer
+ * @param {number} factor
+ * @returns {AudioBuffer}
+ */
+export function applyGain(buffer, factor) {
+  const out = makeBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const src = buffer.getChannelData(c);
+    const dst = out.getChannelData(c);
+    for (let i = 0; i < src.length; i++) dst[i] = Math.tanh(src[i] * factor);
+  }
+  return out;
+}
+
+/**
+ * Trim Silence: cut leading/trailing quiet (below -48 dB), keeping a 5 ms
+ * pad on both ends. The single most useful cleanup for imported files.
+ * @param {AudioBuffer} buffer
+ * @returns {AudioBuffer}
+ */
+export function trimSilence(buffer) {
+  const threshold = Math.pow(10, -48 / 20);
+  let first = buffer.length, last = 0;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = 0; i < data.length; i++) {
+      if (Math.abs(data[i]) > threshold) { if (i < first) first = i; break; }
+    }
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (Math.abs(data[i]) > threshold) { if (i > last) last = i; break; }
+    }
+  }
+  if (first >= last) return buffer; // silence or already tight
+  const pad = Math.floor(buffer.sampleRate * 0.005);
+  return keepRegion(buffer, Math.max(0, first - pad), Math.min(buffer.length, last + pad));
+}
+
+/**
+ * Fade In: ease the start up over the first 15%.
+ * @param {AudioBuffer} buffer
+ * @returns {AudioBuffer}
+ */
+export function applyFadeIn(buffer) {
+  const out = makeBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  const fadeFrames = Math.floor(buffer.length * 0.15);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const src = buffer.getChannelData(c);
+    const dst = out.getChannelData(c);
+    for (let i = 0; i < src.length; i++) {
+      dst[i] = src[i] * (i < fadeFrames ? i / fadeFrames : 1);
+    }
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------------ */
 /* region editing (drag a selection on the waveform, then...)          */
 /* ------------------------------------------------------------------ */
