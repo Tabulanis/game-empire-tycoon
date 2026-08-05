@@ -1,0 +1,44 @@
+{
+  "stage": [
+    {
+      "target": null,
+      "title": "Welcome to the Build room! 🏗️",
+      "text": "This is where your game's world gets made. This little tour points at each part — click Next to walk through, or Skip if you already know your way."
+    },
+    {
+      "target": "viewport",
+      "title": "The world",
+      "text": "This is your level, live. Drag empty space to orbit around it, right-drag to slide, scroll to zoom. Everything you make ends up in here."
+    },
+    {
+      "target": "place",
+      "title": "Put things in it",
+      "text": "These buttons drop things into the world — boxes, sprites, and the invisible helpers: Trigger (something happens when the player walks in), Spawn, Checkpoint, Kill. The Toy Chest room has even more to drag in."
+    },
+    {
+      "target": "gizmo",
+      "title": "Move things around",
+      "text": "Click a thing in the world, then use these three: the first slides it, the second turns it, the third resizes it. Grab the colored arrows and rings right on the object."
+    },
+    {
+      "target": "terrain",
+      "title": "The ground",
+      "text": "Add ground here, pick its texture, then hit Paint & Sculpt — a gold ring follows your mouse. Drag to raise hills, dig dips, or paint textures. Keys 1, 2, 3 switch what you're painting with."
+    },
+    {
+      "target": "light",
+      "title": "Light & shadows",
+      "text": "Pick your shadow style — Blob is fast and cartoony, the soft ones look real. Slide the sun around for morning or evening light, and Bounce makes everything glow a little warmer."
+    },
+    {
+      "target": "scene",
+      "title": "Your scenes",
+      "text": "A game can have many levels — they're listed here. Everything you place belongs to the scene you're in."
+    },
+    {
+      "target": "play",
+      "title": "Try it! ▶",
+      "text": "The most important button in the whole studio. Press Play and your level runs right here — jump around, see what feels good, press Stop, fix, Play again. Great games are made by playing them every few minutes."
+    }
+  ]
+}

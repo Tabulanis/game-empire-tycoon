@@ -17,6 +17,7 @@ import { startRuntime } from '../../engine/runtime.js';
 import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../engine/debug.js';
 import * as ent from '../../engine/entities.js';
 import { GENERIC_TEXTURES } from '../textures.js';
+import { startTour } from '../tour.js';
 
 /** module-level key dispatcher so panel re-renders never stack listeners */
 let stageKeyHandler = null;
@@ -117,6 +118,7 @@ export function renderStagePanel(host, ctx) {
   bar1.appendChild(makeSep());
 
   const playBtn = makeBtn('\u25B6 Play', null);
+  playBtn.dataset.tour = 'play';
   const stopBtn = makeBtn('\u25A0 Stop', null);
   stopBtn.style.display = 'none';
   stopBtn.className += ' bad-btn';
@@ -127,6 +129,7 @@ export function renderStagePanel(host, ctx) {
 
   // ---------- toolbar row 2 ----------
   const bar2 = document.createElement('div');
+  bar2.dataset.tour = 'place';
   bar2.className = 'stage-bar';
 
   const selBtn = makeBtn('\u21F3 Select', () => setTool('select'));
@@ -164,12 +167,17 @@ export function renderStagePanel(host, ctx) {
 
   bar2.appendChild(makeSep());
 
+  const gizmoGroup = document.createElement('span');
+  gizmoGroup.dataset.tour = 'gizmo';
+  gizmoGroup.style.display = 'inline-flex';
+  gizmoGroup.style.gap = '4px';
+  bar2.appendChild(gizmoGroup);
   const gBtns = {};
   for (const [id, label] of [['translate', 'Mv'], ['rotate', 'Rt'], ['scale', 'Sc']]) {
     const b = makeBtn(label, () => { gizmoMode = id; txControls.setMode(id); refreshGizmoBtns(); });
     if (id === 'translate') b.className += ' active';
     gBtns[id] = b;
-    bar2.appendChild(b);
+    gizmoGroup.appendChild(b);
   }
   function refreshGizmoBtns() {
     for (const [k, b] of Object.entries(gBtns)) b.classList.toggle('active', k === gizmoMode);
@@ -202,6 +210,7 @@ export function renderStagePanel(host, ctx) {
 
   const canvasWrap = document.createElement('div');
   canvasWrap.className = 'stage-canvas-wrap';
+  canvasWrap.dataset.tour = 'viewport';
   const canvas = document.createElement('canvas');
   canvas.className = 'deck-canvas';
   canvasWrap.appendChild(canvas);
@@ -211,6 +220,7 @@ export function renderStagePanel(host, ctx) {
   right.className = 'deck-right';
 
   const treeCard = document.createElement('div');
+  treeCard.dataset.tour = 'scene';
   treeCard.className = 'card';
   treeCard.innerHTML = '<h3>Scene</h3>';
   const treeList = document.createElement('div');
@@ -241,6 +251,7 @@ export function renderStagePanel(host, ctx) {
   right.appendChild(brushCard);
 
   const lightCard = document.createElement('div');
+  lightCard.dataset.tour = 'light';
   lightCard.className = 'card';
   lightCard.innerHTML = '<h3>Light & Shadows</h3>';
   const lightBody = document.createElement('div');
@@ -305,6 +316,7 @@ export function renderStagePanel(host, ctx) {
   }
 
   const terrainCard = document.createElement('div');
+  terrainCard.dataset.tour = 'terrain';
   terrainCard.className = 'card';
   terrainCard.innerHTML = '<h3>Terrain</h3><div class="stage-hint">The ground under your level.</div>';
   const terrainBody = document.createElement('div');
@@ -677,7 +689,15 @@ export function renderStagePanel(host, ctx) {
 
   // initial scene view
   const firstScene = ent.getScene(c, currentSceneId);
+  const tourBtn = makeBtn('🎓 Show me around', () => startTour('stage', panel));
+  bar1.appendChild(tourBtn);
+
   const view = buildSceneView(engine, firstScene, { play: false });
+  // first visit: offer the tour once, remember forever after
+  if (!localStorage.getItem('get-tour-stage')) {
+    localStorage.setItem('get-tour-stage', 'seen');
+    setTimeout(() => startTour('stage', panel), 600);
+  }
   engine.setLighting(getLighting());
   refreshLightCard();
   refreshTerrainCard();
