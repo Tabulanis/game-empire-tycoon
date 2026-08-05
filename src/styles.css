@@ -459,3 +459,5 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--dim); margin-bottom: 4px;
 }
+
+.tracker-cell, .tracker-cell .half { user-select: none; }

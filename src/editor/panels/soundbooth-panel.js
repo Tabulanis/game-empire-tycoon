@@ -346,13 +346,15 @@ export function renderSoundboothPanel(host, ctx) {
           renderCell(cell, ch, step);
         });
         cell.addEventListener('dblclick', () => {
-          // Two clicks just toggled the value twice (back to where it was),
-          // so this is a clean split/merge toggle.
+          // Split = the beat becomes TWO beats, both filled — visible and
+          // audible immediately (an empty split looked like nothing
+          // happened). Double-click a split cell to merge it back.
           const value = working.patterns[currentPatternId].channels[ch][step];
           if (Array.isArray(value)) {
             sb.setStep(working, currentPatternId, ch, step, value[0] || value[1] || null);
           } else {
-            sb.setStep(working, currentPatternId, ch, step, [value, null]);
+            const note = value || selectedNote;
+            sb.setStep(working, currentPatternId, ch, step, [note, note]);
           }
           renderCell(cell, ch, step);
         });
