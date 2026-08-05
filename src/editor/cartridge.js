@@ -206,15 +206,43 @@ export async function save(forcePicker = false) {
  * Open a cartridge from disk.
  * @returns {Promise<{ok: boolean, errors: string[], error?: string}>}
  */
+/**
+ * A shipped game IS its cartridge: exports embed the full data as one
+ * double-encoded JSON string literal (see press/export.js). Given the HTML
+ * text of any exported game, find that literal and decode it — offline
+ * remix culture: kids trade .html files and take each other's games apart.
+ * @param {string} html
+ * @returns {string|null} cartridge JSON text, or null
+ */
+function extractCartridgeFromHtml(html) {
+  // the literal starts with {\"get\": — scan string literals for it
+  const re = /"(\{\\"get\\":(?:[^"\\]|\\.)*)"/;
+  const m = re.exec(html);
+  if (!m) return null;
+  try {
+    return JSON.parse('"' + m[1] + '"');
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function open() {
   if (hasFileSystemAccess()) {
     try {
       const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'GET Cartridge', accept: { 'application/json': ['.json'] } }],
+        types: [{ description: 'GET Cartridge or shipped game', accept: { 'application/json': ['.json'], 'text/html': ['.html'] } }],
         multiple: false
       });
       const file = await handle.getFile();
-      const result = await loadFromText(await file.text(), handle);
+      let text = await file.text();
+      let boundHandle = handle;
+      if (file.name.toLowerCase().endsWith('.html') || text.trimStart().startsWith('<')) {
+        const extracted = extractCartridgeFromHtml(text);
+        if (!extracted) return { ok: false, errors: [], error: 'That HTML file has no cartridge inside it.' };
+        text = extracted;
+        boundHandle = null; // remixes save as their own new file, never over the shipped game
+      }
+      const result = await loadFromText(text, boundHandle);
       return result;
     } catch (err) {
       if (err && err.name === 'AbortError') return { ok: false, errors: [], error: 'cancelled' };
@@ -229,11 +257,17 @@ function openViaInput() {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,application/json';
+    input.accept = '.json,application/json,.html,text/html';
     input.addEventListener('change', async () => {
       const file = input.files && input.files[0];
       if (!file) return resolve({ ok: false, errors: [], error: 'cancelled' });
-      resolve(await loadFromText(await file.text(), null));
+      let text = await file.text();
+      if (file.name.toLowerCase().endsWith('.html') || text.trimStart().startsWith('<')) {
+        const extracted = extractCartridgeFromHtml(text);
+        if (!extracted) return resolve({ ok: false, errors: [], error: 'That HTML file has no cartridge inside it.' });
+        text = extracted;
+      }
+      resolve(await loadFromText(text, null));
     });
     input.click();
   });

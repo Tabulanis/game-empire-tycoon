@@ -568,3 +568,25 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 .shelf-name { font-size: 9.5px; color: var(--dim); text-align: center; line-height: 1.2; }
 
 .tour-fab { right: 38px; background: var(--accent); font-size: 14px; }
+
+/* ---- command palette ---- */
+.palette-wrap {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(10, 8, 18, 0.55);
+  display: flex; justify-content: center; padding-top: 12vh;
+}
+.palette-box {
+  width: min(520px, 90vw); height: fit-content;
+  background: var(--panel); border: 1px solid var(--accent);
+  border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden;
+}
+.palette-input {
+  width: 100%; background: var(--bg-2); border: none; border-bottom: 1px solid var(--line);
+  color: var(--ink); font-family: var(--font); font-size: 15px; padding: 13px 16px;
+  outline: none;
+}
+.palette-list { max-height: 46vh; overflow-y: auto; }
+.palette-row {
+  padding: 9px 16px; font-size: 13px; color: var(--ink); cursor: pointer;
+}
+.palette-row:hover, .palette-row.active { background: var(--bg-2); color: var(--accent); }

@@ -126,6 +126,9 @@ export function bootShell(root) {
       e.preventDefault();
       if (undoSvc.undo()) { showRoom(currentRoom); toast('↶ Undone'); }
       else toast('Nothing to undo.');
+    } else if (mod && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      openPalette();
     } else if (mod && ((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y')) {
       const tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -530,6 +533,86 @@ async function doSave(forcePicker) {
   if (res.error === 'cancelled') return;
   await backup.makeBackup('manual-save');
   toast(res.method === 'download' ? 'Downloaded cartridge file.' : 'Saved.');
+}
+
+/* ------------------------------------------------------------------ */
+/* command palette (Ctrl+K): search rooms, tools, and everything saved  */
+/* ------------------------------------------------------------------ */
+
+function paletteEntries() {
+  const out = [];
+  for (const room of ROOMS.rooms) {
+    if (!eraOpen(room.era)) continue;
+    out.push({ label: room.icon + ' ' + room.label + ' — room', go: () => showRoom(room.id) });
+    for (const m of room.members) {
+      if (!eraOpen(m.era)) continue;
+      out.push({ label: room.icon + ' ' + m.label + ' (' + room.label + ')', go: () => { roomMemory[room.id] = m.tab; showRoom(room.id); } });
+    }
+  }
+  out.push({ label: ROOMS.play.icon + ' Play — try your game', go: () => showRoom('play') });
+  out.push({ label: ROOMS.office.icon + ' Office', go: () => showRoom('office') });
+  const c = cart.getCartridge();
+  const jump = (roomId, tab) => () => { roomMemory[roomId] = tab; showRoom(roomId); };
+  for (const sp of c.assets.sprites || []) out.push({ label: '🖼 ' + sp.name + ' — image', go: jump('art', 'atelier') });
+  for (const m of c.assets.materials || []) out.push({ label: '✨ ' + m.name + ' — material', go: jump('art', 'materials') });
+  for (const sfx of c.assets.sfx || []) out.push({ label: '🔊 ' + sfx.name + ' — sound', go: jump('sound', 'foundry') });
+  for (const song of c.assets.songs || []) out.push({ label: '🎵 ' + song.name + ' — song', go: jump('music', 'soundbooth') });
+  for (const mo of c.assets.models || []) out.push({ label: '🕺 ' + mo.name + ' — character', go: jump('animate', 'rig') });
+  for (const sc of c.scenes || []) out.push({ label: '🗺 ' + (sc.id || 'scene') + ' — scene', go: () => showRoom('build') });
+  return out;
+}
+
+function openPalette() {
+  const existing = document.getElementById('cmdPalette');
+  if (existing) { existing.remove(); return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'palette-wrap';
+  wrap.id = 'cmdPalette';
+  const box = document.createElement('div');
+  box.className = 'palette-box';
+  const input = document.createElement('input');
+  input.className = 'palette-input';
+  input.placeholder = 'Jump anywhere… (rooms, sounds, images, characters)';
+  const list = document.createElement('div');
+  list.className = 'palette-list';
+  box.appendChild(input);
+  box.appendChild(list);
+  wrap.appendChild(box);
+  document.body.appendChild(wrap);
+  const entries = paletteEntries();
+  let filtered = entries;
+  let cursor = 0;
+
+  function renderList() {
+    list.innerHTML = '';
+    filtered.slice(0, 12).forEach((entry, i) => {
+      const row = document.createElement('div');
+      row.className = 'palette-row' + (i === cursor ? ' active' : '');
+      row.textContent = entry.label;
+      row.addEventListener('click', () => { close(); entry.go(); });
+      list.appendChild(row);
+    });
+    if (!filtered.length) list.innerHTML = '<div class="palette-row">nothing matches</div>';
+  }
+
+  function close() { wrap.remove(); }
+
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    filtered = q ? entries.filter((entry) => entry.label.toLowerCase().includes(q)) : entries;
+    cursor = 0;
+    renderList();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); }
+    else if (e.key === 'ArrowDown') { cursor = Math.min(filtered.length - 1, cursor + 1); renderList(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { cursor = Math.max(0, cursor - 1); renderList(); e.preventDefault(); }
+    else if (e.key === 'Enter' && filtered[cursor]) { close(); filtered[cursor].go(); }
+    e.stopPropagation();
+  });
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+  renderList();
+  input.focus();
 }
 
 /* ------------------------------------------------------------------ */
