@@ -462,7 +462,15 @@ export function renderKitbayPanel(host, ctx) {
   function rebuildPreviewMesh() {
     if (!engine) return;
     if (gizmo) gizmo.detach();
-    if (mesh) { engine.contentRoot.remove(mesh); mesh.traverse((obj) => { if (obj.geometry) obj.geometry.dispose(); if (obj.material) obj.material.dispose(); }); }
+    if (mesh) {
+      engine.contentRoot.remove(mesh);
+      mesh.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        // boxes carry a 6-material array (per-face textures) — dispose each
+        const mats = Array.isArray(obj.material) ? obj.material : (obj.material ? [obj.material] : []);
+        for (const m of mats) { if (m.map) m.map.dispose(); m.dispose(); }
+      });
+    }
     // Reuse the exact same mesh-building logic every entity in the game uses,
     // so the workspace is never a lie about what placing this prop will look like.
     const fakeEntity = { id: 'preview', components: { transform: { p: [0, 0, 0], r: [0, 0, 0], s: [1, 1, 1] }, model: { parts: working.parts } } };
