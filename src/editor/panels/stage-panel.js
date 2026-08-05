@@ -328,24 +328,6 @@ export function renderStagePanel(host, ctx) {
     }
   }
 
-  // brush pointer layer: only bites when the Sculpt tool is armed
-  canvas.addEventListener('pointerdown', (e) => {
-    if (playSession || tool !== 'terrain') return;
-    stroking = true;
-    strokeSet = new Set();
-    orbitControls.enabled = false;
-    applyBrush(ptrNdc(e, canvas));
-  });
-  canvas.addEventListener('pointermove', (e) => {
-    if (playSession || tool !== 'terrain') return;
-    const ndc = ptrNdc(e, canvas);
-    if (stroking) applyBrush(ndc);
-    else showBrushRing(groundPoint(engine, ndc));
-  });
-  window.addEventListener('pointerup', () => {
-    if (stroking) { stroking = false; strokeSet = new Set(); orbitControls.enabled = true; }
-  });
-
   function terrainChanged() {
     cart.touch();
     view.refreshTerrain(getTerrainScene());
@@ -383,6 +365,10 @@ export function renderStagePanel(host, ctx) {
       /* ---- the brush, front and center ---- */
       const sculptBtn = makeBtn(tool === 'terrain' ? '✔ Done with the brush' : '🖌 Paint & Sculpt', () => {
         setTool(tool === 'terrain' ? 'select' : 'terrain');
+        // while the brush is armed the left mouse belongs to it — zoom
+        // stays on the wheel, rotate/pan come back on Done
+        orbitControls.enableRotate = tool !== 'terrain';
+        orbitControls.enablePan = tool !== 'terrain';
         if (tool !== 'terrain') hideBrushRing();
         refreshTerrainCard();
       });
@@ -513,7 +499,14 @@ export function renderStagePanel(host, ctx) {
     numRow('Width', t.size[0], 4, 200, 1, (v) => { t.size[0] = v; });
     numRow('Depth', t.size[1], 4, 200, 1, (v) => { t.size[1] = v; });
 
-    const removeBtn = makeBtn('Remove ground', () => { scene.terrain = null; setTool('select'); hideBrushRing(); terrainChanged(); });
+    const removeBtn = makeBtn('Remove ground', () => {
+      scene.terrain = null;
+      setTool('select');
+      orbitControls.enableRotate = true;
+      orbitControls.enablePan = true;
+      hideBrushRing();
+      terrainChanged();
+    });
     removeBtn.className += ' bad-btn';
     removeBtn.style.cssText = 'width:100%;margin-top:6px;';
     terrainBody.appendChild(removeBtn);
@@ -1021,6 +1014,25 @@ export function renderStagePanel(host, ctx) {
     paintRaf = requestAnimationFrame(() => doPaint(ndc));
   });
   canvas.addEventListener('pointerup', () => { painting = false; });
+
+  // ---- terrain brush pointer layer (registered with the other live
+  // handlers so it shares their exact conditions) ----
+  canvas.addEventListener('pointerdown', (e) => {
+    if (playSession || tool !== 'terrain') return;
+    e.stopImmediatePropagation(); // the brush owns this drag, not orbit/gizmo
+    stroking = true;
+    strokeSet = new Set();
+    applyBrush(ptrNdc(e, canvas));
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (playSession || tool !== 'terrain') return;
+    const ndc = ptrNdc(e, canvas);
+    if (stroking) applyBrush(ndc);
+    else showBrushRing(groundPoint(engine, ndc));
+  });
+  window.addEventListener('pointerup', () => {
+    if (stroking) { stroking = false; strokeSet = new Set(); }
+  });
 
   function doPaint(ndc) {
     const pt = groundPoint(engine, ndc);
