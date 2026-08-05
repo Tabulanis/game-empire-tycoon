@@ -134,5 +134,14 @@
       "The sphere shows your material in real light — turn Depth up on the Normal slot and watch the bumps catch the light as it spins. That's the difference between a graphic and a shader.",
       "Save it and it appears in the 3D Shop's texture palette with a ✨ — paint any part with it and the whole map set rides along, in the editor and in your shipped game."
     ]
+  },
+  "rig": {
+    "title": "Characters — rigged models and their moves",
+    "lines": [
+      "A rigged character is a model with a skeleton inside — an armature. Move the bones and the skin follows. This bench loads them, plays them, and teaches them new moves.",
+      "LOAD a GLB file, or an FBX straight from Mixamo (mixamo.com — free rigged characters and thousands of animations; download as 'FBX Binary, With Skin'). The character stands on the stage and its animations show in the list. Click one to play it.",
+      "IMPORT ANIMATIONS adds moves from OTHER files onto your character. Download a Mixamo animation as 'Without Skin' and it snaps right on — same skeleton family, the bones match by name. A totally different skeleton gets an automatic retarget attempt, and an honest 'different skeleton' message if it can't fit.",
+      "SAVE TO GAME stores the character with all its collected moves inside your cartridge. DOWNLOAD AS GLB is also a converter: load an FBX, download a GLB — model and every animation in one file, ready for anything that speaks glTF."
+    ]
   }
 }

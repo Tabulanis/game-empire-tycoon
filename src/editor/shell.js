@@ -27,6 +27,7 @@ import { renderCodexPanel } from './panels/codex-panel.js';
 import { renderKitbayPanel } from './panels/kitbay-panel.js';
 import { renderMaterialsPanel } from './panels/materials-panel.js';
 import { renderLoftPanel } from './panels/loft-panel.js';
+import { renderRigPanel } from './panels/rig-panel.js';
 import { renderLabPanel } from './panels/lab-panel.js';
 import { renderTycoonPanel } from './panels/tycoon-panel.js';
 import { renderPressPanel } from './panels/press-panel.js';
@@ -48,6 +49,7 @@ const PANELS = {
   kitbay: renderKitbayPanel,
   materials: renderMaterialsPanel,
   loft: renderLoftPanel,
+  rig: renderRigPanel,
   lab: renderLabPanel,
   tycoon: renderTycoonPanel,
   press: renderPressPanel,

@@ -79,7 +79,8 @@
       "title": "The Animation Loft — make things move",
       "era": "tower",
       "members": [
-        { "tab": "loft", "label": "Animate", "era": "tower" }
+        { "tab": "rig", "label": "Characters", "era": "tower" },
+        { "tab": "loft", "label": "Prop Clips", "era": "tower" }
       ]
     },
     {
