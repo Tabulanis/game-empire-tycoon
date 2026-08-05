@@ -18,7 +18,9 @@ let working = atelier.createSprite('Sprite', 16);
 let currentFrame = 0;
 let currentLayer = 'fg';
 let currentColor = atelier.PALETTE[4];
-let tool = 'draw'; // draw | erase
+let tool = 'draw'; // draw | erase | fill | line | rect | pick
+let mirror = false;
+let anchor = null; // line/rect start pixel
 
 /**
  * @param {HTMLElement} host
@@ -43,7 +45,7 @@ export function renderAtelierPanel(host, ctx) {
   const newBtn = makeBtn('+ New Sprite', () => {
     const name = prompt('Sprite name?', 'Sprite');
     if (name === null) return;
-    const sizeStr = prompt('Canvas size — 16, 32, or 64?', '16');
+    const sizeStr = prompt('Canvas size — 16, 32, 64, 128, or 256?', '16');
     const size = atelier.SIZES.includes(Number(sizeStr)) ? Number(sizeStr) : 16;
     working = atelier.createSprite(name, size);
     currentSpriteId = null;
@@ -72,9 +74,35 @@ export function renderAtelierPanel(host, ctx) {
   bar.appendChild(layerBg); bar.appendChild(layerFg);
 
   bar.appendChild(makeSep());
-  const drawBtn = makeBtn('\u270E Draw', () => { tool = 'draw'; refreshToolbar(); });
-  const eraseBtn = makeBtn('\u2716 Erase', () => { tool = 'erase'; refreshToolbar(); });
-  bar.appendChild(drawBtn); bar.appendChild(eraseBtn);
+  const toolBtns = {};
+  const TOOLS = [['draw', '✎ Draw'], ['erase', '✖ Erase'], ['fill', '🪣 Fill'], ['line', '📏 Line'], ['rect', '▭ Box'], ['pick', '💉 Pick']];
+  for (const [id, label] of TOOLS) {
+    const b = makeBtn(label, () => { tool = id; anchor = null; refreshToolbar(); });
+    toolBtns[id] = b;
+    bar.appendChild(b);
+  }
+  const mirrorBtn = makeBtn('🪞 Mirror', () => { mirror = !mirror; refreshToolbar(); });
+  bar.appendChild(mirrorBtn);
+  bar.appendChild(makeSep());
+  const importInput = document.createElement('input');
+  importInput.type = 'file'; importInput.accept = 'image/*'; importInput.style.display = 'none';
+  importInput.addEventListener('change', () => {
+    const file = importInput.files && importInput.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      // Import replaces the current frame, scaled to this sprite's canvas.
+      working.frames[currentFrame] = atelier.importImageToFrame(img, working.size);
+      URL.revokeObjectURL(img.src);
+      renderAll();
+      ctx.toast('Imported! (bigger canvases keep more detail — try 128 or 256)');
+    };
+    img.onerror = () => ctx.toast('Could not read that image.', true);
+    img.src = URL.createObjectURL(file);
+    importInput.value = '';
+  });
+  bar.appendChild(importInput);
+  bar.appendChild(makeBtn('🖼 Import PNG…', () => importInput.click()));
 
   left.appendChild(bar);
 
@@ -218,8 +246,8 @@ export function renderAtelierPanel(host, ctx) {
   function refreshToolbar() {
     layerBg.classList.toggle('active', currentLayer === 'bg');
     layerFg.classList.toggle('active', currentLayer === 'fg');
-    drawBtn.classList.toggle('active', tool === 'draw');
-    eraseBtn.classList.toggle('active', tool === 'erase');
+    for (const [id, b] of Object.entries(toolBtns)) b.classList.toggle('active', tool === id);
+    mirrorBtn.classList.toggle('active', mirror);
     for (const child of palette.children) {
       child.style.outline = child.title === currentColor ? '2px solid var(--gold)' : 'none';
     }
@@ -275,18 +303,54 @@ export function renderAtelierPanel(host, ctx) {
   /* ---------------------------------------------------------------- */
   let painting = false;
 
-  function paintAt(clientX, clientY) {
+  function pixelAt(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const px = Math.floor((clientX - rect.left) / rect.width * working.size);
-    const py = Math.floor((clientY - rect.top) / rect.height * working.size);
+    return [
+      Math.floor((clientX - rect.left) / rect.width * working.size),
+      Math.floor((clientY - rect.top) / rect.height * working.size)
+    ];
+  }
+
+  function paintAt(clientX, clientY) {
+    const [px, py] = pixelAt(clientX, clientY);
+    const frame = working.frames[currentFrame];
     const color = tool === 'erase' ? null : currentColor;
-    atelier.setPixel(working.frames[currentFrame], currentLayer, px, py, working.size, color);
+    atelier.setPixel(frame, currentLayer, px, py, working.size, color);
+    if (mirror) atelier.setPixel(frame, currentLayer, working.size - 1 - px, py, working.size, color);
     drawCanvas();
   }
 
-  canvas.addEventListener('pointerdown', (e) => { painting = true; paintAt(e.clientX, e.clientY); });
+  canvas.addEventListener('pointerdown', (e) => {
+    const [px, py] = pixelAt(e.clientX, e.clientY);
+    const frame = working.frames[currentFrame];
+    if (tool === 'pick') {
+      const picked = atelier.getPixel(frame, 'fg', px, py, working.size) || atelier.getPixel(frame, 'bg', px, py, working.size);
+      if (picked) { currentColor = picked; tool = 'draw'; refreshToolbar(); }
+      return;
+    }
+    if (tool === 'fill') {
+      atelier.floodFill(frame, currentLayer, px, py, working.size, currentColor);
+      drawCanvas(); refreshFrameStrip(); refreshHitbox();
+      return;
+    }
+    if (tool === 'line' || tool === 'rect') {
+      anchor = [px, py];   // committed on release
+      return;
+    }
+    painting = true;
+    paintAt(e.clientX, e.clientY);
+  });
   canvas.addEventListener('pointermove', (e) => { if (painting) paintAt(e.clientX, e.clientY); });
-  window.addEventListener('pointerup', () => {
+  window.addEventListener('pointerup', (e) => {
+    if (anchor && (tool === 'line' || tool === 'rect')) {
+      const [px, py] = pixelAt(e.clientX, e.clientY);
+      const frame = working.frames[currentFrame];
+      const op = tool === 'line' ? atelier.drawLine : atelier.drawRect;
+      op(frame, currentLayer, anchor[0], anchor[1], px, py, working.size, currentColor);
+      anchor = null;
+      drawCanvas(); refreshFrameStrip(); refreshHitbox();
+      return;
+    }
     if (painting) { painting = false; refreshFrameStrip(); refreshHitbox(); }
   });
 

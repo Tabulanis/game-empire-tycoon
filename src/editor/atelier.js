@@ -8,8 +8,9 @@
  * Ticket P3-8. Phase 3.
  */
 
-/** Canvas resolutions the Atelier supports (Article IX: 16/32/64px). */
-export const SIZES = [16, 32, 64];
+/** Canvas resolutions. 16/32/64 per Article IX, plus 128/256 for big
+ * sprites and imported PNGs. */
+export const SIZES = [16, 32, 64, 128, 256];
 
 /**
  * A small curated palette — enough range for a first cartridge without
@@ -201,4 +202,82 @@ export function deleteSprite(cartridge, id) {
   if (i < 0) return false;
   cartridge.assets.sprites.splice(i, 1);
   return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* tools                                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Flood fill from (x, y): every connected pixel of the same color becomes
+ * the new color.
+ * @param {{bg: Array, fg: Array}} frame @param {'bg'|'fg'} layer
+ * @param {number} x @param {number} y @param {number} size
+ * @param {string|null} color
+ */
+export function floodFill(frame, layer, x, y, size, color) {
+  const target = getPixel(frame, layer, x, y, size);
+  const next = color === 'transparent' ? null : color;
+  if (target === next) return;
+  const stack = [[x, y]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
+    if (frame[layer][cy * size + cx] !== target) continue;
+    frame[layer][cy * size + cx] = next;
+    stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+
+/**
+ * Bresenham line.
+ * @param {{bg: Array, fg: Array}} frame @param {'bg'|'fg'} layer
+ * @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
+ * @param {number} size @param {string|null} color
+ */
+export function drawLine(frame, layer, x0, y0, x1, y1, size, color) {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    setPixel(frame, layer, x0, y0, size, color);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+
+/**
+ * Rectangle outline between two corners.
+ */
+export function drawRect(frame, layer, x0, y0, x1, y1, size, color) {
+  const [ax, bx] = x0 < x1 ? [x0, x1] : [x1, x0];
+  const [ay, by] = y0 < y1 ? [y0, y1] : [y1, y0];
+  for (let x = ax; x <= bx; x++) { setPixel(frame, layer, x, ay, size, color); setPixel(frame, layer, x, by, size, color); }
+  for (let y = ay; y <= by; y++) { setPixel(frame, layer, ax, y, size, color); setPixel(frame, layer, bx, y, size, color); }
+}
+
+/**
+ * Import an image into a fresh frame at the given canvas size — scaled to
+ * fit, alpha under 50% becomes transparent, colors quantized to hex.
+ * @param {HTMLImageElement} img @param {number} size
+ * @returns {{bg: Array, fg: Array}}
+ */
+export function importImageToFrame(img, size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = size >= 128; // crisp for pixel sizes, smooth for big
+  const scale = Math.min(size / img.width, size / img.height);
+  const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+  ctx.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  const frame = createBlankFrame(size);
+  const hex = (n) => n.toString(16).padStart(2, '0');
+  for (let i = 0; i < size * size; i++) {
+    if (data[i * 4 + 3] < 128) continue;
+    frame.bg[i] = '#' + hex(data[i * 4]) + hex(data[i * 4 + 1]) + hex(data[i * 4 + 2]);
+  }
+  return frame;
 }
