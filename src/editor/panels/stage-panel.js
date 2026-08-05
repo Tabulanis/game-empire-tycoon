@@ -664,6 +664,14 @@ export function renderStagePanel(host, ctx) {
 
   bindStageKeys();
   stageKeyHandler = (e) => {
+    const tag0 = e.target && e.target.tagName;
+    if (e.key === 'Tab' && tag0 !== 'INPUT' && tag0 !== 'TEXTAREA' && tag0 !== 'SELECT') {
+      if (document.body.contains(panel)) {
+        e.preventDefault();
+        if (playSession) doStop(); else doPlay();
+        return;
+      }
+    }
     if (playSession || tool !== 'terrain') return;
     const tag = e.target && e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -1158,6 +1166,15 @@ export function renderStagePanel(host, ctx) {
     const ndc = ptrNdc(e, canvas);
     if (tool === 'select') {
       if (txControls.dragging) return;
+      if (e.shiftKey) {
+        // Shift+click the ground: next Play starts the player right here
+        const pt = groundPoint(engine, ndc);
+        if (pt) {
+          setSpawnOverride(spawnOverride && Math.hypot(pt[0] - spawnOverride[0], (pt[2] || 0) - (spawnOverride[2] || 0)) < 0.4 ? null : pt);
+          ctx.toast(spawnOverride ? '▶ Play will start here (Shift+click again to clear).' : 'Play-from-here cleared.');
+        }
+        return;
+      }
       const id = pickEntity(engine, ndc);
       selectEntity(id || null);
     } else if (tool === 'terrain') {
@@ -1296,6 +1313,26 @@ export function renderStagePanel(host, ctx) {
   playBtn.addEventListener('click', () => doPlay());
   stopBtn.addEventListener('click', () => doStop());
 
+  /** @type {number[]|null} Shift+click sets this — Play starts the player here */
+  let spawnOverride = null;
+  let spawnMarker = null;
+  let spawnStash = null; // player's real position, restored on Stop
+
+  function setSpawnOverride(pt) {
+    spawnOverride = pt;
+    if (spawnMarker) { engine.scene.remove(spawnMarker); spawnMarker = null; }
+    if (pt) {
+      spawnMarker = new THREE.Mesh(
+        new THREE.ConeGeometry(0.18, 0.4, 12),
+        new THREE.MeshBasicMaterial({ color: '#67e39b', transparent: true, opacity: 0.8, depthTest: false })
+      );
+      spawnMarker.rotation.x = Math.PI;
+      spawnMarker.renderOrder = 997;
+      spawnMarker.position.set(pt[0], (pt[1] || 0) + 0.5, pt[2] || 0);
+      engine.scene.add(spawnMarker);
+    }
+  }
+
   /** @type {THREE.LineSegments|null} */
   let wireframe = null;
   /** @type {THREE.BufferGeometry|null} */
@@ -1308,6 +1345,15 @@ export function renderStagePanel(host, ctx) {
     const sc = ent.getScene(live, currentSceneId);
     if (!sc) return;
     deselect();
+    // play-from-here: temporarily move the player entity to the marker
+    spawnStash = null;
+    if (spawnOverride) {
+      const player = sc.entities.find((en) => Array.isArray(en.components.tags) && en.components.tags.includes('player'));
+      if (player) {
+        spawnStash = { entity: player, p: [...player.components.transform.p] };
+        player.components.transform.p = [spawnOverride[0], (spawnOverride[1] || 0) + 0.6, spawnOverride[2] || 0];
+      }
+    }
     canvasWrap.classList.add('playing');
     playBtn.style.display = 'none';
     stopBtn.style.display = '';
@@ -1336,6 +1382,12 @@ export function renderStagePanel(host, ctx) {
     if (!playSession) return;
     playSession.stop();
     playSession = null;
+    if (spawnStash) {
+      spawnStash.entity.components.transform.p = spawnStash.p;
+      const obj = view.objects.get(spawnStash.entity.id);
+      if (obj) syncTransform(obj, spawnStash.entity, engine.mode);
+      spawnStash = null;
+    }
     setPhysicsSource(null);
     if (wireframe) { engine.contentRoot.remove(wireframe); wireGeo.dispose(); wireframe.material.dispose(); wireframe = null; wireGeo = null; }
     canvasWrap.classList.remove('playing');
