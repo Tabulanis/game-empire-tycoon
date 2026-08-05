@@ -65,6 +65,49 @@ export function buildTerrainMesh(terrain) {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -0.01; // a hair under the entities so nothing z-fights
   mesh.userData.terrain = true;
+
+  // Grid mode's painted/sculpted cells: each is a box slab — textured from
+  // the terrain's numbered palette slots, raised in 0.5-unit steps.
+  if ((terrain.mode || 'stretch') === 'grid' && terrain.cells) {
+    const group = new THREE.Group();
+    group.add(mesh);
+    mesh.rotation.x = -Math.PI / 2; // (re-set: mesh keeps its own transform inside the group)
+    const cell = terrain.cell || 1;
+    const slotMaterials = {};
+    const slotMaterial = (slotIndex) => {
+      if (slotMaterials[slotIndex]) return slotMaterials[slotIndex];
+      const slot = (terrain.palette || [])[slotIndex];
+      const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 });
+      if (slot && slot.dataURL) {
+        const tex = new THREE.TextureLoader().load(slot.dataURL);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;
+        m.map = tex;
+      } else {
+        m.color = new THREE.Color(terrain.color || '#3a3f4c');
+      }
+      slotMaterials[slotIndex] = m;
+      return m;
+    };
+    for (const [key, c] of Object.entries(terrain.cells)) {
+      if (c.t == null && !(c.h > 0)) continue;
+      const [row, col] = key.split(',').map(Number);
+      const height = Math.max(0.1, (c.h || 0) * 0.5);
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(cell, height, cell),
+        c.t == null ? slotMaterial(-1) : slotMaterial(c.t)
+      );
+      box.position.set(
+        -size[0] / 2 + (col + 0.5) * cell,
+        height / 2,
+        -size[1] / 2 + (row + 0.5) * cell
+      );
+      box.userData.terrain = true;
+      group.add(box);
+    }
+    group.userData.terrain = true;
+    return group;
+  }
   return mesh;
 }
 

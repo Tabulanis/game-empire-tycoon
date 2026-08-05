@@ -17,6 +17,17 @@ import { startRuntime } from '../../engine/runtime.js';
 import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../engine/debug.js';
 import * as ent from '../../engine/entities.js';
 import { GENERIC_TEXTURES } from '../textures.js';
+
+/** module-level key dispatcher so panel re-renders never stack listeners */
+let stageKeyHandler = null;
+let stageKeysBound = false;
+function bindStageKeys() {
+  if (stageKeysBound) return;
+  stageKeysBound = true;
+  window.addEventListener('keydown', (e) => {
+    if (stageKeyHandler) stageKeyHandler(e);
+  });
+}
 import {
   buildSceneView,
   syncTransform,
@@ -240,6 +251,94 @@ export function renderStagePanel(host, ctx) {
     return ent.getScene(cart.getCartridge(), currentSceneId);
   }
 
+  /* ---- grid-cell terrain editing ---- */
+  let selectedCell = null; // [row, col]
+  let activeSlot = 0;
+  let cellHighlight = null;
+
+  function clearCellSelection() {
+    selectedCell = null;
+    if (cellHighlight) { engine.scene.remove(cellHighlight); cellHighlight = null; }
+  }
+
+  function updateCellHighlight() {
+    const scene = getTerrainScene();
+    const t = scene && scene.terrain;
+    if (!t || !selectedCell) { clearCellSelection(); return; }
+    const cell = t.cell || 1;
+    const entry = (t.cells || {})[selectedCell[0] + ',' + selectedCell[1]] || {};
+    const top = Math.max(0.02, (entry.h || 0) * 0.5);
+    if (!cellHighlight) {
+      cellHighlight = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 0.06, 1),
+        new THREE.MeshBasicMaterial({ color: '#ffcf6e', transparent: true, opacity: 0.55, depthTest: false })
+      );
+      cellHighlight.renderOrder = 998;
+      engine.scene.add(cellHighlight);
+    }
+    cellHighlight.scale.set(cell, 1, cell);
+    cellHighlight.position.set(
+      -t.size[0] / 2 + (selectedCell[1] + 0.5) * cell,
+      top + 0.03,
+      -t.size[1] / 2 + (selectedCell[0] + 0.5) * cell
+    );
+  }
+
+  function trySelectTerrainCell(ndc) {
+    const scene = getTerrainScene();
+    const t = scene && scene.terrain;
+    if (!t || (t.mode || 'stretch') !== 'grid') return false;
+    const pt = groundPoint(engine, ndc);
+    if (!pt) return false;
+    const [x, , z] = pt;
+    if (Math.abs(x) > t.size[0] / 2 || Math.abs(z) > t.size[1] / 2) return false;
+    const cell = t.cell || 1;
+    selectedCell = [
+      Math.floor((z + t.size[1] / 2) / cell),
+      Math.floor((x + t.size[0] / 2) / cell)
+    ];
+    updateCellHighlight();
+    refreshTerrainCard();
+    return true;
+  }
+
+  function editSelectedCell(fn) {
+    const scene = getTerrainScene();
+    const t = scene && scene.terrain;
+    if (!t || !selectedCell) return;
+    if (!t.cells) t.cells = {};
+    const key = selectedCell[0] + ',' + selectedCell[1];
+    if (!t.cells[key]) t.cells[key] = { t: null, h: 0 };
+    fn(t.cells[key]);
+    if (t.cells[key].t == null && !t.cells[key].h) delete t.cells[key];
+    cart.touch();
+    view.refreshTerrain(scene);
+    updateCellHighlight();
+  }
+
+  bindStageKeys();
+  stageKeyHandler = (e) => {
+    if (playSession) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!document.body.contains(panel)) return;
+    const scene = getTerrainScene();
+    const t = scene && scene.terrain;
+    if (!t || (t.mode || 'stretch') !== 'grid' || !selectedCell) return;
+    if (e.key >= '1' && e.key <= '8') {
+      editSelectedCell((c) => { c.t = Number(e.key) - 1; });
+    } else if (e.key === '0') {
+      editSelectedCell((c) => { c.t = null; });
+    } else if (e.key === '+' || e.key === '=') {
+      editSelectedCell((c) => { c.h = Math.min(8, (c.h || 0) + 1); });
+    } else if (e.key === '-' || e.key === '_') {
+      editSelectedCell((c) => { c.h = Math.max(0, (c.h || 0) - 1); });
+    } else {
+      return;
+    }
+    e.preventDefault();
+  };
+
   function terrainChanged() {
     cart.touch();
     view.refreshTerrain(getTerrainScene());
@@ -265,6 +364,36 @@ export function renderStagePanel(host, ctx) {
       return;
     }
 
+    if ((t.mode || 'stretch') === 'grid') {
+      if (!t.palette) t.palette = GENERIC_TEXTURES.slice(0, 8).map((g) => ({ id: g.id, dataURL: g.dataURL }));
+      const how = document.createElement('div');
+      how.className = 'stage-hint';
+      how.style.lineHeight = '1.6';
+      how.textContent = selectedCell
+        ? 'Square ' + selectedCell[1] + ',' + selectedCell[0] + ' picked — press 1-8 to paint it, 0 to wipe it, + and − to raise and lower it.'
+        : 'Click the ground to pick a square. Then: 1-8 paints with the numbered texture, 0 wipes, + and − raise and lower.';
+      terrainBody.appendChild(how);
+
+      const slotStrip = document.createElement('div');
+      slotStrip.className = 'kit-tex-grid';
+      slotStrip.style.marginBottom = '6px';
+      t.palette.forEach((slot, i) => {
+        const tile = document.createElement('button');
+        tile.className = 'kit-tex-tile' + (i === activeSlot ? ' active' : '');
+        tile.title = 'Key ' + (i + 1) + ' — click, then pick a texture below to change it';
+        const img = document.createElement('img');
+        img.src = slot.dataURL;
+        tile.appendChild(img);
+        const num = document.createElement('span');
+        num.className = 'kit-slot-num';
+        num.textContent = String(i + 1);
+        tile.appendChild(num);
+        tile.addEventListener('click', () => { activeSlot = i; refreshTerrainCard(); });
+        slotStrip.appendChild(tile);
+      });
+      terrainBody.appendChild(slotStrip);
+    }
+
     // texture tiles: generics + the kid's own images, plus plain color
     const grid = document.createElement('div');
     grid.className = 'kit-tex-grid';
@@ -281,8 +410,14 @@ export function renderStagePanel(host, ctx) {
         tile.textContent = '∅';
       }
       tile.addEventListener('click', () => {
-        if (entry) { t.texture = entry.dataURL; t.textureName = entry.id; }
-        else { t.texture = null; t.textureName = null; }
+        if ((t.mode || 'stretch') === 'grid' && entry) {
+          // grid mode: the big list re-arms the ACTIVE numbered slot
+          t.palette[activeSlot] = { id: entry.id, dataURL: entry.dataURL };
+        } else if (entry) {
+          t.texture = entry.dataURL; t.textureName = entry.id;
+        } else {
+          t.texture = null; t.textureName = null;
+        }
         terrainChanged();
       });
       grid.appendChild(tile);
@@ -807,7 +942,15 @@ export function renderStagePanel(host, ctx) {
     if (tool === 'select') {
       if (txControls.dragging) return;
       const id = pickEntity(engine, ndc);
-      selectEntity(id || null);
+      if (id) {
+        clearCellSelection();
+        selectEntity(id);
+      } else if (trySelectTerrainCell(ndc)) {
+        selectEntity(null);
+      } else {
+        clearCellSelection();
+        selectEntity(null);
+      }
     } else {
       painting = true;
       doPaint(ndc);
