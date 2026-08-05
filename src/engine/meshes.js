@@ -658,6 +658,25 @@ function buildPartGeo(shape, size, bevel, part) {
     if (radius > 0.005) return new RoundedBoxGeometry(size[0], size[1], size[2], 3, radius);
   }
   switch (shape) {
+    case 'rock': {
+      // low-poly boulder: an icosahedron with every corner shoved in or out
+      // by a position-hashed amount. part.seed picks the dent pattern, so a
+      // saved rock keeps its exact shape in every session and export.
+      const g = new THREE.IcosahedronGeometry(0.5, 1);
+      const seed = (part && part.seed) || 1;
+      const pa = g.getAttribute('position');
+      for (let i = 0; i < pa.count; i++) {
+        const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i);
+        // hash on position (not index) so shared corners of split faces
+        // move together — no cracks, just facets
+        const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + seed * 13.37) * 43758.5453;
+        const k = 1 + ((h - Math.floor(h)) - 0.5) * 0.55;
+        pa.setXYZ(i, x * k, y * k, z * k);
+      }
+      g.computeVertexNormals();
+      g.applyMatrix4(new THREE.Matrix4().makeScale(size[0], size[1], size[2]));
+      return applyModifiers(g, part && part.mods, size);
+    }
     case 'sphere':
       return new THREE.SphereGeometry(Math.max(size[0], size[1], size[2]) / 2, 20, 16);
     case 'cylinder':

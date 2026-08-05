@@ -423,89 +423,97 @@ export function renderStagePanel(host, ctx) {
   let brushOp = 'raise'; // raise | lower | paint | scatter
   let scatterChoice = 'tree';
   const SCATTER_PROPS = {
-    tree: { name: 'Tree', icon: '🌲', parts: [
-      { shape: 'cylinder', swatch: '#6b4a2b', size: [0.14, 0.5, 0.14], p: [0, 0.25, 0], r: [0, 0, 0], parent: -1 },
-      { shape: 'cone', swatch: '#3f7d4c', size: [0.55, 0.8, 0.55], p: [0, 0.65, 0], r: [0, 0, 0], parent: 0 }
-    ]},
-    rock: { name: 'Rock', icon: '🪨', parts: [
-      { shape: 'sphere', swatch: '#8a8f99', size: [0.45, 0.3, 0.4], p: [0, 0.13, 0], r: [0.2, 0.5, 0], parent: -1 }
-    ]},
-    bush: { name: 'Bush', icon: '🌿', parts: [
-      { shape: 'sphere', swatch: '#4d8a4d', size: [0.5, 0.35, 0.5], p: [0, 0.16, 0], r: [0, 0, 0], parent: -1 }
-    ]},
-    flower: { name: 'Flower', icon: '🌼', parts: [
-      { shape: 'cylinder', swatch: '#5c8a4d', size: [0.04, 0.3, 0.04], p: [0, 0.15, 0], r: [0, 0, 0], parent: -1 },
-      { shape: 'sphere', swatch: '#ffcf6e', size: [0.16, 0.16, 0.16], p: [0, 0.34, 0], r: [0, 0, 0], parent: 0 }
-    ]}
+    tree: { name: 'Tree', icon: '🌲' },
+    rock: { name: 'Rock', icon: '🪨' },
+    bush: { name: 'Bush', icon: '🌿' },
+    flower: { name: 'Flower', icon: '🌼' }
   };
-  /** smooth-mode painting: one white-on-black alpha mask per layer —
-   * white blobs are where that layer shows. Serialized to terrain.masks. */
-  const SPLAT_SIZE = 256;
-  let maskCanvases = [null, null, null];
-  let maskDirty = false;
-
-  function ensureMask(t, i) {
-    if (maskCanvases[i]) return maskCanvases[i];
-    const c = document.createElement('canvas');
-    c.width = c.height = SPLAT_SIZE;
-    const g = c.getContext('2d');
-    g.fillStyle = '#000000';
-    g.fillRect(0, 0, SPLAT_SIZE, SPLAT_SIZE);
-    if (t.masks && t.masks[i]) {
-      const img = new Image();
-      img.onload = () => { g.drawImage(img, 0, 0, SPLAT_SIZE, SPLAT_SIZE); pushMask(i); };
-      img.src = t.masks[i];
-    }
-    maskCanvases[i] = c;
-    return c;
-  }
-
-  function pushMask(i) {
-    engine.scene.traverse((obj) => {
-      if (obj.userData.maskTextures && obj.userData.maskTextures[i]) {
-        obj.userData.maskTextures[i].image = maskCanvases[i];
-        obj.userData.maskTextures[i].needsUpdate = true;
-      }
-    });
-  }
-
-  function maskBlob(t, wx, wz, radiusWorld) {
-    const i = activeSlot;
-    const c = ensureMask(t, i);
-    const g = c.getContext('2d');
-    const u = (wx + t.size[0] / 2) / t.size[0];
-    // the GPU flips canvas textures vertically on upload (flipY), so canvas
-    // rows run the same direction as world z — no inversion here
-    const v = (wz + t.size[1] / 2) / t.size[1];
-    const cx = u * SPLAT_SIZE, cy = v * SPLAT_SIZE;
-    const r = Math.max(2, (radiusWorld / t.size[0]) * SPLAT_SIZE);
-    const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0, 'rgba(255,255,255,0.35)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    g.globalCompositeOperation = 'lighter'; // strokes accumulate softly
-    g.fillStyle = grad;
-    g.beginPath();
-    g.arc(cx, cy, r, 0, Math.PI * 2);
-    g.fill();
-    g.globalCompositeOperation = 'source-over';
-    maskDirty = true;
-    pushMask(i);
-  }
-
-  function commitMasks(t) {
-    if (!maskDirty) return;
-    if (!t.masks) t.masks = [null, null, null];
-    for (let i = 0; i < 3; i++) {
-      if (maskCanvases[i]) t.masks[i] = maskCanvases[i].toDataURL('image/png');
-    }
-    maskDirty = false;
-    cart.touch();
-  }
-
   let scatterSeed = 1;
   function scatterRand() {
     scatterSeed = (scatterSeed * 16807) % 2147483647;
     return scatterSeed / 2147483647;
+  }
+
+  /** nudge a hex color so no two plants share the exact same shade */
+  function jitterColor(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.max(0, Math.min(255, Math.round(v + (scatterRand() - 0.5) * 2 * amt)));
+    const r = ch(n >> 16), g = ch((n >> 8) & 255), b = ch(n & 255);
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+
+  /** every placement grows its own one-of-a-kind prop */
+  function makeScatterParts(kind) {
+    const R = scatterRand;
+    if (kind === 'tree') {
+      const trunkH = 0.45 + R() * 0.35;
+      const trunk = { shape: 'cylinder', swatch: jitterColor('#6b4a2b', 22), size: [0.12 + R() * 0.06, trunkH, 0.14], p: [0, trunkH / 2, 0], r: [0, 0, (R() - 0.5) * 0.16], parent: -1 };
+      if (R() < 0.45) {
+        // pine: stacked shrinking cones
+        const parts = [trunk];
+        const green = jitterColor('#2f6b3c', 26);
+        const tiers = 2 + Math.floor(R() * 2);
+        for (let i2 = 0; i2 < tiers; i2++) {
+          const w = 0.75 - i2 * 0.18 + R() * 0.08;
+          parts.push({ shape: 'cone', swatch: green, size: [w, 0.5 + R() * 0.15, w], p: [0, trunkH + 0.15 + i2 * 0.32, 0], r: [0, R() * 6.28, 0], parent: 0 });
+        }
+        return parts;
+      }
+      // leafy: a blobby canopy of lumpy puffs
+      const parts = [trunk];
+      const puffs = 2 + Math.floor(R() * 2);
+      for (let i2 = 0; i2 < puffs; i2++) {
+        const w = 0.45 + R() * 0.3;
+        parts.push({
+          shape: 'rock', seed: Math.floor(R() * 9999) + 1,
+          swatch: jitterColor(R() < 0.5 ? '#3f7d4c' : '#4d8a3f', 24),
+          size: [w, w * (0.75 + R() * 0.25), w],
+          p: [(R() - 0.5) * 0.42, trunkH + 0.3 + R() * 0.24, (R() - 0.5) * 0.42],
+          r: [0, R() * 6.28, 0], parent: 0
+        });
+      }
+      return parts;
+    }
+    if (kind === 'rock') {
+      const grays = ['#8a8f99', '#7d7a72', '#96907f', '#6e7178'];
+      const parts = [];
+      const chunks = 1 + Math.floor(R() * 2.4);
+      for (let i2 = 0; i2 < chunks; i2++) {
+        const w = i2 === 0 ? 0.5 + R() * 0.45 : 0.2 + R() * 0.3;
+        parts.push({
+          shape: 'rock', seed: Math.floor(R() * 9999) + 1,
+          swatch: jitterColor(grays[Math.floor(R() * grays.length)], 14),
+          size: [w, w * (0.55 + R() * 0.35), w * (0.75 + R() * 0.4)],
+          p: [i2 === 0 ? 0 : (R() - 0.5) * 0.75, w * 0.3, i2 === 0 ? 0 : (R() - 0.5) * 0.75],
+          r: [(R() - 0.5) * 0.3, R() * 6.28, (R() - 0.5) * 0.3],
+          parent: i2 === 0 ? -1 : 0
+        });
+      }
+      return parts;
+    }
+    if (kind === 'bush') {
+      const parts = [];
+      const lumps = 2 + Math.floor(R() * 2);
+      for (let i2 = 0; i2 < lumps; i2++) {
+        const w = 0.3 + R() * 0.25;
+        parts.push({
+          shape: 'rock', seed: Math.floor(R() * 9999) + 1,
+          swatch: jitterColor('#4d8a4d', 28),
+          size: [w, w * 0.7, w],
+          p: [i2 === 0 ? 0 : (R() - 0.5) * 0.5, w * 0.3, i2 === 0 ? 0 : (R() - 0.5) * 0.5],
+          r: [0, R() * 6.28, 0], parent: i2 === 0 ? -1 : 0
+        });
+      }
+      return parts;
+    }
+    // flower: stem, a leaf, and a bright head from the meadow palette
+    const petals = ['#ffcf6e', '#ff8fa3', '#b28fff', '#ff7b5c', '#f4f4f8'];
+    const stemH = 0.24 + R() * 0.16;
+    return [
+      { shape: 'cylinder', swatch: jitterColor('#5c8a4d', 18), size: [0.035, stemH, 0.035], p: [0, stemH / 2, 0], r: [0, 0, (R() - 0.5) * 0.2], parent: -1 },
+      { shape: 'sphere', swatch: jitterColor('#4d8a4d', 20), size: [0.1, 0.05, 0.16], p: [0.06, stemH * 0.45, 0], r: [0, 0, 0.5], parent: 0 },
+      { shape: 'sphere', swatch: jitterColor(petals[Math.floor(R() * petals.length)], 18), size: [0.15 + R() * 0.06, 0.13, 0.15 + R() * 0.06], p: [0, stemH + 0.06, 0], r: [0, 0, 0], parent: 0 }
+    ];
   }
   let brushRadius = 1.5; // in cells
   let stroking = false;
@@ -578,6 +586,7 @@ export function renderStagePanel(host, ctx) {
           strokeSet.add(key);
           if (scatterRand() > 0.45) continue; // sparse feels natural
           const prop = SCATTER_PROPS[scatterChoice];
+          const grownParts = makeScatterParts(scatterChoice);
           const cellEntry = (t.cells || {})[key];
           const groundY = cellEntry && cellEntry.h ? cellEntry.h * 0.5 : 0;
           const px2 = -t.size[0] / 2 + (col + scatterRand()) * cell;
@@ -587,7 +596,7 @@ export function renderStagePanel(host, ctx) {
             name: prop.name,
             components: {
               transform: { p: [px2, groundY, pz2], r: [0, scatterRand() * 6.28, 0], s: [sc2, sc2, sc2] },
-              model: { parts: JSON.parse(JSON.stringify(prop.parts)) }
+              model: { parts: grownParts }
             }
           });
           ent.addEntity(scene, entity);
