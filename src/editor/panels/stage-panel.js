@@ -16,6 +16,7 @@ import { initPhysics, debugLines, worldStats } from '../../engine/physics.js';
 import { startRuntime } from '../../engine/runtime.js';
 import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../engine/debug.js';
 import * as ent from '../../engine/entities.js';
+import { GENERIC_TEXTURES } from '../textures.js';
 import {
   buildSceneView,
   syncTransform,
@@ -228,6 +229,110 @@ export function renderStagePanel(host, ctx) {
   brushCard.style.display = c.settings.mode === '2d' ? '' : 'none';
   right.appendChild(brushCard);
 
+  const terrainCard = document.createElement('div');
+  terrainCard.className = 'card';
+  terrainCard.innerHTML = '<h3>Terrain</h3><div class="stage-hint">The ground under your level.</div>';
+  const terrainBody = document.createElement('div');
+  terrainCard.appendChild(terrainBody);
+  right.appendChild(terrainCard);
+
+  function getTerrainScene() {
+    return ent.getScene(cart.getCartridge(), currentSceneId);
+  }
+
+  function terrainChanged() {
+    cart.touch();
+    view.refreshTerrain(getTerrainScene());
+    refreshTerrainCard();
+  }
+
+  function refreshTerrainCard() {
+    const scene = getTerrainScene();
+    if (!scene) return;
+    terrainBody.innerHTML = '';
+    const t = scene.terrain;
+
+    if (!t) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'bar';
+      addBtn.style.width = '100%';
+      addBtn.textContent = '+ Add ground';
+      addBtn.addEventListener('click', () => {
+        scene.terrain = { texture: null, textureName: null, mode: 'stretch', repeat: 4, cell: 1, size: [20, 20], color: '#3a3f4c' };
+        terrainChanged();
+      });
+      terrainBody.appendChild(addBtn);
+      return;
+    }
+
+    // texture tiles: generics + the kid's own images, plus plain color
+    const grid = document.createElement('div');
+    grid.className = 'kit-tex-grid';
+    const addTile = (entry) => {
+      const tile = document.createElement('button');
+      const active = entry ? t.textureName === entry.id : !t.texture;
+      tile.className = 'kit-tex-tile' + (active ? ' active' : '');
+      tile.title = entry ? entry.name : 'Plain color';
+      if (entry) {
+        const img = document.createElement('img');
+        img.src = entry.dataURL;
+        tile.appendChild(img);
+      } else {
+        tile.textContent = '∅';
+      }
+      tile.addEventListener('click', () => {
+        if (entry) { t.texture = entry.dataURL; t.textureName = entry.id; }
+        else { t.texture = null; t.textureName = null; }
+        terrainChanged();
+      });
+      grid.appendChild(tile);
+    };
+    addTile(null);
+    for (const g of GENERIC_TEXTURES) addTile(g);
+    for (const sprite of cart.getCartridge().assets.sprites) {
+      addTile({ id: sprite.id, name: sprite.name, dataURL: (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail });
+    }
+    terrainBody.appendChild(grid);
+
+    // mode: one big picture / tiled / snapped to the grid
+    const modeRow = document.createElement('div');
+    modeRow.className = 'stage-bar';
+    modeRow.style.marginTop = '8px';
+    for (const [mode, label] of [['stretch', 'One Big'], ['repeat', 'Tiled'], ['grid', 'Grid']]) {
+      const b = document.createElement('button');
+      b.className = 'bar' + ((t.mode || 'stretch') === mode ? ' active' : '');
+      b.textContent = label;
+      b.addEventListener('click', () => { t.mode = mode; terrainChanged(); });
+      modeRow.appendChild(b);
+    }
+    terrainBody.appendChild(modeRow);
+
+    const numRow = (label, value, min, max, step, set) => {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = String(min); input.max = String(max); input.step = String(step);
+      input.value = String(value); input.style.width = '70px';
+      input.addEventListener('change', () => { set(Math.max(min, Math.min(max, Number(input.value) || value))); terrainChanged(); });
+      row.appendChild(input);
+      terrainBody.appendChild(row);
+    };
+    if (t.mode === 'repeat') numRow('Tiles across', t.repeat || 4, 1, 64, 1, (v) => { t.repeat = v; });
+    if (t.mode === 'grid') numRow('Cell size', t.cell || 1, 0.25, 8, 0.25, (v) => { t.cell = v; });
+    numRow('Width', t.size[0], 4, 200, 1, (v) => { t.size[0] = v; });
+    numRow('Depth', t.size[1], 4, 200, 1, (v) => { t.size[1] = v; });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'bar bad-btn';
+    removeBtn.style.cssText = 'width:100%;margin-top:6px;';
+    removeBtn.textContent = 'Remove ground';
+    removeBtn.addEventListener('click', () => { scene.terrain = null; terrainChanged(); });
+    terrainBody.appendChild(removeBtn);
+  }
+
   const logCard = document.createElement('div');
   logCard.className = 'card';
   logCard.innerHTML = '<h3>Play Log</h3>';
@@ -273,6 +378,7 @@ export function renderStagePanel(host, ctx) {
   // initial scene view
   const firstScene = ent.getScene(c, currentSceneId);
   const view = buildSceneView(engine, firstScene, { play: false });
+  refreshTerrainCard();
 
   /* ---------------------------------------------------------------- */
   /* selection state                                                   */

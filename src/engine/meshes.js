@@ -31,11 +31,58 @@ import { LOGIC_COLORS, findEntity } from './entities.js';
  * @param {{play?: boolean}} [opts]
  * @returns {SceneView}
  */
+/**
+ * The scene's ground: a textured plane. terrain = {texture (dataURL)|null,
+ * mode: 'stretch'|'repeat'|'grid', repeat, cell, size: [w, d], color}.
+ * Stretch lays the picture once across the whole ground; repeat tiles it N
+ * times; grid tiles it one-per-grid-cell so it lines up with snapping.
+ * @param {any} terrain
+ * @returns {THREE.Mesh}
+ */
+export function buildTerrainMesh(terrain) {
+  const size = terrain.size || [20, 20];
+  const geo = new THREE.PlaneGeometry(size[0], size[1]);
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(terrain.texture ? '#ffffff' : (terrain.color || '#3a3f4c')),
+    roughness: 0.95, metalness: 0
+  });
+  if (terrain.texture) {
+    const tex = new THREE.TextureLoader().load(terrain.texture);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const mode = terrain.mode || 'stretch';
+    if (mode === 'repeat') {
+      const n = terrain.repeat || 4;
+      tex.repeat.set(n, n);
+    } else if (mode === 'grid') {
+      const cell = terrain.cell || 1;
+      tex.repeat.set(size[0] / cell, size[1] / cell);
+    }
+    mat.map = tex;
+  }
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = -0.01; // a hair under the entities so nothing z-fights
+  mesh.userData.terrain = true;
+  return mesh;
+}
+
 export function buildSceneView(engine, scene, opts = {}) {
   const root = engine.contentRoot;
   clearGroup(root);
   /** @type {Map<string, THREE.Object3D>} */
   const objects = new Map();
+
+  let terrainMesh = null;
+  const applyTerrain = (sc) => {
+    if (terrainMesh) { root.remove(terrainMesh); disposeObject(terrainMesh); terrainMesh = null; }
+    if (sc.terrain) {
+      terrainMesh = buildTerrainMesh(sc.terrain);
+      root.add(terrainMesh);
+    }
+  };
+  applyTerrain(scene);
 
   for (const entity of scene.entities) {
     if (opts.play && entity.components.logic) continue;
@@ -56,6 +103,9 @@ export function buildSceneView(engine, scene, opts = {}) {
       if (!obj) return;
       root.add(obj);
       objects.set(id, obj);
+    },
+    refreshTerrain(sc) {
+      applyTerrain(sc || scene);
     },
     clear() {
       clearGroup(root);
