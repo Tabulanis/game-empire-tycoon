@@ -671,6 +671,7 @@ export function playSong(song, sfxList) {
     chains.push(createChannelChain(ctx, buses.music, (song.channelFx || [])[ch]));
   }
   const stepDuration = 60 / song.bpm / 4; // 16th-note steps at the given bpm
+  let fxKey = JSON.stringify(song.channelFx || []);
   let chainIndex = 0;
   let stepIndex = 0;
   let nextStepTime = ctx.currentTime;
@@ -706,6 +707,16 @@ export function playSong(song, sfxList) {
       if (!pattern || stepIndex >= pattern.steps) {
         stepIndex = 0;
         chainIndex++;
+        // Live mixing: pick up knob changes at every pattern boundary, so
+        // you can ride the reverb while the loop plays. Old chains stay
+        // connected until GC, so their tails ring out instead of cutting.
+        const nowKey = JSON.stringify(song.channelFx || []);
+        if (nowKey !== fxKey) {
+          fxKey = nowKey;
+          for (const c of chains) c.stop();
+          chains.length = 0;
+          for (let ch = 0; ch < 4; ch++) chains.push(createChannelChain(ctx, buses.music, (song.channelFx || [])[ch]));
+        }
       }
     }
     setTimeout(scheduler, SCHEDULE_INTERVAL);
