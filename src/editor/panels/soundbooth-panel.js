@@ -62,7 +62,8 @@ function bindKeyboard() {
     if (sel) sel.value = note;
     const voice = working.channelVoices[selectedChannel] || 'pulse';
     const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
-    audio.scheduleNote(0, note, voice, 0.4, working.sampleSlots || [], assets);
+    const fx = (working.channelFx || [])[selectedChannel];
+    audio.previewNote(note, voice, fx, working.sampleSlots, assets);
     e.preventDefault();
   });
 }  // tracker cell width multiplier
@@ -187,7 +188,6 @@ export function renderSoundboothPanel(host, ctx) {
   fxCard.innerHTML = '<h3>Track FX</h3>';
   const fxList = document.createElement('div');
   fxCard.appendChild(fxList);
-  palette.appendChild(fxCard);
 
   const soundsCard = document.createElement('div');
   soundsCard.className = 'card';
@@ -208,13 +208,9 @@ export function renderSoundboothPanel(host, ctx) {
   }
 
   function previewVoice(voice) {
-    if (voice.startsWith('sfx:')) {
-      const rec = cart.getCartridge().assets.sfx.find((x) => x.id === voice.slice(4));
-      if (rec) audio.playSfxAsset(rec);
-      return;
-    }
-    // when=0 is clamped to "now" by WebAudio — a quick A4 taste of the voice
-    audio.scheduleNote(0, 'A4', voice, 0.35, []);
+    // through the picked track's FX — what you hear is what that track gets
+    const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
+    audio.previewNote('A4', voice, (working.channelFx || [])[selectedChannel], working.sampleSlots, assets);
   }
   layout.appendChild(palette);
 
@@ -280,6 +276,8 @@ export function renderSoundboothPanel(host, ctx) {
   // ---------- right: library + save ----------
   const right = document.createElement('div');
   right.className = 'deck-right';
+
+  right.appendChild(fxCard);
 
   const libCard = document.createElement('div');
   libCard.className = 'card';

@@ -605,7 +605,7 @@ export function createChannelChain(ctx, destination, fx) {
   }
   if (fx.reverb > 0.02) {
     const send = ctx.createGain();
-    send.gain.value = fx.reverb * 0.8;
+    send.gain.value = fx.reverb * 1.3;
     const convolver = ctx.createConvolver();
     convolver.buffer = makeImpulseResponse(ctx);
     input.connect(send);
@@ -619,6 +619,27 @@ export function createChannelChain(ctx, destination, fx) {
 /** @param {any} song @returns {boolean} any channel has time-based fx (needs render tail) */
 function songHasFxTail(song) {
   return (song.channelFx || []).some((fx) => fx && ((fx.echo || 0) > 0.02 || (fx.reverb || 0) > 0.02));
+}
+
+let _previewChain = null, _previewKey = '';
+
+/**
+ * Play one note through a track's FX chain on the live music bus — the
+ * keyboard instrument and palette previews are track-dependent, and knob
+ * changes are audible on the very next keypress (chain rebuilds when the
+ * fx values change).
+ * @param {string} note @param {string} voice @param {any} fx
+ * @param {Array<any>} sampleSlots @param {VoiceAssets} [assets]
+ */
+export function previewNote(note, voice, fx, sampleSlots, assets) {
+  const ctx = getContext();
+  const key = JSON.stringify(fx || {});
+  if (!_previewChain || _previewKey !== key) {
+    if (_previewChain) _previewChain.stop();
+    _previewChain = createChannelChain(ctx, buses.music, fx);
+    _previewKey = key;
+  }
+  scheduleNoteInto(ctx, _previewChain.input, 0, note, voice, 0.4, sampleSlots || [], assets);
 }
 
 /* ------------------------------------------------------------------ */
