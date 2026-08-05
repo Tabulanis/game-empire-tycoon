@@ -8,6 +8,7 @@
  */
 
 import * as cart from './cartridge.js';
+import * as undoSvc from './undo.js';
 import * as backup from './backup.js';
 import ROOMS from '../data/rooms.json';
 import HELP from '../data/help.json';
@@ -88,6 +89,11 @@ export function bootShell(root) {
   root.appendChild(buildStatusBar());
 
   const session = cart.restoreSession();
+  undoSvc.initUndo({
+    serialize: () => JSON.stringify(cart.getCartridge()),
+    restore: (json) => cart.replaceForUndo(JSON.parse(json))
+  });
+  cart.setTouchHook(undoSvc.recordChange);
   cart.onChange(syncChrome);
   syncChrome();
 
@@ -112,6 +118,18 @@ export function bootShell(root) {
     } else if (mod && e.key.toLowerCase() === 'o') {
       e.preventDefault();
       doOpen();
+    } else if (mod && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return; // native field undo
+      e.preventDefault();
+      if (undoSvc.undo()) { showRoom(currentRoom); toast('↶ Undone'); }
+      else toast('Nothing to undo.');
+    } else if (mod && ((e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y')) {
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      if (undoSvc.redo()) { showRoom(currentRoom); toast('↷ Redone'); }
+      else toast('Nothing to redo.');
     }
   });
 
@@ -486,6 +504,7 @@ async function doOpen() {
   } else {
     toast('Cartridge loaded.');
   }
+  undoSvc.resetUndo();
   refreshRoomStrip();
   showRoom(currentRoom);
 }

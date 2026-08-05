@@ -56,6 +56,24 @@ export function touch() {
   state.dirty = true;
   saveSession();
   emit();
+  if (touchHook) touchHook();
+}
+
+/** @type {Function|null} called after every touch — the undo recorder */
+let touchHook = null;
+/** @param {Function} fn */
+export function setTouchHook(fn) { touchHook = fn; }
+
+/**
+ * Swap the cartridge object without resetting dirty/handle — undo/redo
+ * restores go through here, NOT setCartridge (which is for load/new).
+ * @param {any} c
+ */
+export function replaceForUndo(c) {
+  state.cartridge = c;
+  state.dirty = true;
+  saveSession();
+  emit();
 }
 
 /** Replace the whole cartridge (load, restore, new). @param {any} c @param {any} [handle] */
