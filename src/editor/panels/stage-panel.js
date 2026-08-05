@@ -346,6 +346,157 @@ export function renderStagePanel(host, ctx) {
     if (stroking) { stroking = false; strokeSet = new Set(); orbitControls.enabled = true; }
   });
 
+  function terrainChanged() {
+    cart.touch();
+    view.refreshTerrain(getTerrainScene());
+    refreshTerrainCard();
+  }
+
+  function refreshTerrainCard() {
+    const scene = getTerrainScene();
+    if (!scene) return;
+    terrainBody.innerHTML = '';
+    const t = scene.terrain;
+
+    if (!t) {
+      const addBtn = makeBtn('+ Add ground', () => {
+        scene.terrain = { texture: null, textureName: null, mode: 'stretch', repeat: 4, cell: 1, size: [20, 20], color: '#3a3f4c' };
+        terrainChanged();
+      });
+      addBtn.style.width = '100%';
+      terrainBody.appendChild(addBtn);
+      return;
+    }
+
+    if ((t.mode || 'stretch') === 'grid') {
+      if (!t.palette) t.palette = GENERIC_TEXTURES.slice(0, 8).map((g) => ({ id: g.id, dataURL: g.dataURL }));
+
+      const sculptBtn = makeBtn(tool === 'terrain' ? '✔ Done sculpting' : '🖌 Sculpt the ground', () => {
+        setTool(tool === 'terrain' ? 'select' : 'terrain');
+        if (tool !== 'terrain') hideBrushRing();
+        refreshTerrainCard();
+      });
+      sculptBtn.className += tool === 'terrain' ? ' active' : '';
+      sculptBtn.style.cssText = 'width:100%;margin-bottom:6px;';
+      terrainBody.appendChild(sculptBtn);
+
+      if (tool === 'terrain') {
+        const opRow = document.createElement('div');
+        opRow.className = 'stage-bar';
+        for (const [op, label] of [['raise', '▲ Raise'], ['lower', '▼ Lower'], ['paint', '🖌 Paint']]) {
+          const b = makeBtn(label, () => { brushOp = op; refreshTerrainCard(); });
+          if (brushOp === op) b.className += ' active';
+          opRow.appendChild(b);
+        }
+        terrainBody.appendChild(opRow);
+
+        const sizeRow = document.createElement('div');
+        sizeRow.className = 'brick-row';
+        const sl = document.createElement('span');
+        sl.textContent = 'Brush size'; sl.style.minWidth = '70px'; sl.style.fontSize = '11px';
+        sizeRow.appendChild(sl);
+        const sizeInput = document.createElement('input');
+        sizeInput.type = 'range'; sizeInput.min = '0.5'; sizeInput.max = '5'; sizeInput.step = '0.25';
+        sizeInput.value = String(brushRadius); sizeInput.style.flex = '1';
+        sizeInput.addEventListener('input', () => { brushRadius = Number(sizeInput.value); });
+        sizeRow.appendChild(sizeInput);
+        terrainBody.appendChild(sizeRow);
+
+        const how = document.createElement('div');
+        how.className = 'stage-hint';
+        how.style.lineHeight = '1.6';
+        how.textContent = 'Drag across the ground: Raise piles it up, Lower digs down, Paint colors with the picked numbered texture (press 1-8 or click a slot below). The gold ring is your brush.';
+        terrainBody.appendChild(how);
+      }
+
+      const slotStrip = document.createElement('div');
+      slotStrip.className = 'kit-tex-grid';
+      slotStrip.style.marginBottom = '6px';
+      t.palette.forEach((slot, i) => {
+        const tile = document.createElement('button');
+        tile.className = 'kit-tex-tile' + (i === activeSlot ? ' active' : '');
+        tile.title = 'Key ' + (i + 1) + ' — click, then pick a texture below to change it';
+        const img = document.createElement('img');
+        img.src = slot.dataURL;
+        tile.appendChild(img);
+        const num = document.createElement('span');
+        num.className = 'kit-slot-num';
+        num.textContent = String(i + 1);
+        tile.appendChild(num);
+        tile.addEventListener('click', () => { activeSlot = i; refreshTerrainCard(); });
+        slotStrip.appendChild(tile);
+      });
+      terrainBody.appendChild(slotStrip);
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'kit-tex-grid';
+    const addTile = (entry) => {
+      const tile = document.createElement('button');
+      const active = entry ? t.textureName === entry.id : !t.texture;
+      tile.className = 'kit-tex-tile' + (active ? ' active' : '');
+      tile.title = entry ? entry.name : 'Plain color';
+      if (entry) {
+        const img = document.createElement('img');
+        img.src = entry.dataURL;
+        tile.appendChild(img);
+      } else {
+        tile.textContent = '∅';
+      }
+      tile.addEventListener('click', () => {
+        if ((t.mode || 'stretch') === 'grid' && entry) {
+          // grid mode: the big list re-arms the ACTIVE numbered slot
+          t.palette[activeSlot] = { id: entry.id, dataURL: entry.dataURL };
+        } else if (entry) {
+          t.texture = entry.dataURL; t.textureName = entry.id;
+        } else {
+          t.texture = null; t.textureName = null;
+        }
+        terrainChanged();
+      });
+      grid.appendChild(tile);
+    };
+    addTile(null);
+    for (const g of GENERIC_TEXTURES) addTile(g);
+    for (const sprite of cart.getCartridge().assets.sprites) {
+      addTile({ id: sprite.id, name: sprite.name, dataURL: (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail });
+    }
+    terrainBody.appendChild(grid);
+
+    const modeRow = document.createElement('div');
+    modeRow.className = 'stage-bar';
+    modeRow.style.marginTop = '8px';
+    for (const [mode, label] of [['stretch', 'One Big'], ['repeat', 'Tiled'], ['grid', 'Grid']]) {
+      const b = makeBtn(label, () => { t.mode = mode; terrainChanged(); });
+      if ((t.mode || 'stretch') === mode) b.className += ' active';
+      modeRow.appendChild(b);
+    }
+    terrainBody.appendChild(modeRow);
+
+    const numRow = (label, value, min, max, step, set) => {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = String(min); input.max = String(max); input.step = String(step);
+      input.value = String(value); input.style.width = '70px';
+      input.addEventListener('change', () => { set(Math.max(min, Math.min(max, Number(input.value) || value))); terrainChanged(); });
+      row.appendChild(input);
+      terrainBody.appendChild(row);
+    };
+    if (t.mode === 'repeat') numRow('Tiles across', t.repeat || 4, 1, 64, 1, (v) => { t.repeat = v; });
+    if (t.mode === 'grid') numRow('Cell size', t.cell || 1, 0.25, 8, 0.25, (v) => { t.cell = v; });
+    numRow('Width', t.size[0], 4, 200, 1, (v) => { t.size[0] = v; });
+    numRow('Depth', t.size[1], 4, 200, 1, (v) => { t.size[1] = v; });
+
+    const removeBtn = makeBtn('Remove ground', () => { scene.terrain = null; setTool('select'); hideBrushRing(); terrainChanged(); });
+    removeBtn.className += ' bad-btn';
+    removeBtn.style.cssText = 'width:100%;margin-top:6px;';
+    terrainBody.appendChild(removeBtn);
+  }
+
   bindStageKeys();
   stageKeyHandler = (e) => {
     if (playSession || tool !== 'terrain') return;
