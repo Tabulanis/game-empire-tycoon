@@ -168,8 +168,12 @@ export function spawnDummy3D(session, pos, entityId) {
   const body = session.world.createRigidBody(
     RAPIER3D.RigidBodyDesc.kinematicPositionBased().setTranslation(center.x, center.y, center.z)
   );
+  // capsule, not box: rounded feet glide over terrain triangle seams and
+  // blocky cell edges where a box's sharp corners catch and stick
+  const capRadius = DUMMY_SIZE[0] / 2;
+  const capHalf = Math.max(0.01, DUMMY_SIZE[1] / 2 - capRadius);
   const collider = session.world.createCollider(
-    RAPIER3D.ColliderDesc.cuboid(DUMMY_SIZE[0] / 2, DUMMY_SIZE[1] / 2, DUMMY_SIZE[2] / 2),
+    RAPIER3D.ColliderDesc.capsule(capHalf, capRadius),
     body
   );
   if (entityId) {
@@ -177,8 +181,14 @@ export function spawnDummy3D(session, pos, entityId) {
     session.colliderToEntity.set(collider.handle, entityId);
     session.colliderByEntity.set(entityId, collider);
   }
-  const controller = session.world.createCharacterController(0.02);
-  controller.enableSnapToGround(0.15);
+  const controller = session.world.createCharacterController(0.05);
+  // hills yes, walls no: climb slopes to 50°, slide off anything past 65°,
+  // auto-step knee-high ledges (one blocky terrain level = 0.5), and snap
+  // down to the ground so walking downhill doesn't stutter into freefall
+  controller.setMaxSlopeClimbAngle(50 * Math.PI / 180);
+  controller.setMinSlopeSlideAngle(65 * Math.PI / 180);
+  controller.enableAutostep(0.55, 0.2, true);
+  controller.enableSnapToGround(0.35);
   controller.setApplyImpulsesToDynamicBodies(true);
   session.dummy = { body, collider, controller, vy: 0, grounded: false, spawn: [...pos], respawn: [...pos], yaw: 0 };
   session.dummyEntityId = entityId || null;
