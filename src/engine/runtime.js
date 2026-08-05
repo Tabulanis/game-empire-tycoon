@@ -304,6 +304,9 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
             entity, saveState, zoneMembership, rng: seededRandom
           };
           if (!evaluateIf(card.if, ctx)) return;
+          // rules light up: pulse the entity in the world so a kid can SEE
+          // which thing's cards just fired (editor Stage passes the hook)
+          if (session.onBrickFire) session.onBrickFire(entity.id, card.when, index);
           for (const action of (card.do || [])) {
             executeDo(action, entity, {
               scene, session, saveState, bus, motionState, combatState,

@@ -667,6 +667,26 @@ export function renderStagePanel(host, ctx) {
   bindStageKeys();
   stageKeyHandler = (e) => {
     const tag0 = e.target && e.target.tagName;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && tag0 !== 'INPUT' && tag0 !== 'TEXTAREA' && tag0 !== 'SELECT') {
+      if (document.body.contains(panel) && selectedId && !playSession) {
+        e.preventDefault();
+        const l3 = cart.getCartridge();
+        const s3 = ent.getScene(l3, currentSceneId);
+        const original = s3 && s3.entities.find((en) => en.id === selectedId);
+        if (original) {
+          const copy = ent.deepClone(original);
+          copy.name = original.name + ' copy';
+          if (copy.components.transform) copy.components.transform.p[0] += 1;
+          ent.addEntity(s3, copy);
+          view.refreshEntity(copy.id);
+          cart.touch();
+          selectEntity(copy.id);
+          refreshTree();
+          ctx.toast('Duplicated: ' + copy.name);
+        }
+        return;
+      }
+    }
     if (e.key === 'Tab' && tag0 !== 'INPUT' && tag0 !== 'TEXTAREA' && tag0 !== 'SELECT') {
       if (document.body.contains(panel)) {
         e.preventDefault();
@@ -1366,6 +1386,27 @@ export function renderStagePanel(host, ctx) {
     playLogMessages.length = 0;
     try {
       playSession = await startRuntime(engine, live, currentSceneId, logPlay);
+      // rules light up: green pulse on the entity whose cards fired
+      if (playSession && playSession.session) {
+        const pulse = (obj, on) => obj.traverse((child) => {
+          if (!child.isMesh) return;
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          for (const m of mats) {
+            if (!m || !m.emissive) continue;
+            m.emissive.setHex(on ? 0x67e39b : 0x000000);
+            m.emissiveIntensity = on ? 0.7 : 0;
+          }
+        });
+        playSession.session.onBrickFire = (entityId, when) => {
+          const obj = view.objects.get(entityId);
+          if (!obj) return;
+          pulse(obj, true);
+          setTimeout(() => pulse(obj, false), 180);
+          const sc2 = ent.getScene(cart.getCartridge(), currentSceneId);
+          const en2 = sc2 && sc2.entities.find((en) => en.id === entityId);
+          if (en2) logPlay('⚡ ' + en2.name + ': ' + when);
+        };
+      }
     } catch (err) {
       ctx.toast('Play failed: ' + (err && err.message || String(err)), true);
       doStop();
