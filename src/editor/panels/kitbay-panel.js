@@ -7,6 +7,8 @@
  */
 
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import * as cart from '../cartridge.js';
 import * as kitbay from '../kitbay.js';
 import { createEngine } from '../../engine/renderer.js';
@@ -33,9 +35,26 @@ export function renderKitbayPanel(host, ctx) {
   const left = document.createElement('div');
   left.className = 'card';
   left.innerHTML = '<h3>Preview</h3>';
+  const gizmoBar = document.createElement('div');
+  gizmoBar.className = 'stage-bar';
+  const gizmoBtns = {};
+  for (const [mode, label] of [['translate', '↖ Move'], ['rotate', '↻ Rotate'], ['scale', '⤢ Scale']]) {
+    const b = document.createElement('button');
+    b.className = 'bar';
+    b.textContent = label;
+    b.addEventListener('click', () => { gizmoMode = mode; refreshGizmo(); });
+    gizmoBtns[mode] = b;
+    gizmoBar.appendChild(b);
+  }
+  const orbitHint = document.createElement('span');
+  orbitHint.className = 'stage-hint';
+  orbitHint.textContent = 'drag = orbit · right-drag = pan · wheel = zoom · click a part = select';
+  gizmoBar.appendChild(orbitHint);
+  left.appendChild(gizmoBar);
+
   const canvasWrap = document.createElement('div');
   canvasWrap.className = 'stage-canvas-wrap';
-  canvasWrap.style.height = '45vh';
+  canvasWrap.style.height = '52vh';
   const canvas = document.createElement('canvas');
   canvas.className = 'deck-canvas';
   canvasWrap.appendChild(canvas);
@@ -279,26 +298,57 @@ export function renderKitbayPanel(host, ctx) {
   let mesh = null;
   let rafId = null;
   let resizeObs = null;
+  let orbit = null;
+  let gizmo = null;
+  let gizmoMode = 'translate';
+  /** holder Groups by part index, for gizmo attachment */
+  let holders = [];
+
+  function refreshGizmo() {
+    for (const [mode, b] of Object.entries(gizmoBtns)) b.classList.toggle('active', gizmoMode === mode);
+    if (!gizmo) return;
+    const holder = holders[selectedPart];
+    if (holder) {
+      gizmo.attach(holder);
+      gizmo.setMode(gizmoMode);
+      gizmo.getHelper().visible = true;
+    } else {
+      gizmo.detach();
+      gizmo.getHelper().visible = false;
+    }
+  }
 
   function rebuildPreviewMesh() {
     if (!engine) return;
+    if (gizmo) gizmo.detach();
     if (mesh) { engine.contentRoot.remove(mesh); mesh.traverse((obj) => { if (obj.geometry) obj.geometry.dispose(); if (obj.material) obj.material.dispose(); }); }
     // Reuse the exact same mesh-building logic every entity in the game uses,
-    // so the preview is never a lie about what placing this prop will look like.
+    // so the workspace is never a lie about what placing this prop will look like.
     const fakeEntity = { id: 'preview', components: { transform: { p: [0, 0, 0], r: [0, 0, 0], s: [1, 1, 1] }, model: { parts: working.parts } } };
     mesh = buildEntityObject({ mode: '3d' }, fakeEntity);
+    holders = [];
     mesh.traverse((obj) => {
-      if (obj.userData.partIndex === selectedPart && obj.material && obj.material.emissive) {
-        obj.material.emissive = new THREE.Color('#6fd3ff');
-        obj.material.emissiveIntensity = 0.35;
+      if (obj.userData.partIndex != null) {
+        holders[obj.userData.partIndex] = obj.parent; // the transform holder Group
+        if (obj.userData.partIndex === selectedPart && obj.material && obj.material.emissive) {
+          obj.material.emissive = new THREE.Color('#6fd3ff');
+          obj.material.emissiveIntensity = 0.35;
+        }
       }
     });
     engine.contentRoot.add(mesh);
+    refreshGizmo();
   }
 
   const raycaster = new THREE.Raycaster();
-  canvas.addEventListener('pointerdown', (e) => {
-    if (!engine || !mesh) return;
+  let downAt = null;
+  canvas.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (!engine || !mesh || !downAt) return;
+    const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
+    downAt = null;
+    if (moved > 5) return;              // that was an orbit drag, not a pick
+    if (gizmo && gizmo.dragging) return;
     const rect = canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -321,6 +371,37 @@ export function renderKitbayPanel(host, ctx) {
     engine.setMode('3d');
     engine.camera.position.set(3, 2.4, 3);
     engine.camera.lookAt(0, 0.5, 0);
+
+    // A workbench, not a turntable: ground grid + orbit camera + gizmo.
+    const grid = new THREE.GridHelper(10, 20, 0x3b4a63, 0x232a3a);
+    engine.scene.add(grid);
+
+    orbit = new OrbitControls(engine.camera, canvas);
+    orbit.enableDamping = false;
+    orbit.screenSpacePanning = true;
+    orbit.zoomToCursor = true;
+    orbit.target.set(0, 0.5, 0);
+    orbit.update();
+
+    gizmo = new TransformControls(engine.camera, canvas);
+    engine.scene.add(gizmo.getHelper());
+    gizmo.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
+    gizmo.addEventListener('objectChange', () => {
+      const part = working.parts[selectedPart];
+      const holder = holders[selectedPart];
+      if (!part || !holder) return;
+      if (gizmoMode === 'scale') {
+        // scale multiplies the part's size, then the holder snaps back to 1
+        for (let a = 0; a < 3; a++) part.size[a] = Math.max(0.05, part.size[a] * holder.scale.getComponent(a));
+        holder.scale.set(1, 1, 1);
+        rebuildPreviewMesh();
+      } else {
+        part.p = [round2(holder.position.x), round2(holder.position.y), round2(holder.position.z)];
+        part.r = [round2(holder.rotation.x), round2(holder.rotation.y), round2(holder.rotation.z)];
+      }
+      refreshTune();
+    });
+
     function resize() { engine.resize(canvasWrap.clientWidth, canvasWrap.clientHeight); }
     resizeObs = new ResizeObserver(resize);
     resizeObs.observe(canvasWrap);
@@ -329,7 +410,6 @@ export function renderKitbayPanel(host, ctx) {
 
     function loop() {
       if (mesh) {
-        mesh.rotation.y += 0.012;
         mesh.traverse((obj) => {
           if (obj.userData.spin) {
             obj.rotation[obj.userData.spin.axis] += 0.05 * obj.userData.spin.speed;
@@ -342,12 +422,17 @@ export function renderKitbayPanel(host, ctx) {
     rafId = requestAnimationFrame(loop);
   }
 
+  function round2(v) { return Math.round(v * 100) / 100; }
+
   function stopPreview() {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
     if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
+    if (gizmo) { gizmo.dispose(); gizmo = null; }
+    if (orbit) { orbit.dispose(); orbit = null; }
     if (engine) { engine.dispose(); engine = null; }
     mesh = null;
+    holders = [];
   }
 
   renderAll();
