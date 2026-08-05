@@ -11,12 +11,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import * as cart from '../cartridge.js';
 import * as kitbay from '../kitbay.js';
+import { GENERIC_TEXTURES } from '../textures.js';
 import { createEngine } from '../../engine/renderer.js';
 import { buildEntityObject } from '../../engine/meshes.js';
 
 let working = kitbay.createProp('box');
 let selectedPart = 0;
 let selectedFace = null; // box face index (0-5), picked by clicking the box
+let editCorners = false; // vertex edit mode for the selected box
 
 /**
  * @param {HTMLElement} host
@@ -88,6 +90,70 @@ export function renderKitbayPanel(host, ctx) {
   partsList.style.marginTop = '8px';
   partsCard.appendChild(partsList);
   right.appendChild(partsCard);
+
+  const texCard = document.createElement('div');
+  texCard.className = 'card';
+  texCard.innerHTML = '<h3>Textures</h3><div class="stage-hint">Click one to paint the picked part — or the picked face.</div>';
+  const texGrid = document.createElement('div');
+  texGrid.className = 'kit-tex-grid';
+  texCard.appendChild(texGrid);
+  right.appendChild(texCard);
+
+  function texEntries() {
+    const out = GENERIC_TEXTURES.map((g) => ({ id: g.id, name: g.name, dataURL: g.dataURL }));
+    for (const sprite of cart.getCartridge().assets.sprites) {
+      out.push({
+        id: sprite.id, name: sprite.name,
+        dataURL: (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail
+      });
+    }
+    return out;
+  }
+
+  function refreshTexPalette() {
+    texGrid.innerHTML = '';
+    const part = working.parts[selectedPart];
+    const activeId = part && (selectedFace != null && part.faces && part.faces[selectedFace]
+      ? part.faces[selectedFace].textureName
+      : (part.mat && part.mat.textureName));
+
+    const noneTile = document.createElement('button');
+    noneTile.className = 'kit-tex-tile' + (activeId ? '' : ' active');
+    noneTile.title = 'No texture (plain color)';
+    noneTile.textContent = '∅';
+    noneTile.addEventListener('click', () => applyPaletteTexture(null));
+    texGrid.appendChild(noneTile);
+
+    for (const entry of texEntries()) {
+      const tile = document.createElement('button');
+      tile.className = 'kit-tex-tile' + (entry.id === activeId ? ' active' : '');
+      tile.title = entry.name;
+      const img = document.createElement('img');
+      img.src = entry.dataURL;
+      tile.appendChild(img);
+      tile.addEventListener('click', () => applyPaletteTexture(entry));
+      texGrid.appendChild(tile);
+    }
+  }
+
+  function applyPaletteTexture(entry) {
+    const part = working.parts[selectedPart];
+    if (!part) return;
+    // face picked on a box → paint just that face; otherwise the whole part
+    if (selectedFace != null && part.shape === 'box' && !(part.bevel > 0)) {
+      if (!part.faces) part.faces = {};
+      if (!part.faces[selectedFace]) part.faces[selectedFace] = {};
+      const face = part.faces[selectedFace];
+      if (!entry) { delete face.textureData; delete face.textureName; }
+      else { face.textureData = entry.dataURL; face.textureName = entry.id; }
+    } else {
+      if (!part.mat) part.mat = { rough: 0.8, metal: 0, glow: 0 };
+      if (!entry) { delete part.mat.textureData; delete part.mat.textureName; }
+      else { part.mat.textureData = entry.dataURL; part.mat.textureName = entry.id; }
+    }
+    renderAll();
+    rebuildPreviewMesh();
+  }
 
   const tuneCard = document.createElement('div');
   tuneCard.className = 'card';
@@ -171,7 +237,7 @@ export function renderKitbayPanel(host, ctx) {
       const label = document.createElement('span');
       label.textContent = kitbay.labelFor(part.shape) + ' ' + (i + 1);
       label.style.cursor = 'pointer';
-      label.addEventListener('click', () => { selectedPart = i; renderAll(); });
+      label.addEventListener('click', () => { selectedPart = i; selectedFace = null; editCorners = false; renderAll(); rebuildPreviewMesh(); });
       row.appendChild(label);
       const rm = document.createElement('button');
       rm.className = 'bar bad-btn';
@@ -284,6 +350,43 @@ export function renderKitbayPanel(host, ctx) {
       axes.forEach((axis, i) => {
         tuneBody.appendChild(numRow(title + ' ' + axis, arr[i], step, (v) => set(i, v)));
       });
+    }
+
+    // ---- modifiers ----
+    if (!part.mods) part.mods = {};
+    const modHead = document.createElement('div');
+    modHead.className = 'stage-hint';
+    modHead.textContent = 'Modifiers';
+    tuneBody.appendChild(modHead);
+    const modRow = (label, min, max, step, value, set) => {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = String(min); input.max = String(max); input.step = String(step);
+      input.value = String(value); input.style.flex = '1';
+      input.addEventListener('input', () => { set(Number(input.value)); rebuildPreviewMesh(); });
+      row.appendChild(input);
+      tuneBody.appendChild(row);
+    };
+    modRow('Taper', -1, 1, 0.02, part.mods.taper || 0, (v) => { part.mods.taper = v; });
+    modRow('Twist', 0, 6.28, 0.02, part.mods.twist || 0, (v) => { part.mods.twist = v; });
+    modRow('Bumpy', 0, 1, 0.02, part.mods.bumpy || 0, (v) => { part.mods.bumpy = v; });
+
+    if (part.shape === 'box' && !(part.bevel > 0)) {
+      const editBtn = document.createElement('button');
+      editBtn.className = 'bar' + (editCorners ? ' active' : '');
+      editBtn.style.cssText = 'width:100%;margin:6px 0;';
+      editBtn.textContent = editCorners ? '✔ Done editing corners' : '⬡ Edit Corners (drag the dots)';
+      editBtn.addEventListener('click', () => {
+        editCorners = !editCorners;
+        if (editCorners && !part.corners) part.corners = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]];
+        renderAll();
+        rebuildPreviewMesh();
+      });
+      tuneBody.appendChild(editBtn);
     }
 
     // ---- material ----
@@ -430,6 +533,7 @@ export function renderKitbayPanel(host, ctx) {
   function renderAll() {
     refreshParts();
     refreshTune();
+    refreshTexPalette();
   }
 
   /* ---------------------------------------------------------------- */
@@ -491,6 +595,29 @@ export function renderKitbayPanel(host, ctx) {
       }
     });
     engine.contentRoot.add(mesh);
+    // vertex edit mode: 8 draggable corner dots living in the box's holder
+    if (editCorners) {
+      const part = working.parts[selectedPart];
+      const holder = holders[selectedPart];
+      if (part && holder && part.shape === 'box' && part.corners) {
+        for (let i = 0; i < 8; i++) {
+          const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06, 10, 8),
+            new THREE.MeshBasicMaterial({ color: '#ffcf6e', depthTest: false })
+          );
+          dot.renderOrder = 999;
+          const sx = (i & 1) ? 1 : -1, sy = (i & 2) ? 1 : -1, sz = (i & 4) ? 1 : -1;
+          const off = part.corners[i] || [0, 0, 0];
+          dot.position.set(
+            sx * part.size[0] / 2 + off[0],
+            sy * part.size[1] / 2 + off[1],
+            sz * part.size[2] / 2 + off[2]
+          );
+          dot.userData.cornerIndex = i;
+          holder.add(dot);
+        }
+      }
+    }
     refreshGizmo();
   }
 
@@ -511,6 +638,12 @@ export function renderKitbayPanel(host, ctx) {
     raycaster.setFromCamera(ndc, engine.camera);
     const hits = raycaster.intersectObject(mesh, true);
     for (const hit of hits) {
+      if (editCorners && hit.object.userData.cornerIndex != null) {
+        gizmo.attach(hit.object);
+        gizmo.setMode('translate');
+        gizmo.getHelper().visible = true;
+        return;
+      }
       if (hit.object.userData.partIndex != null) {
         const idx = hit.object.userData.partIndex;
         if (idx === selectedPart && Array.isArray(hit.object.material)) {
@@ -519,6 +652,7 @@ export function renderKitbayPanel(host, ctx) {
         } else {
           selectedPart = idx;
           selectedFace = null;
+          editCorners = false;
         }
         renderAll();
         rebuildPreviewMesh();
@@ -546,9 +680,27 @@ export function renderKitbayPanel(host, ctx) {
 
     gizmo = new TransformControls(engine.camera, canvas);
     engine.scene.add(gizmo.getHelper());
-    gizmo.addEventListener('dragging-changed', (e) => { orbit.enabled = !e.value; });
+    gizmo.addEventListener('dragging-changed', (e) => {
+      orbit.enabled = !e.value;
+      // corner drag finished → rebuild the deformed box once, not per-frame
+      if (!e.value && gizmo.object && gizmo.object.userData.cornerIndex != null) {
+        rebuildPreviewMesh();
+      }
+    });
     gizmo.addEventListener('objectChange', () => {
       const part = working.parts[selectedPart];
+      const target = gizmo.object;
+      if (target && target.userData.cornerIndex != null && part) {
+        // corner dot dragged: store its offset from the default corner
+        const i = target.userData.cornerIndex;
+        const sx = (i & 1) ? 1 : -1, sy = (i & 2) ? 1 : -1, sz = (i & 4) ? 1 : -1;
+        part.corners[i] = [
+          round2(target.position.x - sx * part.size[0] / 2),
+          round2(target.position.y - sy * part.size[1] / 2),
+          round2(target.position.z - sz * part.size[2] / 2)
+        ];
+        return;
+      }
       const holder = holders[selectedPart];
       if (!part || !holder) return;
       if (gizmoMode === 'scale') {

@@ -171,7 +171,103 @@ function buildSpriteMesh(engine, sprite) {
  * @param {string} shape @param {number[]} size
  * @returns {THREE.BufferGeometry}
  */
-function buildPartGeo(shape, size, bevel) {
+/**
+ * A box whose 8 corners have been dragged around (Kit Bay edit mode).
+ * corners[i] are local offsets from the default corner positions, indexed by
+ * bit pattern i = (x+?1:0) | (y+?2:0) | (z+?4:0). Keeps BoxGeometry's
+ * 6-group material order (+x -x +y -y +z -z) and per-face 0..1 UVs, and
+ * auto-corrects winding so no face ever shades inside-out.
+ * @param {number[]} size @param {Array<number[]>} corners
+ * @returns {THREE.BufferGeometry}
+ */
+function buildHexahedronGeo(size, corners) {
+  const c = [];
+  for (let i = 0; i < 8; i++) {
+    const sx = (i & 1) ? 1 : -1, sy = (i & 2) ? 1 : -1, sz = (i & 4) ? 1 : -1;
+    const off = (corners && corners[i]) || [0, 0, 0];
+    c.push([sx * size[0] / 2 + off[0], sy * size[1] / 2 + off[1], sz * size[2] / 2 + off[2]]);
+  }
+  // face quads in BoxGeometry material order, with outward axis for winding checks
+  const faces = [
+    { q: [1, 5, 7, 3], axis: [1, 0, 0] },   // +x
+    { q: [0, 2, 6, 4], axis: [-1, 0, 0] },  // -x
+    { q: [2, 3, 7, 6], axis: [0, 1, 0] },   // +y
+    { q: [0, 4, 5, 1], axis: [0, -1, 0] },  // -y
+    { q: [4, 6, 7, 5], axis: [0, 0, 1] },   // +z
+    { q: [0, 1, 3, 2], axis: [0, 0, -1] }   // -z
+  ];
+  const pos = [], uv = [];
+  const geo = new THREE.BufferGeometry();
+  faces.forEach((face, f) => {
+    let [a, b, d, e] = face.q;
+    // winding check: does this quad's normal point along the outward axis?
+    const ab = [c[b][0] - c[a][0], c[b][1] - c[a][1], c[b][2] - c[a][2]];
+    const ad = [c[d][0] - c[a][0], c[d][1] - c[a][1], c[d][2] - c[a][2]];
+    const n = [ab[1] * ad[2] - ab[2] * ad[1], ab[2] * ad[0] - ab[0] * ad[2], ab[0] * ad[1] - ab[1] * ad[0]];
+    if (n[0] * face.axis[0] + n[1] * face.axis[1] + n[2] * face.axis[2] < 0) {
+      [b, e] = [e, b];
+    }
+    const quad = [a, b, d, e];
+    const quadUv = [[0, 0], [1, 0], [1, 1], [0, 1]];
+    for (const tri of [[0, 1, 2], [0, 2, 3]]) {
+      for (const k of tri) {
+        pos.push(...c[quad[k]]);
+        uv.push(...quadUv[k]);
+      }
+    }
+    geo.addGroup(f * 6, 6, f);
+  });
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * Modifiers: bend the finished geometry the way a light 3D program does.
+ * mods = {taper: -1..1 (squeeze top/bottom), twist: radians of Y-twist over
+ * the height, bumpy: 0..1 random surface jitter}. Works on every shape.
+ * @param {THREE.BufferGeometry} geo @param {any} mods @param {number[]} size
+ */
+function applyModifiers(geo, mods, size) {
+  if (!mods) return geo;
+  const taper = mods.taper || 0, twist = mods.twist || 0, bumpy = mods.bumpy || 0;
+  if (!taper && !twist && !bumpy) return geo;
+  const posAttr = geo.getAttribute('position');
+  const halfH = Math.max(0.001, size[1] / 2);
+  let seed = 1234;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed / 2147483647) * 2 - 1;
+  };
+  for (let i = 0; i < posAttr.count; i++) {
+    let x = posAttr.getX(i), y = posAttr.getY(i), z = posAttr.getZ(i);
+    const t = Math.max(-1, Math.min(1, y / halfH)); // -1 bottom .. 1 top
+    if (taper) {
+      const k = 1 - taper * (t + 1) / 2; // 1 at bottom .. 1-taper at top
+      x *= k; z *= k;
+    }
+    if (twist) {
+      const ang = twist * (t + 1) / 2;
+      const nx = x * Math.cos(ang) - z * Math.sin(ang);
+      const nz = x * Math.sin(ang) + z * Math.cos(ang);
+      x = nx; z = nz;
+    }
+    if (bumpy) {
+      const amp = bumpy * 0.06 * Math.max(size[0], size[1], size[2]);
+      x += rand() * amp; y += rand() * amp; z += rand() * amp;
+    }
+    posAttr.setXYZ(i, x, y, z);
+  }
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function buildPartGeo(shape, size, bevel, part) {
+  if (shape === 'box' && part && part.corners && !(bevel > 0)) {
+    return applyModifiers(buildHexahedronGeo(size, part.corners), part && part.mods, size);
+  }
   if (shape === 'box' && bevel > 0) {
     const radius = Math.min(bevel, Math.min(size[0], size[1], size[2]) / 2 - 0.01);
     if (radius > 0.005) return new RoundedBoxGeometry(size[0], size[1], size[2], 3, radius);
@@ -213,6 +309,17 @@ function buildPartGeo(shape, size, bevel) {
     default:
       return new THREE.BoxGeometry(size[0], size[1], size[2]);
   }
+}
+
+/** buildPartGeo plus the part's modifiers — the compound path's entry. */
+function buildPartGeoFull(part) {
+  const shape = part.shape || 'box';
+  const size = part.size || [1, 1, 1];
+  const geo = buildPartGeo(shape, size, part.bevel || 0, part);
+  if (!(shape === 'box' && part.corners && !(part.bevel > 0))) {
+    applyModifiers(geo, part.mods, size);
+  }
+  return geo;
 }
 
 export function buildModelMesh(model) {
@@ -267,10 +374,7 @@ export function buildModelMesh(model) {
         material = makeBase();
         if (mat.textureData) applyTexture(material, mat.textureData, mat.uv);
       }
-      const mesh = new THREE.Mesh(
-        buildPartGeo(shape, part.size || [1, 1, 1], part.bevel || 0),
-        material
-      );
+      const mesh = new THREE.Mesh(buildPartGeoFull(part), material);
       mesh.userData.partIndex = index; // raycast picking in the Kit Bay
       const holder = new THREE.Group();
       holder.add(mesh);
