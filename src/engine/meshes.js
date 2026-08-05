@@ -12,6 +12,7 @@
  */
 
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { LOGIC_COLORS, findEntity } from './entities.js';
 
 /**
@@ -170,7 +171,11 @@ function buildSpriteMesh(engine, sprite) {
  * @param {string} shape @param {number[]} size
  * @returns {THREE.BufferGeometry}
  */
-function buildPartGeo(shape, size) {
+function buildPartGeo(shape, size, bevel) {
+  if (shape === 'box' && bevel > 0) {
+    const radius = Math.min(bevel, Math.min(size[0], size[1], size[2]) / 2 - 0.01);
+    if (radius > 0.005) return new RoundedBoxGeometry(size[0], size[1], size[2], 3, radius);
+  }
   switch (shape) {
     case 'sphere':
       return new THREE.SphereGeometry(Math.max(size[0], size[1], size[2]) / 2, 20, 16);
@@ -215,9 +220,25 @@ export function buildModelMesh(model) {
   // nested THREE.Group — move a parent part, its children ride along.
   if (Array.isArray(model.parts) && model.parts.length) {
     const nodes = model.parts.map((part, index) => {
+      const material = buildModelMaterial({ swatch: part.swatch, shader: null });
+      const mat = part.mat || {};
+      if (mat.rough != null) material.roughness = mat.rough;
+      if (mat.metal != null) material.metalness = mat.metal;
+      if (mat.glow) {
+        material.emissive = new THREE.Color(part.swatch || '#6fb2dc');
+        material.emissiveIntensity = mat.glow;
+      }
+      if (mat.textureData) {
+        // texture rides inside the part data, so prefabs stay self-contained
+        const tex = new THREE.TextureLoader().load(mat.textureData);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;  // pixel art stays crisp
+        material.map = tex;
+        material.color = new THREE.Color('#ffffff');
+      }
       const mesh = new THREE.Mesh(
-        buildPartGeo(part.shape || 'box', part.size || [1, 1, 1]),
-        buildModelMaterial({ swatch: part.swatch, shader: null })
+        buildPartGeo(part.shape || 'box', part.size || [1, 1, 1], part.bevel || 0),
+        material
       );
       mesh.userData.partIndex = index; // raycast picking in the Kit Bay
       const holder = new THREE.Group();

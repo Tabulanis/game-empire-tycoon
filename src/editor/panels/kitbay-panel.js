@@ -284,6 +284,71 @@ export function renderKitbayPanel(host, ctx) {
         tuneBody.appendChild(numRow(title + ' ' + axis, arr[i], step, (v) => set(i, v)));
       });
     }
+
+    // ---- material ----
+    if (!part.mat) part.mat = { rough: 0.8, metal: 0, glow: 0 };
+    const matHead = document.createElement('div');
+    matHead.className = 'stage-hint';
+    matHead.textContent = 'Material';
+    tuneBody.appendChild(matHead);
+    const matRow = (label, value, onInput) => {
+      const row = document.createElement('div');
+      row.className = 'brick-row';
+      const l = document.createElement('span');
+      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+      row.appendChild(l);
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = '0'; input.max = '1'; input.step = '0.05';
+      input.value = String(value); input.style.flex = '1';
+      input.addEventListener('input', () => { onInput(Number(input.value)); rebuildPreviewMesh(); });
+      row.appendChild(input);
+      tuneBody.appendChild(row);
+    };
+    matRow('Roughness', part.mat.rough == null ? 0.8 : part.mat.rough, (v) => { part.mat.rough = v; });
+    matRow('Metal', part.mat.metal || 0, (v) => { part.mat.metal = v; });
+    matRow('Glow', part.mat.glow || 0, (v) => { part.mat.glow = v; });
+    if (part.shape === 'box') {
+      const bevRow = document.createElement('div');
+      bevRow.className = 'brick-row';
+      const bl = document.createElement('span');
+      bl.textContent = 'Bevel'; bl.style.minWidth = '70px'; bl.style.fontSize = '11px';
+      bevRow.appendChild(bl);
+      const bev = document.createElement('input');
+      bev.type = 'range'; bev.min = '0'; bev.max = '0.4'; bev.step = '0.01';
+      bev.value = String(part.bevel || 0); bev.style.flex = '1';
+      bev.addEventListener('input', () => { part.bevel = Number(bev.value); rebuildPreviewMesh(); });
+      bevRow.appendChild(bev);
+      tuneBody.appendChild(bevRow);
+    }
+    const texRow = document.createElement('div');
+    texRow.className = 'brick-row';
+    texRow.innerHTML = '<span>Texture:</span>';
+    const texSel = document.createElement('select');
+    texSel.className = 'deck-select';
+    const noneOpt = document.createElement('option');
+    noneOpt.value = ''; noneOpt.textContent = '(plain color)';
+    texSel.appendChild(noneOpt);
+    for (const sprite of cart.getCartridge().assets.sprites) {
+      const opt = document.createElement('option');
+      opt.value = sprite.id; opt.textContent = sprite.name;
+      if (part.mat.textureName === sprite.id) opt.selected = true;
+      texSel.appendChild(opt);
+    }
+    texSel.addEventListener('change', () => {
+      if (!texSel.value) {
+        delete part.mat.textureData; delete part.mat.textureName;
+      } else {
+        const sprite = cart.getCartridge().assets.sprites.find((sp) => sp.id === texSel.value);
+        if (sprite) {
+          // self-contained: the image itself rides in the part data
+          part.mat.textureData = (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail;
+          part.mat.textureName = sprite.id;
+        }
+      }
+      rebuildPreviewMesh();
+    });
+    texRow.appendChild(texSel);
+    tuneBody.appendChild(texRow);
   }
 
   function renderAll() {
