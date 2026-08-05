@@ -1584,6 +1584,7 @@ export function renderStagePanel(host, ctx) {
       }
     }
     canvasWrap.classList.add('playing');
+    orbitControls.enabled = false;
     playBtn.style.display = 'none';
     stopBtn.style.display = '';
     playLogMessages.length = 0;
@@ -1640,6 +1641,7 @@ export function renderStagePanel(host, ctx) {
       spawnStash = null;
     }
     setPhysicsSource(null);
+    orbitControls.enabled = true;
     if (document.pointerLockElement) document.exitPointerLock();
     if (wireframe) { engine.contentRoot.remove(wireframe); wireGeo.dispose(); wireframe.material.dispose(); wireframe = null; wireGeo = null; }
     canvasWrap.classList.remove('playing');
@@ -1763,7 +1765,7 @@ export function renderStagePanel(host, ctx) {
       const obj = view.objects.get(selectedId);
       if (obj) { const b = new THREE.Box3().setFromObject(obj); if (!b.isEmpty()) selectionBox.box.copy(b); }
     }
-    orbitControls.update();
+    if (!playSession) orbitControls.update();
     engine.tick();
     rafId = requestAnimationFrame(loop);
   }
