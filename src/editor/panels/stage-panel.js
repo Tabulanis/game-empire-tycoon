@@ -377,6 +377,77 @@ export function renderStagePanel(host, ctx) {
       { shape: 'sphere', swatch: '#ffcf6e', size: [0.16, 0.16, 0.16], p: [0, 0.34, 0], r: [0, 0, 0], parent: 0 }
     ]}
   };
+  /** smooth-mode painting: RGB weights per texel, serialized to terrain.splat */
+  const SPLAT_SIZE = 256;
+  let splatCanvas = null;
+  let splatCtx = null;
+  let splatImage = null;
+  let splatDirty = false;
+
+  function ensureSplat(t) {
+    if (splatCanvas) return;
+    splatCanvas = document.createElement('canvas');
+    splatCanvas.width = splatCanvas.height = SPLAT_SIZE;
+    splatCtx = splatCanvas.getContext('2d', { willReadFrequently: true });
+    if (t.splat) {
+      const img = new Image();
+      img.onload = () => {
+        splatCtx.drawImage(img, 0, 0, SPLAT_SIZE, SPLAT_SIZE);
+        splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
+      };
+      img.src = t.splat;
+      splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
+    } else {
+      splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
+    }
+  }
+
+  /** paint a soft alpha blob of the active layer's channel into the splat */
+  function splatBlob(t, wx, wz, radiusWorld) {
+    ensureSplat(t);
+    if (!splatImage) return;
+    const u = (wx + t.size[0] / 2) / t.size[0];
+    // plane rotated -90°X: texture V runs opposite to world Z
+    const v = 1 - (wz + t.size[1] / 2) / t.size[1];
+    const cx = u * SPLAT_SIZE, cy = v * SPLAT_SIZE;
+    const r = Math.max(2, (radiusWorld / t.size[0]) * SPLAT_SIZE);
+    const ch = activeSlot; // 0/1/2 → r/g/b
+    const d = splatImage.data;
+    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(SPLAT_SIZE - 1, Math.ceil(cx + r));
+    const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(SPLAT_SIZE - 1, Math.ceil(cy + r));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dist = Math.hypot(x - cx, y - cy) / r;
+        if (dist > 1) continue;
+        const add = (1 - dist) * (1 - dist) * 26; // soft quadratic falloff
+        const i = (y * SPLAT_SIZE + x) * 4;
+        const next = Math.min(255, d[i + ch] + add);
+        d[i + ch] = next;
+        // channels share the pixel: squeeze the others so weights stay sane
+        for (let c = 0; c < 3; c++) {
+          if (c === ch) continue;
+          d[i + c] = Math.max(0, d[i + c] - add * 0.6);
+        }
+      }
+    }
+    splatDirty = true;
+    // push straight into the live texture — painting shows as you drag
+    splatCtx.putImageData(splatImage, 0, 0);
+    engine.scene.traverse((obj) => {
+      if (obj.userData.splatTexture) {
+        obj.userData.splatTexture.image = splatCanvas;
+        obj.userData.splatTexture.needsUpdate = true;
+      }
+    });
+  }
+
+  function commitSplat(t) {
+    if (!splatDirty || !splatCanvas) return;
+    t.splat = splatCanvas.toDataURL('image/png');
+    splatDirty = false;
+    cart.touch();
+  }
+
   let scatterSeed = 1;
   function scatterRand() {
     scatterSeed = (scatterSeed * 16807) % 2147483647;
@@ -431,6 +502,11 @@ export function renderStagePanel(host, ctx) {
     const cell = t.cell || 1;
     const r = brushRadius * cell;
     if (!t.cells) t.cells = {};
+    if (t.smooth && brushOp === 'paint') {
+      // alpha painting: soft splat blob of the picked layer, live
+      splatBlob(t, pt[0], pt[2], r);
+      return;
+    }
     const cols = Math.ceil(t.size[0] / cell), rows = Math.ceil(t.size[1] / cell);
     let changed = false;
     const c0 = Math.max(0, Math.floor((pt[0] - r + t.size[0] / 2) / cell));
@@ -469,6 +545,14 @@ export function renderStagePanel(host, ctx) {
         const entry = t.cells[key];
         if (brushOp === 'paint') {
           if (entry.l !== activeSlot) { entry.l = activeSlot; changed = true; }
+        } else if (t.smooth) {
+          // smooth sculpting: fractional height with quadratic falloff —
+          // continuous while dragging, so hills grow like clay
+          const dist = Math.hypot(cx - pt[0], cz - pt[2]) / r;
+          const fall = (1 - dist) * (1 - dist) * 0.12;
+          if (brushOp === 'raise') entry.h = Math.min(8, (entry.h || 0) + fall);
+          else entry.h = Math.max(0, (entry.h || 0) - fall);
+          changed = true;
         } else if (!strokeSet.has(key)) {
           strokeSet.add(key);
           if (brushOp === 'raise') entry.h = Math.min(8, (entry.h || 0) + 1);
@@ -520,6 +604,22 @@ export function renderStagePanel(host, ctx) {
       terrainBody.appendChild(hint);
     } else {
       /* ---- the brush, front and center ---- */
+      const styleRow = document.createElement('div');
+      styleRow.className = 'stage-bar';
+      const styleLabel = document.createElement('span');
+      styleLabel.textContent = 'Style:'; styleLabel.style.fontSize = '11px';
+      styleRow.appendChild(styleLabel);
+      for (const [val, label] of [[false, '⬜ Blocky'], [true, '🌊 Smooth']]) {
+        const b = makeBtn(label, () => {
+          t.smooth = val;
+          splatCanvas = null; splatCtx = null; splatImage = null;
+          terrainChanged();
+        });
+        if (!!t.smooth === val) b.className += ' active';
+        styleRow.appendChild(b);
+      }
+      terrainBody.appendChild(styleRow);
+
       const sculptBtn = makeBtn(tool === 'terrain' ? '✔ Done with the brush' : '🖌 Paint & Sculpt', () => {
         setTool(tool === 'terrain' ? 'select' : 'terrain');
         // while the brush is armed the left mouse belongs to it — zoom
@@ -1300,7 +1400,12 @@ export function renderStagePanel(host, ctx) {
     else showBrushRing(pt);
   });
   window.addEventListener('pointerup', () => {
-    if (stroking) { stroking = false; strokeSet = new Set(); }
+    if (stroking) {
+      stroking = false;
+      strokeSet = new Set();
+      const scene = getTerrainScene();
+      if (scene && scene.terrain && scene.terrain.smooth) commitSplat(scene.terrain);
+    }
   });
 
   function doPaint(ndc) {

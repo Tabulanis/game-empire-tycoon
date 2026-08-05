@@ -41,7 +41,130 @@ import { LOGIC_COLORS, findEntity } from './entities.js';
  * @param {any} terrain
  * @returns {THREE.Mesh}
  */
+export const SPLAT_SIZE = 256;
+
+/**
+ * Smooth terrain: a displaced plane with real gradient slopes (vertex
+ * heights bilinearly sampled from the cell heights) and splat-mapped
+ * painting — a soft RGB mask where each channel is one texture layer's
+ * opacity, blended in the standard material's own fragment stage via
+ * onBeforeCompile so lighting and shadows stay fully PBR. Layer diffuse
+ * comes from plain textures OR Material Maker shaders alike.
+ * @param {any} terrain
+ * @returns {THREE.Mesh}
+ */
+function buildSmoothTerrainMesh(terrain) {
+  const size = terrain.size || [20, 20];
+  const cell = terrain.cell || 1;
+  const cols = Math.max(1, Math.ceil(size[0] / cell));
+  const rows = Math.max(1, Math.ceil(size[1] / cell));
+  const segX = cols * 2, segZ = rows * 2;
+  const geo = new THREE.PlaneGeometry(size[0], size[1], segX, segZ);
+  geo.rotateX(-Math.PI / 2);
+
+  const cellH = (row, col) => {
+    const c = (terrain.cells || {})[row + ',' + col];
+    return c ? (c.h || 0) * 0.5 : 0;
+  };
+  // bilinear height at a world position (heights live at cell centers)
+  const heightAt = (x, z) => {
+    const fx = (x + size[0] / 2) / cell - 0.5;
+    const fz = (z + size[1] / 2) / cell - 0.5;
+    const c0 = Math.floor(fx), r0 = Math.floor(fz);
+    const tx = fx - c0, tz = fz - r0;
+    const h00 = cellH(r0, c0), h10 = cellH(r0, c0 + 1);
+    const h01 = cellH(r0 + 1, c0), h11 = cellH(r0 + 1, c0 + 1);
+    return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+  };
+  const pos = geo.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+  }
+  geo.computeVertexNormals();
+
+  const loadTex = (data, srgb) => {
+    const t = new THREE.TextureLoader().load(data);
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  };
+  const white = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 2;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 2, 2);
+    return new THREE.CanvasTexture(c);
+  })();
+
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
+  // base coat: texture or plain color; .map must exist so vMapUv is compiled
+  if (terrain.texture) {
+    mat.map = loadTex(terrain.texture, true);
+    mat.color = new THREE.Color('#ffffff');
+  } else {
+    mat.map = white;
+    mat.color = new THREE.Color(terrain.color || '#3a3f4c');
+  }
+
+  // splat mask: red/green/blue = layer 1/2/3 opacity
+  let splatTex;
+  if (terrain.splat) {
+    splatTex = loadTex(terrain.splat, false);
+  } else {
+    const c = document.createElement('canvas');
+    c.width = c.height = SPLAT_SIZE;
+    splatTex = new THREE.CanvasTexture(c);
+  }
+  splatTex.wrapS = splatTex.wrapT = THREE.ClampToEdgeWrapping;
+
+  const layers = terrain.layers || [];
+  const layerData = (i) => {
+    const l = layers[i];
+    if (!l) return { tex: white, repeat: 1 };
+    const src = l.maps ? l.maps.diffuse : l.dataURL;
+    const mode = l.map || 'grid';
+    const n = mode === 'grid' ? Math.max(cols, rows) : (mode === 'tiled' ? (l.repeat || 6) : 1);
+    return { tex: src ? loadTex(src, true) : white, repeat: n };
+  };
+  const L = [layerData(0), layerData(1), layerData(2)];
+  const baseRepeat = (terrain.mode || 'stretch') === 'grid'
+    ? Math.max(cols, rows)
+    : ((terrain.mode === 'repeat') ? (terrain.repeat || 4) : 1);
+
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uSplat = { value: splatTex };
+    shader.uniforms.uL1 = { value: L[0].tex };
+    shader.uniforms.uL2 = { value: L[1].tex };
+    shader.uniforms.uL3 = { value: L[2].tex };
+    shader.uniforms.uReps = { value: new THREE.Vector4(baseRepeat, L[0].repeat, L[1].repeat, L[2].repeat) };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <map_pars_fragment>',
+        '#include <map_pars_fragment>\nuniform sampler2D uSplat;\nuniform sampler2D uL1;\nuniform sampler2D uL2;\nuniform sampler2D uL3;\nuniform vec4 uReps;')
+      .replace('#include <map_fragment>',
+        [
+          'vec4 splat = texture2D(uSplat, vMapUv);',
+          'vec4 baseC = texture2D(map, vMapUv * uReps.x);',
+          'vec4 c1 = texture2D(uL1, vMapUv * uReps.y);',
+          'vec4 c2 = texture2D(uL2, vMapUv * uReps.z);',
+          'vec4 c3 = texture2D(uL3, vMapUv * uReps.w);',
+          'float rest = max(0.0, 1.0 - splat.r - splat.g - splat.b);',
+          'vec4 blended = baseC * rest + c1 * splat.r + c2 * splat.g + c3 * splat.b;',
+          'diffuseColor *= blended;'
+        ].join('\n'));
+  };
+  // distinct programs per terrain build (uniforms differ)
+  mat.customProgramCacheKey = () => 'terrain-splat-' + Math.random();
+
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.y = -0.01;
+  mesh.receiveShadow = true;
+  mesh.userData.terrain = true;
+  mesh.userData.splatTexture = splatTex;
+  return mesh;
+}
+
 export function buildTerrainMesh(terrain) {
+  if (terrain.smooth) return buildSmoothTerrainMesh(terrain);
   const size = terrain.size || [20, 20];
   const geo = new THREE.PlaneGeometry(size[0], size[1]);
   const mat = new THREE.MeshStandardMaterial({
