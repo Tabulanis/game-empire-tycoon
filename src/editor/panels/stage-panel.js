@@ -347,6 +347,30 @@ export function renderStagePanel(host, ctx) {
     slide('Bounce', cfg.bounce, 0, 1, 0.02, (v) => { cfg.bounce = v; });
     slide('Sun angle', cfg.sunAngle, 0, 360, 1, (v) => { cfg.sunAngle = v; });
     slide('Sun height', cfg.sunHeight, 10, 85, 1, (v) => { cfg.sunHeight = v; });
+
+    /* -- volumetric haze: distance fog that melts far things into the air -- */
+    if (!cfg.fog) cfg.fog = { on: false, color: '#aebdd0', density: 0.02 };
+    const fogRow = document.createElement('div');
+    fogRow.className = 'stage-bar';
+    const fogBtn = makeBtn(cfg.fog.on ? '🌫 Haze: ON' : '🌫 Haze: off', () => {
+      cfg.fog.on = !cfg.fog.on;
+      cart.touch();
+      engine.setLighting(cfg);
+      refreshLightCard();
+    });
+    if (cfg.fog.on) fogBtn.className += ' active';
+    fogRow.appendChild(fogBtn);
+    if (cfg.fog.on) {
+      const fogColor = document.createElement('input');
+      fogColor.type = 'color'; fogColor.value = cfg.fog.color;
+      fogColor.title = 'Haze color';
+      fogColor.addEventListener('input', () => { cfg.fog.color = fogColor.value; cart.touch(); engine.setLighting(cfg); });
+      fogRow.appendChild(fogColor);
+    }
+    lightBody.appendChild(fogRow);
+    if (cfg.fog.on) {
+      slide('Thickness', cfg.fog.density, 0.002, 0.09, 0.002, (v) => { cfg.fog.density = v; });
+    }
     const hint = document.createElement('div');
     hint.className = 'stage-hint';
     hint.textContent = 'Blob is cheap and cartoony; the map modes trade speed for softer, realer shadows. Bounce fakes light bouncing off the ground back up.';
@@ -637,6 +661,59 @@ export function renderStagePanel(host, ctx) {
         styleRow.appendChild(b);
       }
       terrainBody.appendChild(styleRow);
+
+      /* -- Water: shallow-water liquid over the terrain (TheBlob's fluid) -- */
+      const wDefaults = { on: false, level: 1, color: '#2e86d9', opacity: 0.72, wave: 0.06, speed: 1, detail: 1, react: 0.5 };
+      if (!t.water) t.water = { ...wDefaults };
+      const w = t.water;
+      const waterChanged = () => { cart.touch(); view.refreshTerrain(getTerrainScene()); };
+      const wRow = document.createElement('div');
+      wRow.className = 'stage-bar';
+      const wBtn = makeBtn(w.on ? '💧 Water: ON' : '💧 Water: off', () => {
+        w.on = !w.on;
+        waterChanged();
+        refreshTerrainCard();
+      });
+      if (w.on) wBtn.className += ' active';
+      wRow.appendChild(wBtn);
+      if (w.on) {
+        const wColor = document.createElement('input');
+        wColor.type = 'color'; wColor.value = w.color || '#2e86d9';
+        wColor.title = 'Water color';
+        wColor.addEventListener('input', () => { w.color = wColor.value; waterChanged(); });
+        wRow.appendChild(wColor);
+        const wDetail = makeBtn(w.detail >= 2 ? '🔬 Fine' : '🧊 Chunky', () => {
+          w.detail = w.detail >= 2 ? 1 : 2;
+          waterChanged();
+          refreshTerrainCard();
+        });
+        wRow.appendChild(wDetail);
+      }
+      terrainBody.appendChild(wRow);
+      if (w.on) {
+        const wSlide = (label, key, min, max, step) => {
+          const row = document.createElement('div');
+          row.className = 'brick-row';
+          const l = document.createElement('span');
+          l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
+          row.appendChild(l);
+          const input = document.createElement('input');
+          input.type = 'range'; input.min = String(min); input.max = String(max); input.step = String(step);
+          input.value = String(w[key] !== undefined ? w[key] : wDefaults[key]); input.style.flex = '1';
+          input.addEventListener('change', () => { w[key] = Number(input.value); waterChanged(); });
+          row.appendChild(input);
+          terrainBody.appendChild(row);
+        };
+        wSlide('Level', 'level', 0, 4, 0.1);
+        wSlide('Waves', 'wave', 0, 0.3, 0.01);
+        wSlide('Tempo', 'speed', 0.2, 3, 0.1);
+        wSlide('See-thru', 'opacity', 0.2, 1, 0.02);
+        wSlide('Reactive', 'react', 0, 1, 0.05);
+        const wHint = document.createElement('div');
+        wHint.className = 'stage-hint';
+        wHint.textContent = 'Water fills every valley below the Level line — sculpt basins and they become lakes. Reactive makes it flow and splash when the player wades through; 0 freezes it solid-still.';
+        terrainBody.appendChild(wHint);
+      }
 
       const sculptBtn = makeBtn(tool === 'terrain' ? '✔ Done with the brush' : '🖌 Paint & Sculpt', () => {
         setTool(tool === 'terrain' ? 'select' : 'terrain');
@@ -1765,7 +1842,10 @@ export function renderStagePanel(host, ctx) {
       const obj = view.objects.get(selectedId);
       if (obj) { const b = new THREE.Box3().setFromObject(obj); if (!b.isEmpty()) selectionBox.box.copy(b); }
     }
-    if (!playSession) orbitControls.update();
+    if (!playSession) {
+      orbitControls.update();
+      if (view.water) view.water.tick();
+    }
     engine.tick();
     rafId = requestAnimationFrame(loop);
   }

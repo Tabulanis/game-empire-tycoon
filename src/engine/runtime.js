@@ -469,6 +469,14 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
       const pos = phys.bodyPosition(session, playerEntity.id);
       if (pos) {
         const playerAabb = { x: pos.x, y: pos.y, z: is3D ? pos.z : undefined, ...sizeAsWH(playerEntity) };
+        for (const wz of session.zones) {
+          if (wz.kind !== 'water' || !session.dummy) continue;
+          const pp = phys.bodyPosition(session, playerEntity.id);
+          if (!pp) continue;
+          if (Math.abs(pp.x - wz.x) <= wz.w / 2 && Math.abs(pp.y - wz.y) <= wz.h / 2) {
+            session.dummy.vy = Math.min(session.dummy.vy + 34 * dt, 2.5);
+          }
+        }
         const activeZones = session.zones.filter((z) => {
           const zoneEntity = findEntity(scene, z.id);
           return !zoneEntity || !zoneEntity.components.logic.locked;
@@ -538,6 +546,24 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
       if (entry.age > MAX_PARTICLE_SYSTEM_LIFETIME) {
         entry.system.dispose();
         liveState.particleSystems.splice(i, 1);
+      }
+    }
+
+    if (view.water) view.water.tick();
+
+    // swimming: below the water surface the player floats up and leaves a wake
+    if (view.water && playerEntity && session.dummy) {
+      const wpos = phys.bodyPosition(session, playerEntity.id);
+      if (wpos && is3D) {
+        const wsurf = view.water.surfaceAt(wpos.x, wpos.z);
+        const wdepth = view.water.depthAt(wpos.x, wpos.z);
+        const feet = wpos.y - 0.45;
+        if (wdepth > 0.15 && feet < wsurf - 0.05) {
+          const sub = Math.min(1, (wsurf - feet) / 0.9);
+          session.dummy.vy = Math.min(session.dummy.vy + 30 * sub * dt, 2.5);
+          const moving = input.left || input.right || input.up || input.down;
+          if (moving) view.water.splash(wpos.x, wpos.z, 1.4, 2.2 * dt);
+        }
       }
     }
 

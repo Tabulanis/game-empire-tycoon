@@ -13,6 +13,7 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { createWater } from './water.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { LOGIC_COLORS, findEntity } from './entities.js';
@@ -327,17 +328,21 @@ export function buildSceneView(engine, scene, opts = {}) {
   const objects = new Map();
 
   let terrainMesh = null;
+  let water = null;
   const applyTerrain = (sc) => {
     if (terrainMesh) { root.remove(terrainMesh); disposeObject(terrainMesh); terrainMesh = null; }
+    if (water) { root.remove(water.mesh); water.dispose(); water = null; }
     if (sc.terrain) {
       terrainMesh = buildTerrainMesh(sc.terrain);
       root.add(terrainMesh);
+      water = createWater(sc.terrain);
+      if (water) root.add(water.mesh);
     }
   };
   applyTerrain(scene);
 
   for (const entity of scene.entities) {
-    if (opts.play && entity.components.logic) continue;
+    if (opts.play && entity.components.logic && entity.components.logic.kind !== 'water') continue;
     const obj = buildEntityObject(engine, entity);
     if (!obj) continue;
     root.add(obj);
@@ -346,11 +351,12 @@ export function buildSceneView(engine, scene, opts = {}) {
 
   return {
     objects,
+    get water() { return water; },
     refreshEntity(id) {
       const old = objects.get(id);
       if (old) { root.remove(old); disposeObject(old); objects.delete(id); }
       const entity = findEntity(scene, id);
-      if (!entity || (opts.play && entity.components.logic)) return;
+      if (!entity || (opts.play && entity.components.logic && entity.components.logic.kind !== 'water')) return;
       const obj = buildEntityObject(engine, entity);
       if (!obj) return;
       root.add(obj);
@@ -360,6 +366,7 @@ export function buildSceneView(engine, scene, opts = {}) {
       applyTerrain(sc || scene);
     },
     clear() {
+      if (water) { water.dispose(); water = null; }
       clearGroup(root);
       objects.clear();
     }
@@ -857,15 +864,16 @@ export function buildModelMaterial(model) {
  * @returns {THREE.Object3D}
  */
 function buildLogicMesh(engine, logic) {
-  const color = LOGIC_COLORS[logic.kind] || '#6fd3ff';
-  const isZone = logic.kind === 'trigger' || logic.kind === 'kill';
+  const isWater = logic.kind === 'water';
+  const color = isWater ? '#2e86d9' : (LOGIC_COLORS[logic.kind] || '#6fd3ff');
+  const isZone = logic.kind === 'trigger' || logic.kind === 'kill' || isWater;
   const size = logic.size || (isZone ? [2, 2] : [0.6, 0.6]);
   const group = new THREE.Group();
 
   if (isZone) {
     const geo = new THREE.PlaneGeometry(size[0], size[1]);
     const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      color: new THREE.Color(color), transparent: true, opacity: 0.18, side: THREE.DoubleSide
+      color: new THREE.Color(color), transparent: true, opacity: isWater ? 0.5 : 0.18, side: THREE.DoubleSide
     }));
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(geo),

@@ -147,6 +147,42 @@
       "sheet": []
     },
     {
+      "id": "water-pool",
+      "name": "Water pool",
+      "icon": "💧",
+      "desc": "A pool of water (best in 2D games). Players float up while inside — hold jump to swim to the top.",
+      "entity": {
+        "name": "Water pool",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "logic": {
+            "kind": "water",
+            "size": [
+              5,
+              3
+            ]
+          }
+        }
+      },
+      "sheet": []
+    },
+    {
       "id": "coin",
       "name": "Coin",
       "icon": "🪙",

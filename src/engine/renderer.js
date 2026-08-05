@@ -139,6 +139,12 @@ export function createEngine(canvas, opts = {}) {
    */
   function setLighting(cfg = {}) {
     lighting = { ...lighting, ...cfg };
+    // volumetric haze: exponential fog thickens with distance, so far hills
+    // and water melt into the air — the cheap-and-cheerful volumetrics
+    const fog = lighting.fog;
+    scene.fog = (fog && fog.on)
+      ? new THREE.FogExp2(new THREE.Color(fog.color || '#aebdd0'), fog.density !== undefined ? fog.density : 0.02)
+      : null;
     const mapped = SHADOW_TYPES[lighting.shadows];
     renderer.shadowMap.enabled = !!mapped;
     if (mapped) {
