@@ -12,12 +12,60 @@ import * as sb from '../soundbooth.js';
 import * as audio from '../../engine/systems/audio.js';
 import { playSong } from '../../engine/systems/audio.js';
 import { encodeWav } from '../wav.js';
+import { toast } from '../shell.js';
 
 let currentSongId = null;
 let working = sb.createSong('Song');
 let currentPatternId = 'pattern-1';
 let selectedNote = 'C4';
-let zoom = 1;  // tracker cell width multiplier
+let zoom = 1;
+let selectedChannel = 0;
+let kbOctave = 4;
+let kbBound = false;
+
+/* ---- the computer keyboard IS the instrument ----
+   Q..P = naturals (C up through the next octave's E), number row above =
+   sharps, A-row below = flats, Z/X = octave down/up. Pressing a key plays
+   the note on the picked track's sound AND makes it the note-to-place. */
+const KB_NATS = 'qwertyuiop';
+const KB_SHARPS = '1234567890';
+const KB_FLATS = 'asdfghjkl;';
+const KB_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const KB_DEGREES = [0, 2, 4, 5, 7, 9, 11];
+
+function kbMidiToName(midi) {
+  return KB_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
+function bindKeyboard() {
+  if (kbBound) return;
+  kbBound = true;
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+    if (!document.querySelector('.booth-layout')) return;  // Booth not on screen
+    const k = e.key.toLowerCase();
+    if (k === 'z' || k === 'x') {
+      kbOctave = Math.max(2, Math.min(6, kbOctave + (k === 'x' ? 1 : -1)));
+      toast('Octave ' + kbOctave);
+      return;
+    }
+    let idx = KB_NATS.indexOf(k), accidental = 0;
+    if (idx === -1) { idx = KB_SHARPS.indexOf(e.key); accidental = 1; }
+    if (idx === -1) { idx = KB_FLATS.indexOf(k); accidental = -1; }
+    if (idx === -1) return;
+    const midi = (kbOctave + 1) * 12 + KB_DEGREES[idx % 7] + 12 * Math.floor(idx / 7) + accidental;
+    const note = kbMidiToName(midi);
+    selectedNote = note;
+    const sel = document.getElementById('boothNoteSelect');
+    if (sel) sel.value = note;
+    const voice = working.channelVoices[selectedChannel] || 'pulse';
+    const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
+    audio.scheduleNote(0, note, voice, 0.4, working.sampleSlots || [], assets);
+    e.preventDefault();
+  });
+}  // tracker cell width multiplier
 const ZOOMS = [0.6, 0.8, 1, 1.35, 1.8, 2.4];
 /** @type {any} the active preview player's stop handle, or null */
 let previewPlayer = null;
@@ -98,7 +146,13 @@ export function renderSoundboothPanel(host, ctx) {
   noteLabel.textContent = 'Note to place:';
   noteLabel.style.fontSize = '12px';
   noteBar.appendChild(noteLabel);
+  bindKeyboard();
+  const kbHint = document.createElement('span');
+  kbHint.className = 'stage-hint';
+  kbHint.style.marginLeft = '8px';
+  kbHint.textContent = '⌨ Q–P play notes · number row = sharps · A-row = flats · Z/X octave';
   const noteSelect = document.createElement('select');
+  noteSelect.id = 'boothNoteSelect';
   noteSelect.className = 'deck-select';
   for (const n of sb.NOTE_ROWS) {
     const opt = document.createElement('option'); opt.value = n; opt.textContent = n;
@@ -107,6 +161,7 @@ export function renderSoundboothPanel(host, ctx) {
   }
   noteSelect.addEventListener('change', () => { selectedNote = noteSelect.value; });
   noteBar.appendChild(noteSelect);
+  noteBar.appendChild(kbHint);
   panel.appendChild(noteBar);
 
   const layout = document.createElement('div');
@@ -141,7 +196,6 @@ export function renderSoundboothPanel(host, ctx) {
   soundsCard.appendChild(soundsList);
   palette.appendChild(soundsCard);
 
-  let selectedChannel = 0;
   const CHIP_VOICES = ['pulse', 'tri', 'saw', 'noise'];
 
   function voiceLabel(voice) {
