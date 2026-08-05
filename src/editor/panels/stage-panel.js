@@ -251,222 +251,113 @@ export function renderStagePanel(host, ctx) {
     return ent.getScene(cart.getCartridge(), currentSceneId);
   }
 
-  /* ---- grid-cell terrain editing ---- */
-  let selectedCell = null; // [row, col]
+  /* ---- terrain sculpting brush (Blender/ZBrush style) ---- */
   let activeSlot = 0;
-  let cellHighlight = null;
+  let brushOp = 'raise'; // raise | lower | paint
+  let brushRadius = 1.5; // in cells
+  let stroking = false;
+  /** cells already touched this stroke, so raise/lower step once per pass */
+  let strokeSet = new Set();
+  let brushRing = null;
 
-  function clearCellSelection() {
-    selectedCell = null;
-    if (cellHighlight) { engine.scene.remove(cellHighlight); cellHighlight = null; }
-  }
-
-  function updateCellHighlight() {
+  function terrainReady() {
     const scene = getTerrainScene();
     const t = scene && scene.terrain;
-    if (!t || !selectedCell) { clearCellSelection(); return; }
-    const cell = t.cell || 1;
-    const entry = (t.cells || {})[selectedCell[0] + ',' + selectedCell[1]] || {};
-    const top = Math.max(0.02, (entry.h || 0) * 0.5);
-    if (!cellHighlight) {
-      cellHighlight = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 0.06, 1),
-        new THREE.MeshBasicMaterial({ color: '#ffcf6e', transparent: true, opacity: 0.55, depthTest: false })
+    return t && (t.mode || 'stretch') === 'grid' && engine.mode === '3d' ? t : null;
+  }
+
+  function showBrushRing(pt) {
+    const t = terrainReady();
+    if (!t || !pt) { hideBrushRing(); return; }
+    if (!brushRing) {
+      brushRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.85, 1, 32),
+        new THREE.MeshBasicMaterial({ color: '#ffcf6e', transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthTest: false })
       );
-      cellHighlight.renderOrder = 998;
-      engine.scene.add(cellHighlight);
+      brushRing.rotation.x = -Math.PI / 2;
+      brushRing.renderOrder = 998;
+      engine.scene.add(brushRing);
     }
-    cellHighlight.scale.set(cell, 1, cell);
-    cellHighlight.position.set(
-      -t.size[0] / 2 + (selectedCell[1] + 0.5) * cell,
-      top + 0.03,
-      -t.size[1] / 2 + (selectedCell[0] + 0.5) * cell
-    );
+    const r = brushRadius * (t.cell || 1);
+    brushRing.scale.set(r, r, 1);
+    brushRing.position.set(pt[0], 0.05, pt[2]);
   }
 
-  function trySelectTerrainCell(ndc) {
+  function hideBrushRing() {
+    if (brushRing) { engine.scene.remove(brushRing); brushRing = null; }
+  }
+
+  function applyBrush(ndc) {
     const scene = getTerrainScene();
-    const t = scene && scene.terrain;
-    if (!t || (t.mode || 'stretch') !== 'grid') return false;
+    const t = terrainReady();
+    if (!t) return;
     const pt = groundPoint(engine, ndc);
-    if (!pt) return false;
-    const [x, , z] = pt;
-    if (Math.abs(x) > t.size[0] / 2 || Math.abs(z) > t.size[1] / 2) return false;
+    if (!pt) return;
+    showBrushRing(pt);
     const cell = t.cell || 1;
-    selectedCell = [
-      Math.floor((z + t.size[1] / 2) / cell),
-      Math.floor((x + t.size[0] / 2) / cell)
-    ];
-    updateCellHighlight();
-    refreshTerrainCard();
-    return true;
+    const r = brushRadius * cell;
+    if (!t.cells) t.cells = {};
+    const cols = Math.ceil(t.size[0] / cell), rows = Math.ceil(t.size[1] / cell);
+    let changed = false;
+    const c0 = Math.max(0, Math.floor((pt[0] - r + t.size[0] / 2) / cell));
+    const c1 = Math.min(cols - 1, Math.floor((pt[0] + r + t.size[0] / 2) / cell));
+    const r0 = Math.max(0, Math.floor((pt[2] - r + t.size[1] / 2) / cell));
+    const r1 = Math.min(rows - 1, Math.floor((pt[2] + r + t.size[1] / 2) / cell));
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        const cx = -t.size[0] / 2 + (col + 0.5) * cell;
+        const cz = -t.size[1] / 2 + (row + 0.5) * cell;
+        if (Math.hypot(cx - pt[0], cz - pt[2]) > r) continue;
+        const key = row + ',' + col;
+        if (!t.cells[key]) t.cells[key] = { t: null, h: 0 };
+        const entry = t.cells[key];
+        if (brushOp === 'paint') {
+          if (entry.t !== activeSlot) { entry.t = activeSlot; changed = true; }
+        } else if (!strokeSet.has(key)) {
+          strokeSet.add(key);
+          if (brushOp === 'raise') entry.h = Math.min(8, (entry.h || 0) + 1);
+          else entry.h = Math.max(0, (entry.h || 0) - 1);
+          changed = true;
+        }
+        if (entry.t == null && !entry.h) delete t.cells[key];
+      }
+    }
+    if (changed) {
+      cart.touch();
+      view.refreshTerrain(scene);
+    }
   }
 
-  function editSelectedCell(fn) {
-    const scene = getTerrainScene();
-    const t = scene && scene.terrain;
-    if (!t || !selectedCell) return;
-    if (!t.cells) t.cells = {};
-    const key = selectedCell[0] + ',' + selectedCell[1];
-    if (!t.cells[key]) t.cells[key] = { t: null, h: 0 };
-    fn(t.cells[key]);
-    if (t.cells[key].t == null && !t.cells[key].h) delete t.cells[key];
-    cart.touch();
-    view.refreshTerrain(scene);
-    updateCellHighlight();
-  }
+  // brush pointer layer: only bites when the Sculpt tool is armed
+  canvas.addEventListener('pointerdown', (e) => {
+    if (playSession || tool !== 'terrain') return;
+    stroking = true;
+    strokeSet = new Set();
+    orbitControls.enabled = false;
+    applyBrush(ptrNdc(e, canvas));
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (playSession || tool !== 'terrain') return;
+    const ndc = ptrNdc(e, canvas);
+    if (stroking) applyBrush(ndc);
+    else showBrushRing(groundPoint(engine, ndc));
+  });
+  window.addEventListener('pointerup', () => {
+    if (stroking) { stroking = false; strokeSet = new Set(); orbitControls.enabled = true; }
+  });
 
   bindStageKeys();
   stageKeyHandler = (e) => {
-    if (playSession) return;
+    if (playSession || tool !== 'terrain') return;
     const tag = e.target && e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (!document.body.contains(panel)) return;
-    const scene = getTerrainScene();
-    const t = scene && scene.terrain;
-    if (!t || (t.mode || 'stretch') !== 'grid' || !selectedCell) return;
     if (e.key >= '1' && e.key <= '8') {
-      editSelectedCell((c) => { c.t = Number(e.key) - 1; });
-    } else if (e.key === '0') {
-      editSelectedCell((c) => { c.t = null; });
-    } else if (e.key === '+' || e.key === '=') {
-      editSelectedCell((c) => { c.h = Math.min(8, (c.h || 0) + 1); });
-    } else if (e.key === '-' || e.key === '_') {
-      editSelectedCell((c) => { c.h = Math.max(0, (c.h || 0) - 1); });
-    } else {
-      return;
+      activeSlot = Number(e.key) - 1;
+      refreshTerrainCard();
+      e.preventDefault();
     }
-    e.preventDefault();
   };
-
-  function terrainChanged() {
-    cart.touch();
-    view.refreshTerrain(getTerrainScene());
-    refreshTerrainCard();
-  }
-
-  function refreshTerrainCard() {
-    const scene = getTerrainScene();
-    if (!scene) return;
-    terrainBody.innerHTML = '';
-    const t = scene.terrain;
-
-    if (!t) {
-      const addBtn = document.createElement('button');
-      addBtn.className = 'bar';
-      addBtn.style.width = '100%';
-      addBtn.textContent = '+ Add ground';
-      addBtn.addEventListener('click', () => {
-        scene.terrain = { texture: null, textureName: null, mode: 'stretch', repeat: 4, cell: 1, size: [20, 20], color: '#3a3f4c' };
-        terrainChanged();
-      });
-      terrainBody.appendChild(addBtn);
-      return;
-    }
-
-    if ((t.mode || 'stretch') === 'grid') {
-      if (!t.palette) t.palette = GENERIC_TEXTURES.slice(0, 8).map((g) => ({ id: g.id, dataURL: g.dataURL }));
-      const how = document.createElement('div');
-      how.className = 'stage-hint';
-      how.style.lineHeight = '1.6';
-      how.textContent = selectedCell
-        ? 'Square ' + selectedCell[1] + ',' + selectedCell[0] + ' picked — press 1-8 to paint it, 0 to wipe it, + and − to raise and lower it.'
-        : 'Click the ground to pick a square. Then: 1-8 paints with the numbered texture, 0 wipes, + and − raise and lower.';
-      terrainBody.appendChild(how);
-
-      const slotStrip = document.createElement('div');
-      slotStrip.className = 'kit-tex-grid';
-      slotStrip.style.marginBottom = '6px';
-      t.palette.forEach((slot, i) => {
-        const tile = document.createElement('button');
-        tile.className = 'kit-tex-tile' + (i === activeSlot ? ' active' : '');
-        tile.title = 'Key ' + (i + 1) + ' — click, then pick a texture below to change it';
-        const img = document.createElement('img');
-        img.src = slot.dataURL;
-        tile.appendChild(img);
-        const num = document.createElement('span');
-        num.className = 'kit-slot-num';
-        num.textContent = String(i + 1);
-        tile.appendChild(num);
-        tile.addEventListener('click', () => { activeSlot = i; refreshTerrainCard(); });
-        slotStrip.appendChild(tile);
-      });
-      terrainBody.appendChild(slotStrip);
-    }
-
-    // texture tiles: generics + the kid's own images, plus plain color
-    const grid = document.createElement('div');
-    grid.className = 'kit-tex-grid';
-    const addTile = (entry) => {
-      const tile = document.createElement('button');
-      const active = entry ? t.textureName === entry.id : !t.texture;
-      tile.className = 'kit-tex-tile' + (active ? ' active' : '');
-      tile.title = entry ? entry.name : 'Plain color';
-      if (entry) {
-        const img = document.createElement('img');
-        img.src = entry.dataURL;
-        tile.appendChild(img);
-      } else {
-        tile.textContent = '∅';
-      }
-      tile.addEventListener('click', () => {
-        if ((t.mode || 'stretch') === 'grid' && entry) {
-          // grid mode: the big list re-arms the ACTIVE numbered slot
-          t.palette[activeSlot] = { id: entry.id, dataURL: entry.dataURL };
-        } else if (entry) {
-          t.texture = entry.dataURL; t.textureName = entry.id;
-        } else {
-          t.texture = null; t.textureName = null;
-        }
-        terrainChanged();
-      });
-      grid.appendChild(tile);
-    };
-    addTile(null);
-    for (const g of GENERIC_TEXTURES) addTile(g);
-    for (const sprite of cart.getCartridge().assets.sprites) {
-      addTile({ id: sprite.id, name: sprite.name, dataURL: (sprite.frames[0] && sprite.frames[0].dataURL) || sprite.thumbnail });
-    }
-    terrainBody.appendChild(grid);
-
-    // mode: one big picture / tiled / snapped to the grid
-    const modeRow = document.createElement('div');
-    modeRow.className = 'stage-bar';
-    modeRow.style.marginTop = '8px';
-    for (const [mode, label] of [['stretch', 'One Big'], ['repeat', 'Tiled'], ['grid', 'Grid']]) {
-      const b = document.createElement('button');
-      b.className = 'bar' + ((t.mode || 'stretch') === mode ? ' active' : '');
-      b.textContent = label;
-      b.addEventListener('click', () => { t.mode = mode; terrainChanged(); });
-      modeRow.appendChild(b);
-    }
-    terrainBody.appendChild(modeRow);
-
-    const numRow = (label, value, min, max, step, set) => {
-      const row = document.createElement('div');
-      row.className = 'brick-row';
-      const l = document.createElement('span');
-      l.textContent = label; l.style.minWidth = '70px'; l.style.fontSize = '11px';
-      row.appendChild(l);
-      const input = document.createElement('input');
-      input.type = 'number'; input.min = String(min); input.max = String(max); input.step = String(step);
-      input.value = String(value); input.style.width = '70px';
-      input.addEventListener('change', () => { set(Math.max(min, Math.min(max, Number(input.value) || value))); terrainChanged(); });
-      row.appendChild(input);
-      terrainBody.appendChild(row);
-    };
-    if (t.mode === 'repeat') numRow('Tiles across', t.repeat || 4, 1, 64, 1, (v) => { t.repeat = v; });
-    if (t.mode === 'grid') numRow('Cell size', t.cell || 1, 0.25, 8, 0.25, (v) => { t.cell = v; });
-    numRow('Width', t.size[0], 4, 200, 1, (v) => { t.size[0] = v; });
-    numRow('Depth', t.size[1], 4, 200, 1, (v) => { t.size[1] = v; });
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'bar bad-btn';
-    removeBtn.style.cssText = 'width:100%;margin-top:6px;';
-    removeBtn.textContent = 'Remove ground';
-    removeBtn.addEventListener('click', () => { scene.terrain = null; terrainChanged(); });
-    terrainBody.appendChild(removeBtn);
-  }
 
   const logCard = document.createElement('div');
   logCard.className = 'card';
@@ -942,15 +833,9 @@ export function renderStagePanel(host, ctx) {
     if (tool === 'select') {
       if (txControls.dragging) return;
       const id = pickEntity(engine, ndc);
-      if (id) {
-        clearCellSelection();
-        selectEntity(id);
-      } else if (trySelectTerrainCell(ndc)) {
-        selectEntity(null);
-      } else {
-        clearCellSelection();
-        selectEntity(null);
-      }
+      selectEntity(id || null);
+    } else if (tool === 'terrain') {
+      return; // the brush layer owns these clicks
     } else {
       painting = true;
       doPaint(ndc);
