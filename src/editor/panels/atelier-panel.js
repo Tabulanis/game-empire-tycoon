@@ -16,10 +16,11 @@ let currentSpriteId = null; // null = new/unsaved sprite
 /** @type {any} working sprite (editable copy — see atelier.js loadSpriteForEditing) */
 let working = atelier.createSprite('Sprite', 16);
 let currentFrame = 0;
-let currentLayer = 'fg';
+let currentLayer = 0; // index into frame.layers
 let currentColor = atelier.PALETTE[4];
 let tool = 'draw'; // draw | erase | fill | line | rect | pick
 let mirror = false;
+let sel = null; // [x0,y0,x1,y1] pixel selection
 let anchor = null; // line/rect start pixel
 
 /**
@@ -45,8 +46,9 @@ export function renderAtelierPanel(host, ctx) {
   const newBtn = makeBtn('+ New Sprite', () => {
     const name = prompt('Sprite name?', 'Sprite');
     if (name === null) return;
-    const sizeStr = prompt('Canvas size — 16, 32, 64, 128, or 256?', '16');
-    const size = atelier.SIZES.includes(Number(sizeStr)) ? Number(sizeStr) : 16;
+    const sizeStr = prompt('Canvas size? Any number 8-512 (16, 32, 64, 128, 256 are the classics)', '16');
+    if (sizeStr === null) return;
+    const size = Math.max(atelier.MIN_SIZE, Math.min(atelier.MAX_SIZE, Math.round(Number(sizeStr) || 16)));
     working = atelier.createSprite(name, size);
     currentSpriteId = null;
     currentFrame = 0;
@@ -69,13 +71,8 @@ export function renderAtelierPanel(host, ctx) {
   });
 
   bar.appendChild(makeSep());
-  const layerBg = makeBtn('Layer: BG', () => { currentLayer = 'bg'; refreshToolbar(); });
-  const layerFg = makeBtn('Layer: FG', () => { currentLayer = 'fg'; refreshToolbar(); });
-  bar.appendChild(layerBg); bar.appendChild(layerFg);
-
-  bar.appendChild(makeSep());
   const toolBtns = {};
-  const TOOLS = [['draw', '✎ Draw'], ['erase', '✖ Erase'], ['fill', '🪣 Fill'], ['line', '📏 Line'], ['rect', '▭ Box'], ['pick', '💉 Pick']];
+  const TOOLS = [['draw', '✎ Draw'], ['erase', '✖ Erase'], ['fill', '🪣 Fill'], ['line', '📏 Line'], ['rect', '▭ Box'], ['pick', '💉 Pick'], ['select', '⬚ Select']];
   for (const [id, label] of TOOLS) {
     const b = makeBtn(label, () => { tool = id; anchor = null; refreshToolbar(); });
     toolBtns[id] = b;
@@ -83,6 +80,16 @@ export function renderAtelierPanel(host, ctx) {
   }
   const mirrorBtn = makeBtn('🪞 Mirror', () => { mirror = !mirror; refreshToolbar(); });
   bar.appendChild(mirrorBtn);
+  bar.appendChild(makeSep());
+  bar.appendChild(makeBtn('\ud83c\udf2b Blur', () => {
+    atelier.blurLayer(working.frames[currentFrame], currentLayer, working.size, sel);
+    renderAll();
+  }));
+  bar.appendChild(makeBtn('\ud83e\uddf9 Clear', () => {
+    const region = sel || [0, 0, working.size - 1, working.size - 1];
+    atelier.clearRegion(working.frames[currentFrame], currentLayer, working.size, region);
+    renderAll();
+  }));
   bar.appendChild(makeSep());
   const importInput = document.createElement('input');
   importInput.type = 'file'; importInput.accept = 'image/*'; importInput.style.display = 'none';
@@ -140,6 +147,62 @@ export function renderAtelierPanel(host, ctx) {
   // ---------- right: frames + hitbox + save ----------
   const right = document.createElement('div');
   right.className = 'deck-right';
+
+  const layersCard = document.createElement('div');
+  layersCard.className = 'card';
+  layersCard.innerHTML = '<h3>Layers</h3>';
+  const layersList = document.createElement('div');
+  layersCard.appendChild(layersList);
+  const addLayerBtn = makeBtn('+ Layer', () => {
+    currentLayer = atelier.addLayer(working.frames[currentFrame], working.size);
+    renderAll();
+  });
+  addLayerBtn.style.marginTop = '6px';
+  layersCard.appendChild(addLayerBtn);
+  right.appendChild(layersCard);
+
+  const exportCard = document.createElement('div');
+  exportCard.className = 'card';
+  exportCard.innerHTML = '<h3>Export</h3>';
+  const dl = (href, filename) => {
+    const a = document.createElement('a');
+    a.href = href; a.download = filename; a.click();
+  };
+  const exRow = document.createElement('div');
+  exRow.className = 'stage-bar';
+  exRow.style.flexWrap = 'wrap';
+  exRow.appendChild(makeBtn('PNG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.size, 'png'), (working.name || 'sprite') + '.png')));
+  exRow.appendChild(makeBtn('JPEG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.size, 'jpeg'), (working.name || 'sprite') + '.jpg')));
+  exRow.appendChild(makeBtn('Sprite File', () => {
+    // the proprietary format: the full layered sprite as JSON
+    const blob = new Blob([JSON.stringify(working)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    dl(url, (working.name || 'sprite') + '.getsprite.json');
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }));
+  const spriteFileInput = document.createElement('input');
+  spriteFileInput.type = 'file'; spriteFileInput.accept = '.json,application/json'; spriteFileInput.style.display = 'none';
+  spriteFileInput.addEventListener('change', () => {
+    const file = spriteFileInput.files && spriteFileInput.files[0];
+    if (!file) return;
+    file.text().then((text) => {
+      const data = JSON.parse(text);
+      if (!data.frames || !data.size) throw new Error('not a sprite file');
+      working = {
+        id: '', name: data.name || 'Imported Sprite', size: data.size,
+        frames: data.frames.map((f) => atelier.migrateFrame(f, data.size)),
+        swatch: data.swatch || '#6fb2dc', thumbnail: null, hitbox: data.hitbox || [0, 0, 1, 1]
+      };
+      currentSpriteId = null; currentFrame = 0; currentLayer = 0; sel = null;
+      renderAll();
+      ctx.toast('Sprite file loaded.');
+    }).catch(() => ctx.toast('That file is not a sprite file.', true));
+    spriteFileInput.value = '';
+  });
+  exRow.appendChild(spriteFileInput);
+  exRow.appendChild(makeBtn('Open File\u2026', () => spriteFileInput.click()));
+  exportCard.appendChild(exRow);
+  right.appendChild(exportCard);
 
   const frameCard = document.createElement('div');
   frameCard.className = 'card';
@@ -244,8 +307,6 @@ export function renderAtelierPanel(host, ctx) {
   }
 
   function refreshToolbar() {
-    layerBg.classList.toggle('active', currentLayer === 'bg');
-    layerFg.classList.toggle('active', currentLayer === 'fg');
     for (const [id, b] of Object.entries(toolBtns)) b.classList.toggle('active', tool === id);
     mirrorBtn.classList.toggle('active', mirror);
     for (const child of palette.children) {
@@ -259,6 +320,54 @@ export function renderAtelierPanel(host, ctx) {
     ctx2d.clearRect(0, 0, CANVAS_DISPLAY_SIZE, CANVAS_DISPLAY_SIZE);
     ctx2d.imageSmoothingEnabled = false;
     ctx2d.drawImage(composite, 0, 0, working.size, working.size, 0, 0, CANVAS_DISPLAY_SIZE, CANVAS_DISPLAY_SIZE);
+    if (sel) {
+      const k = CANVAS_DISPLAY_SIZE / working.size;
+      ctx2d.strokeStyle = '#f0c463';
+      ctx2d.setLineDash([5, 4]);
+      ctx2d.strokeRect(sel[0] * k + 0.5, sel[1] * k + 0.5, (sel[2] - sel[0] + 1) * k - 1, (sel[3] - sel[1] + 1) * k - 1);
+      ctx2d.setLineDash([]);
+    }
+  }
+
+  function refreshLayers() {
+    const frame = working.frames[currentFrame];
+    if (currentLayer >= frame.layers.length) currentLayer = frame.layers.length - 1;
+    layersList.innerHTML = '';
+    // top layer first, like every art program
+    for (let i = frame.layers.length - 1; i >= 0; i--) {
+      const layer = frame.layers[i];
+      const row = document.createElement('div');
+      row.className = 'stage-prefab-row';
+      if (i === currentLayer) row.style.outline = '1px solid var(--accent)';
+      const vis = document.createElement('input');
+      vis.type = 'checkbox'; vis.checked = layer.visible; vis.title = 'Visible';
+      vis.addEventListener('change', () => { layer.visible = vis.checked; drawCanvas(); refreshFrameStrip(); });
+      row.appendChild(vis);
+      const label = document.createElement('span');
+      label.textContent = layer.name;
+      label.style.cursor = 'pointer';
+      label.addEventListener('click', () => { currentLayer = i; refreshLayers(); });
+      label.addEventListener('dblclick', () => {
+        const name = prompt('Layer name?', layer.name);
+        if (name) { layer.name = name; refreshLayers(); }
+      });
+      row.appendChild(label);
+      const op = document.createElement('input');
+      op.type = 'range'; op.min = '0'; op.max = '1'; op.step = '0.05'; op.value = String(layer.opacity);
+      op.style.width = '52px'; op.title = 'Opacity';
+      op.addEventListener('input', () => { layer.opacity = Number(op.value); drawCanvas(); });
+      row.appendChild(op);
+      const upBtn = makeBtn('\u25b2', () => { currentLayer = atelier.moveLayer(frame, i, 1); renderAll(); });
+      const dnBtn = makeBtn('\u25bc', () => { currentLayer = atelier.moveLayer(frame, i, -1); renderAll(); });
+      const delBtn = makeBtn('\u2715', () => {
+        if (!atelier.removeLayer(frame, i)) { ctx.toast('A frame needs at least one layer.', true); return; }
+        currentLayer = Math.max(0, Math.min(currentLayer, frame.layers.length - 1));
+        renderAll();
+      });
+      delBtn.className += ' bad-btn';
+      row.appendChild(upBtn); row.appendChild(dnBtn); row.appendChild(delBtn);
+      layersList.appendChild(row);
+    }
   }
 
   function refreshFrameStrip() {
@@ -293,6 +402,7 @@ export function renderAtelierPanel(host, ctx) {
     nameInput.value = working.name;
     refreshSpriteSelect();
     refreshToolbar();
+    refreshLayers();
     drawCanvas();
     refreshFrameStrip();
     refreshHitbox();
@@ -324,8 +434,13 @@ export function renderAtelierPanel(host, ctx) {
     const [px, py] = pixelAt(e.clientX, e.clientY);
     const frame = working.frames[currentFrame];
     if (tool === 'pick') {
-      const picked = atelier.getPixel(frame, 'fg', px, py, working.size) || atelier.getPixel(frame, 'bg', px, py, working.size);
+      const picked = atelier.getCompositePixel(frame, px, py, working.size);
       if (picked) { currentColor = picked; tool = 'draw'; refreshToolbar(); }
+      return;
+    }
+    if (tool === 'select') {
+      anchor = [px, py];
+      sel = null;
       return;
     }
     if (tool === 'fill') {
@@ -342,6 +457,18 @@ export function renderAtelierPanel(host, ctx) {
   });
   canvas.addEventListener('pointermove', (e) => { if (painting) paintAt(e.clientX, e.clientY); });
   window.addEventListener('pointerup', (e) => {
+    if (anchor && tool === 'select') {
+      const [px, py] = pixelAt(e.clientX, e.clientY);
+      const clamp = (v) => Math.max(0, Math.min(working.size - 1, v));
+      sel = [
+        clamp(Math.min(anchor[0], px)), clamp(Math.min(anchor[1], py)),
+        clamp(Math.max(anchor[0], px)), clamp(Math.max(anchor[1], py))
+      ];
+      if (sel[2] - sel[0] < 1 && sel[3] - sel[1] < 1) sel = null; // a click clears
+      anchor = null;
+      drawCanvas();
+      return;
+    }
     if (anchor && (tool === 'line' || tool === 'rect')) {
       const [px, py] = pixelAt(e.clientX, e.clientY);
       const frame = working.frames[currentFrame];
