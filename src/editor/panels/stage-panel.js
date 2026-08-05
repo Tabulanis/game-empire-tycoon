@@ -375,7 +375,9 @@ export function renderStagePanel(host, ctx) {
         // stays on the wheel, rotate/pan come back on Done
         orbitControls.enableRotate = tool !== 'terrain';
         orbitControls.enablePan = tool !== 'terrain';
+        canvas.style.cursor = tool === 'terrain' ? 'crosshair' : '';
         if (tool !== 'terrain') hideBrushRing();
+        else showBrushRing([0, 0, 0]); // proof of life: ring appears immediately at center
         refreshTerrainCard();
       });
       sculptBtn.className += tool === 'terrain' ? ' active' : ' primary';
