@@ -17,6 +17,8 @@ let currentSongId = null;
 let working = sb.createSong('Song');
 let currentPatternId = 'pattern-1';
 let selectedNote = 'C4';
+let zoom = 1;  // tracker cell width multiplier
+const ZOOMS = [0.6, 0.8, 1, 1.35, 1.8, 2.4];
 /** @type {any} the active preview player's stop handle, or null */
 let previewPlayer = null;
 
@@ -177,6 +179,22 @@ export function renderSoundboothPanel(host, ctx) {
     currentPatternId = id;
     renderAll();
   }));
+  patternHeader.appendChild(makeBtn('2× Double', () => {
+    if (sb.doublePattern(working, currentPatternId)) renderAll();
+    else ctx.toast('That pattern is as long as patterns go (128).', true);
+  }));
+  patternHeader.appendChild(makeBtn('½ Halve', () => {
+    if (sb.halvePattern(working, currentPatternId)) renderAll();
+    else ctx.toast('That pattern is as short as patterns go (8).', true);
+  }));
+  patternHeader.appendChild(makeBtn('🔍−', () => {
+    const i = ZOOMS.indexOf(zoom);
+    if (i > 0) { zoom = ZOOMS[i - 1]; refreshGrid(); }
+  }));
+  patternHeader.appendChild(makeBtn('🔍+', () => {
+    const i = ZOOMS.indexOf(zoom);
+    if (i < ZOOMS.length - 1) { zoom = ZOOMS[i + 1]; refreshGrid(); }
+  }));
   patternHeader.appendChild(makeBtn('Delete Pattern', () => {
     if (sb.deletePattern(working, currentPatternId)) {
       currentPatternId = Object.keys(working.patterns)[0];
@@ -321,6 +339,10 @@ export function renderSoundboothPanel(host, ctx) {
     gridCells = [];
     const pattern = working.patterns[currentPatternId];
     if (!pattern) return;
+    // Columns sized here, not in CSS: patterns can be 8-128 steps and the
+    // zoom buttons scale the cells.
+    grid.style.gridTemplateColumns = '60px repeat(' + pattern.steps + ', ' + Math.round(18 * zoom) + 'px)';
+    grid.style.gridAutoRows = Math.round(18 * zoom) + 'px';
     for (let ch = 0; ch < sb.CHANNEL_COUNT; ch++) {
       gridCells[ch] = [];
       const label = document.createElement('div');

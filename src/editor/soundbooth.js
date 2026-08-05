@@ -104,6 +104,48 @@ export function removeChainStep(song, index) {
   song.chain.splice(index, 1);
 }
 
+const firstNote = (cell) => Array.isArray(cell) ? (cell[0] || cell[1]) : cell;
+
+/**
+ * Double a pattern: twice the steps, notes spread out — split cells expand
+ * into two whole cells (the exact inverse of halving).
+ * @param {any} song @param {string} patternId @returns {boolean}
+ */
+export function doublePattern(song, patternId) {
+  const pattern = song.patterns[patternId];
+  if (!pattern || pattern.steps * 2 > 128) return false;
+  pattern.channels = pattern.channels.map((steps) => {
+    const out = new Array(pattern.steps * 2).fill(null);
+    steps.forEach((cell, i) => {
+      if (Array.isArray(cell)) { out[i * 2] = cell[0]; out[i * 2 + 1] = cell[1]; }
+      else if (cell) out[i * 2] = cell;
+    });
+    return out;
+  });
+  pattern.steps *= 2;
+  return true;
+}
+
+/**
+ * Halve a pattern: half the steps — step pairs squeeze into one cell,
+ * becoming a split cell when both had notes.
+ * @param {any} song @param {string} patternId @returns {boolean}
+ */
+export function halvePattern(song, patternId) {
+  const pattern = song.patterns[patternId];
+  if (!pattern || pattern.steps / 2 < 8) return false;
+  pattern.channels = pattern.channels.map((steps) => {
+    const out = new Array(pattern.steps / 2).fill(null);
+    for (let i = 0; i < out.length; i++) {
+      const a = firstNote(steps[i * 2]), b = firstNote(steps[i * 2 + 1]);
+      out[i] = a && b ? [a, b] : (a || b || null);
+    }
+    return out;
+  });
+  pattern.steps /= 2;
+  return true;
+}
+
 /* ------------------------------------------------------------------ */
 /* saving into the cartridge                                           */
 /* ------------------------------------------------------------------ */
