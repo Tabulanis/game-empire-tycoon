@@ -58,15 +58,11 @@ function buildSmoothTerrainMesh(terrain) {
   const cell = terrain.cell || 1;
   const cols = Math.max(1, Math.ceil(size[0] / cell));
   const rows = Math.max(1, Math.ceil(size[1] / cell));
-  const segX = cols * 2, segZ = rows * 2;
-  const geo = new THREE.PlaneGeometry(size[0], size[1], segX, segZ);
-  geo.rotateX(-Math.PI / 2);
 
   const cellH = (row, col) => {
     const c = (terrain.cells || {})[row + ',' + col];
     return c ? (c.h || 0) * 0.5 : 0;
   };
-  // bilinear height at a world position (heights live at cell centers)
   const heightAt = (x, z) => {
     const fx = (x + size[0] / 2) / cell - 0.5;
     const fz = (z + size[1] / 2) / cell - 0.5;
@@ -76,91 +72,89 @@ function buildSmoothTerrainMesh(terrain) {
     const h01 = cellH(r0 + 1, c0), h11 = cellH(r0 + 1, c0 + 1);
     return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
   };
-  const pos = geo.getAttribute('position');
-  for (let i = 0; i < pos.count; i++) {
-    pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
-  }
-  geo.computeVertexNormals();
+
+  // one displaced geometry per repeat factor: uv channel 1 carries the
+  // repeat baked in, so each layer's picture tiles at its own rate while
+  // the alpha mask (channel 0) always spans the whole ground exactly once
+  const makeGeo = (repeat) => {
+    const geo = new THREE.PlaneGeometry(size[0], size[1], cols * 2, rows * 2);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.getAttribute('position');
+    for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+    geo.computeVertexNormals();
+    const uv = geo.getAttribute('uv');
+    const uv1 = new Float32Array(uv.count * 2);
+    for (let i = 0; i < uv.count; i++) {
+      uv1[i * 2] = uv.getX(i) * repeat;
+      uv1[i * 2 + 1] = uv.getY(i) * repeat;
+    }
+    geo.setAttribute('uv1', new THREE.BufferAttribute(uv1, 2));
+    return geo;
+  };
 
   const loadTex = (data, srgb) => {
     const t = new THREE.TextureLoader().load(data);
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.channel = 1; // sample via the repeat-baked uv set
     return t;
   };
-  const white = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 2;
-    const g = c.getContext('2d');
-    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 2, 2);
-    return new THREE.CanvasTexture(c);
-  })();
 
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
-  // base coat: texture or plain color; .map must exist so vMapUv is compiled
+  const group = new THREE.Group();
+  const repeatFor = (mode, rep) => mode === 'grid' ? Math.max(cols, rows) : (mode === 'tiled' ? (rep || 6) : 1);
+
+  // base coat
+  const baseRepeat = repeatFor(terrain.mode || 'stretch', terrain.repeat);
+  const baseMat = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
   if (terrain.texture) {
-    mat.map = loadTex(terrain.texture, true);
-    mat.color = new THREE.Color('#ffffff');
+    baseMat.map = loadTex(terrain.texture, true);
+    baseMat.color = new THREE.Color('#ffffff');
   } else {
-    mat.map = white;
-    mat.color = new THREE.Color(terrain.color || '#3a3f4c');
+    baseMat.color = new THREE.Color(terrain.color || '#3a3f4c');
   }
+  const baseMesh = new THREE.Mesh(makeGeo(baseRepeat), baseMat);
+  baseMesh.receiveShadow = true;
+  baseMesh.userData.terrain = true;
+  group.add(baseMesh);
 
-  // splat mask: red/green/blue = layer 1/2/3 opacity
-  let splatTex;
-  if (terrain.splat) {
-    splatTex = loadTex(terrain.splat, false);
-  } else {
-    const c = document.createElement('canvas');
-    c.width = c.height = SPLAT_SIZE;
-    splatTex = new THREE.CanvasTexture(c);
-  }
-  splatTex.wrapS = splatTex.wrapT = THREE.ClampToEdgeWrapping;
-
+  // up to three painted layers, each: its own picture at its own tiling,
+  // shown only where its white-on-black alpha mask says so
+  const maskTextures = [];
   const layers = terrain.layers || [];
-  const layerData = (i) => {
-    const l = layers[i];
-    if (!l) return { tex: white, repeat: 1 };
-    const src = l.maps ? l.maps.diffuse : l.dataURL;
-    const mode = l.map || 'grid';
-    const n = mode === 'grid' ? Math.max(cols, rows) : (mode === 'tiled' ? (l.repeat || 6) : 1);
-    return { tex: src ? loadTex(src, true) : white, repeat: n };
-  };
-  const L = [layerData(0), layerData(1), layerData(2)];
-  const baseRepeat = (terrain.mode || 'stretch') === 'grid'
-    ? Math.max(cols, rows)
-    : ((terrain.mode === 'repeat') ? (terrain.repeat || 4) : 1);
+  for (let i = 0; i < 3; i++) {
+    const layer = layers[i];
+    if (!layer) { maskTextures.push(null); continue; }
+    const src = layer.maps ? layer.maps.diffuse : layer.dataURL;
+    if (!src) { maskTextures.push(null); continue; }
+    let maskTex;
+    if (terrain.masks && terrain.masks[i]) {
+      maskTex = new THREE.TextureLoader().load(terrain.masks[i]);
+    } else {
+      const c = document.createElement('canvas');
+      c.width = c.height = SPLAT_SIZE;
+      maskTex = new THREE.CanvasTexture(c); // starts fully black = invisible
+    }
+    maskTex.wrapS = maskTex.wrapT = THREE.ClampToEdgeWrapping;
+    const m = new THREE.MeshStandardMaterial({
+      map: loadTex(src, true),
+      alphaMap: maskTex,           // green channel; white blobs = visible
+      transparent: true,
+      depthWrite: false,
+      roughness: 0.95, metalness: 0
+    });
+    const mesh = new THREE.Mesh(makeGeo(repeatFor(layer.map || 'grid', layer.repeat)), m);
+    mesh.position.y = 0.001 * (i + 1);
+    mesh.renderOrder = i + 1;
+    mesh.receiveShadow = true;
+    mesh.userData.terrain = true;
+    group.add(mesh);
+    maskTextures.push(maskTex);
+  }
 
-  mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uSplat = { value: splatTex };
-    shader.uniforms.uL1 = { value: L[0].tex };
-    shader.uniforms.uL2 = { value: L[1].tex };
-    shader.uniforms.uL3 = { value: L[2].tex };
-    shader.uniforms.uReps = { value: new THREE.Vector4(baseRepeat, L[0].repeat, L[1].repeat, L[2].repeat) };
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <map_pars_fragment>',
-        '#include <map_pars_fragment>\nuniform sampler2D uSplat;\nuniform sampler2D uL1;\nuniform sampler2D uL2;\nuniform sampler2D uL3;\nuniform vec4 uReps;')
-      .replace('#include <map_fragment>',
-        [
-          'vec4 splat = texture2D(uSplat, vMapUv);',
-          'vec4 baseC = texture2D(map, vMapUv * uReps.x);',
-          'vec4 c1 = texture2D(uL1, vMapUv * uReps.y);',
-          'vec4 c2 = texture2D(uL2, vMapUv * uReps.z);',
-          'vec4 c3 = texture2D(uL3, vMapUv * uReps.w);',
-          'float rest = max(0.0, 1.0 - splat.r - splat.g - splat.b);',
-          'vec4 blended = baseC * rest + c1 * splat.r + c2 * splat.g + c3 * splat.b;',
-          'diffuseColor *= blended;'
-        ].join('\n'));
-  };
-  // one stable program for all splat terrains (uniforms rebind per material)
-  mat.customProgramCacheKey = () => 'terrain-splat-v1';
-
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.y = -0.01;
-  mesh.receiveShadow = true;
-  mesh.userData.terrain = true;
-  mesh.userData.splatTexture = splatTex;
-  return mesh;
+  group.position.y = -0.01;
+  group.userData.terrain = true;
+  group.userData.maskTextures = maskTextures;
+  return group;
 }
 
 export function buildTerrainMesh(terrain) {

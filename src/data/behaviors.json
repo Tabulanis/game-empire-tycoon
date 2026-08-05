@@ -1,6 +1,173 @@
 {
   "behaviors": [
     {
+      "id": "player-side",
+      "name": "Player (Side view)",
+      "icon": "🧍",
+      "desc": "Platformer hero — run and jump. Where they stand is where the game starts.",
+      "set": {
+        "mode": "2d",
+        "controlScheme": "strafe"
+      },
+      "entity": {
+        "name": "Player",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.6,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "🙂",
+            "swatch": "#7cc6ff",
+            "size": [
+              0.5,
+              0.7
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.5,
+              0.7
+            ]
+          },
+          "health": {
+            "max": 3,
+            "current": 3
+          },
+          "tags": [
+            "player"
+          ]
+        }
+      },
+      "sheet": []
+    },
+    {
+      "id": "player-3d",
+      "name": "Player (3D)",
+      "icon": "🚶",
+      "desc": "Third-person 3D hero — walks the world with the camera following.",
+      "set": {
+        "mode": "3d",
+        "controlScheme": "strafe"
+      },
+      "entity": {
+        "name": "Player",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.6,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "capsule",
+            "swatch": "#7cc6ff",
+            "size": [
+              0.5,
+              0.7,
+              0.5
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.5,
+              1.1
+            ]
+          },
+          "health": {
+            "max": 3,
+            "current": 3
+          },
+          "tags": [
+            "player"
+          ]
+        }
+      },
+      "sheet": []
+    },
+    {
+      "id": "player-fps",
+      "name": "Player (FPS)",
+      "icon": "🎯",
+      "desc": "First-person — you ARE the camera. Mouse looks, WASD moves.",
+      "set": {
+        "mode": "3d",
+        "controlScheme": "fps"
+      },
+      "entity": {
+        "name": "Player",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.8,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "capsule",
+            "swatch": "#67e39b",
+            "size": [
+              0.5,
+              0.8,
+              0.5
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.5,
+              1.4
+            ]
+          },
+          "health": {
+            "max": 3,
+            "current": 3
+          },
+          "tags": [
+            "player"
+          ]
+        }
+      },
+      "sheet": []
+    },
+    {
       "id": "coin",
       "name": "Coin",
       "icon": "🪙",

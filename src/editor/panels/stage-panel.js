@@ -262,8 +262,11 @@ export function renderStagePanel(host, ctx) {
       }
       const spec = JSON.parse(JSON.stringify(b.entity));
       if (b.sheet.length) spec.components.bricks = { sheet: sheetName };
+      // Player Starts flip the cartridge's genre controls (mode/scheme)
+      if (b.set) Object.assign(live.settings, b.set);
       const entity = ent.createEntity(spec);
       placeEntity(entity);
+      if (b.set && b.set.controlScheme) ctx.toast(b.name + ' placed — controls set to ' + b.set.controlScheme + '. One player per scene!');
     });
     shelfGrid.appendChild(tile);
   }
@@ -382,74 +385,65 @@ export function renderStagePanel(host, ctx) {
       { shape: 'sphere', swatch: '#ffcf6e', size: [0.16, 0.16, 0.16], p: [0, 0.34, 0], r: [0, 0, 0], parent: 0 }
     ]}
   };
-  /** smooth-mode painting: RGB weights per texel, serialized to terrain.splat */
+  /** smooth-mode painting: one white-on-black alpha mask per layer —
+   * white blobs are where that layer shows. Serialized to terrain.masks. */
   const SPLAT_SIZE = 256;
-  let splatCanvas = null;
-  let splatCtx = null;
-  let splatImage = null;
-  let splatDirty = false;
+  let maskCanvases = [null, null, null];
+  let maskDirty = false;
 
-  function ensureSplat(t) {
-    if (splatCanvas) return;
-    splatCanvas = document.createElement('canvas');
-    splatCanvas.width = splatCanvas.height = SPLAT_SIZE;
-    splatCtx = splatCanvas.getContext('2d', { willReadFrequently: true });
-    splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
-    if (t.splat) {
+  function ensureMask(t, i) {
+    if (maskCanvases[i]) return maskCanvases[i];
+    const c = document.createElement('canvas');
+    c.width = c.height = SPLAT_SIZE;
+    const g = c.getContext('2d');
+    g.fillStyle = '#000000';
+    g.fillRect(0, 0, SPLAT_SIZE, SPLAT_SIZE);
+    if (t.masks && t.masks[i]) {
       const img = new Image();
-      img.onload = () => {
-        // don't clobber blobs painted while the saved mask was decoding
-        if (splatDirty) return;
-        splatCtx.drawImage(img, 0, 0, SPLAT_SIZE, SPLAT_SIZE);
-        splatImage = splatCtx.getImageData(0, 0, SPLAT_SIZE, SPLAT_SIZE);
-      };
-      img.src = t.splat;
+      img.onload = () => { g.drawImage(img, 0, 0, SPLAT_SIZE, SPLAT_SIZE); pushMask(i); };
+      img.src = t.masks[i];
     }
+    maskCanvases[i] = c;
+    return c;
   }
 
-  /** paint a soft alpha blob of the active layer's channel into the splat */
-  function splatBlob(t, wx, wz, radiusWorld) {
-    ensureSplat(t);
-    if (!splatImage) return;
-    const u = (wx + t.size[0] / 2) / t.size[0];
-    // plane rotated -90°X: texture V runs opposite to world Z
-    const v = 1 - (wz + t.size[1] / 2) / t.size[1];
-    const cx = u * SPLAT_SIZE, cy = v * SPLAT_SIZE;
-    const r = Math.max(2, (radiusWorld / t.size[0]) * SPLAT_SIZE);
-    const ch = activeSlot; // 0/1/2 → r/g/b
-    const d = splatImage.data;
-    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(SPLAT_SIZE - 1, Math.ceil(cx + r));
-    const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(SPLAT_SIZE - 1, Math.ceil(cy + r));
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const dist = Math.hypot(x - cx, y - cy) / r;
-        if (dist > 1) continue;
-        const add = (1 - dist) * (1 - dist) * 26; // soft quadratic falloff
-        const i = (y * SPLAT_SIZE + x) * 4;
-        const next = Math.min(255, d[i + ch] + add);
-        d[i + ch] = next;
-        // channels share the pixel: squeeze the others so weights stay sane
-        for (let c = 0; c < 3; c++) {
-          if (c === ch) continue;
-          d[i + c] = Math.max(0, d[i + c] - add * 0.6);
-        }
-      }
-    }
-    splatDirty = true;
-    // push straight into the live texture — painting shows as you drag
-    splatCtx.putImageData(splatImage, 0, 0);
+  function pushMask(i) {
     engine.scene.traverse((obj) => {
-      if (obj.userData.splatTexture) {
-        obj.userData.splatTexture.image = splatCanvas;
-        obj.userData.splatTexture.needsUpdate = true;
+      if (obj.userData.maskTextures && obj.userData.maskTextures[i]) {
+        obj.userData.maskTextures[i].image = maskCanvases[i];
+        obj.userData.maskTextures[i].needsUpdate = true;
       }
     });
   }
 
-  function commitSplat(t) {
-    if (!splatDirty || !splatCanvas) return;
-    t.splat = splatCanvas.toDataURL('image/png');
-    splatDirty = false;
+  function maskBlob(t, wx, wz, radiusWorld) {
+    const i = activeSlot;
+    const c = ensureMask(t, i);
+    const g = c.getContext('2d');
+    const u = (wx + t.size[0] / 2) / t.size[0];
+    const v = 1 - (wz + t.size[1] / 2) / t.size[1];
+    const cx = u * SPLAT_SIZE, cy = v * SPLAT_SIZE;
+    const r = Math.max(2, (radiusWorld / t.size[0]) * SPLAT_SIZE);
+    const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.35)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.globalCompositeOperation = 'lighter'; // strokes accumulate softly
+    g.fillStyle = grad;
+    g.beginPath();
+    g.arc(cx, cy, r, 0, Math.PI * 2);
+    g.fill();
+    g.globalCompositeOperation = 'source-over';
+    maskDirty = true;
+    pushMask(i);
+  }
+
+  function commitMasks(t) {
+    if (!maskDirty) return;
+    if (!t.masks) t.masks = [null, null, null];
+    for (let i = 0; i < 3; i++) {
+      if (maskCanvases[i]) t.masks[i] = maskCanvases[i].toDataURL('image/png');
+    }
+    maskDirty = false;
     cart.touch();
   }
 
@@ -508,8 +502,8 @@ export function renderStagePanel(host, ctx) {
     const r = brushRadius * cell;
     if (!t.cells) t.cells = {};
     if (t.smooth && brushOp === 'paint') {
-      // alpha painting: soft splat blob of the picked layer, live
-      splatBlob(t, pt[0], pt[2], r);
+      // alpha painting: a soft white blob into the picked layer's mask
+      maskBlob(t, pt[0], pt[2], r);
       return;
     }
     const cols = Math.ceil(t.size[0] / cell), rows = Math.ceil(t.size[1] / cell);
@@ -634,7 +628,7 @@ export function renderStagePanel(host, ctx) {
       for (const [val, label] of [[false, '⬜ Blocky'], [true, '🌊 Smooth']]) {
         const b = makeBtn(label, () => {
           t.smooth = val;
-          splatCanvas = null; splatCtx = null; splatImage = null;
+          maskCanvases = [null, null, null];
           terrainChanged();
         });
         if (!!t.smooth === val) b.className += ' active';
@@ -1427,7 +1421,7 @@ export function renderStagePanel(host, ctx) {
       stroking = false;
       strokeSet = new Set();
       const scene = getTerrainScene();
-      if (scene && scene.terrain && scene.terrain.smooth) commitSplat(scene.terrain);
+      if (scene && scene.terrain && scene.terrain.smooth) commitMasks(scene.terrain);
     }
   });
 
