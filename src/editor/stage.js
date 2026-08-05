@@ -58,6 +58,10 @@ export function pickEntity(engine, ndc) {
  * @param {{x: number, y: number}} ndc
  * @returns {[number, number, number]|null}
  */
+function round3(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
 export function groundPoint(engine, ndc) {
   _raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), engine.camera);
   if (engine.mode === '2d') {
