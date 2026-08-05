@@ -6,6 +6,7 @@
  * Ticket P6-4. Phase 6.
  */
 
+import * as THREE from 'three';
 import * as cart from '../cartridge.js';
 import * as kitbay from '../kitbay.js';
 import { createEngine } from '../../engine/renderer.js';
@@ -218,6 +219,42 @@ export function renderKitbayPanel(host, ctx) {
     parentRow.appendChild(parentSel);
     tuneBody.appendChild(parentRow);
 
+    const jointRow = document.createElement('div');
+    jointRow.className = 'brick-row';
+    jointRow.innerHTML = '<span>Connection:</span>';
+    const jointSel = document.createElement('select');
+    jointSel.className = 'deck-select';
+    for (const [v, t] of [['fixed', 'Fixed (welded)'], ['spin', 'Spins (hinge)']]) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = t;
+      jointSel.appendChild(opt);
+    }
+    jointSel.value = part.joint === 'spin' ? 'spin' : 'fixed';
+    jointSel.addEventListener('change', () => {
+      if (jointSel.value === 'spin') { part.joint = 'spin'; part.axis = part.axis || 'y'; }
+      else { delete part.joint; delete part.axis; }
+      refreshTune();
+      rebuildPreviewMesh();
+    });
+    jointRow.appendChild(jointSel);
+    tuneBody.appendChild(jointRow);
+    if (part.joint === 'spin') {
+      const axisRow = document.createElement('div');
+      axisRow.className = 'brick-row';
+      axisRow.innerHTML = '<span>Spin axis:</span>';
+      const axisSel = document.createElement('select');
+      axisSel.className = 'deck-select';
+      for (const a of ['x', 'y', 'z']) {
+        const opt = document.createElement('option');
+        opt.value = a; opt.textContent = a.toUpperCase();
+        axisSel.appendChild(opt);
+      }
+      axisSel.value = part.axis || 'y';
+      axisSel.addEventListener('change', () => { part.axis = axisSel.value; rebuildPreviewMesh(); });
+      axisRow.appendChild(axisSel);
+      tuneBody.appendChild(axisRow);
+    }
+
     const groups = [
       ['Size', part.size, ['W', 'H', 'D'], 0.1, (i, v) => { part.size[i] = Math.max(0.05, v); }],
       ['Move', part.p, ['X', 'Y', 'Z'], 0.1, (i, v) => { part.p[i] = v; }],
@@ -250,8 +287,34 @@ export function renderKitbayPanel(host, ctx) {
     // so the preview is never a lie about what placing this prop will look like.
     const fakeEntity = { id: 'preview', components: { transform: { p: [0, 0, 0], r: [0, 0, 0], s: [1, 1, 1] }, model: { parts: working.parts } } };
     mesh = buildEntityObject({ mode: '3d' }, fakeEntity);
+    mesh.traverse((obj) => {
+      if (obj.userData.partIndex === selectedPart && obj.material && obj.material.emissive) {
+        obj.material.emissive = new THREE.Color('#6fd3ff');
+        obj.material.emissiveIntensity = 0.35;
+      }
+    });
     engine.contentRoot.add(mesh);
   }
+
+  const raycaster = new THREE.Raycaster();
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!engine || !mesh) return;
+    const rect = canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(ndc, engine.camera);
+    const hits = raycaster.intersectObject(mesh, true);
+    for (const hit of hits) {
+      if (hit.object.userData.partIndex != null) {
+        selectedPart = hit.object.userData.partIndex;
+        renderAll();
+        rebuildPreviewMesh();
+        break;
+      }
+    }
+  });
 
   function startPreview() {
     engine = createEngine(canvas, { demo: false });
@@ -265,7 +328,14 @@ export function renderKitbayPanel(host, ctx) {
     rebuildPreviewMesh();
 
     function loop() {
-      if (mesh) mesh.rotation.y += 0.012;
+      if (mesh) {
+        mesh.rotation.y += 0.012;
+        mesh.traverse((obj) => {
+          if (obj.userData.spin) {
+            obj.rotation[obj.userData.spin.axis] += 0.05 * obj.userData.spin.speed;
+          }
+        });
+      }
       if (engine) engine.tick();
       rafId = requestAnimationFrame(loop);
     }

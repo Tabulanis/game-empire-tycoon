@@ -214,16 +214,21 @@ export function buildModelMesh(model) {
   // Compound Kit Bay models: a parts array with parent links builds a real
   // nested THREE.Group — move a parent part, its children ride along.
   if (Array.isArray(model.parts) && model.parts.length) {
-    const nodes = model.parts.map((part) => {
+    const nodes = model.parts.map((part, index) => {
       const mesh = new THREE.Mesh(
         buildPartGeo(part.shape || 'box', part.size || [1, 1, 1]),
         buildModelMaterial({ swatch: part.swatch, shader: null })
       );
+      mesh.userData.partIndex = index; // raycast picking in the Kit Bay
       const holder = new THREE.Group();
       holder.add(mesh);
       const p = part.p || [0, 0, 0], r = part.r || [0, 0, 0];
       holder.position.set(p[0], p[1], p[2]);
       holder.rotation.set(r[0], r[1], r[2]);
+      if (part.joint === 'spin') {
+        // Hinge constraint: runtime/preview loops spin this holder on its axis.
+        holder.userData.spin = { axis: part.axis || 'y', speed: part.speed == null ? 1 : part.speed };
+      }
       return holder;
     });
     const root = new THREE.Group();
