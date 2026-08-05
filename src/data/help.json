@@ -1,0 +1,129 @@
+{
+  "comment": "Per-tab help shown by the ? button the shell adds to every panel. Kid-facing, explains WHAT and WHY. All kid-facing strings live in data files (CLAUDE.md).",
+  "atelier": {
+    "title": "Images — draw and edit pictures",
+    "lines": [
+      "This is your art table. Make a new image any size you want, or Import a PNG to edit one you already have.",
+      "LAYERS are like clear sheets of plastic stacked on top of each other — draw the body on one sheet, the face on another. You can hide a sheet (checkbox), make it see-through (slider), or shuffle the order (▲▼). Why? So you can fix the face without touching the body.",
+      "TOOLS: Draw and Erase are your pencil and rubber. Fill pours color into a closed area. Line and Box drag from one corner to the other. Pick grabs a color you already used (so things match). Select drags a dashed rectangle — then Blur or Clear only touch what's inside it.",
+      "Mirror doubles everything you draw onto the other side — great for faces and bodies, since most creatures are the same on both sides.",
+      "EXPORT: PNG keeps see-through parts, JPEG doesn't (it fills them white). 'Sprite File' saves EVERYTHING including your layers, so you can keep editing later. Save to Warehouse puts the image in your game's toy chest."
+    ]
+  },
+  "kitbay": {
+    "title": "3D Shop — build objects out of parts",
+    "lines": [
+      "You're building one object out of simple parts, like snapping bricks together. Add a shape and it attaches to whichever part you have picked — that's the parent. Move the parent, and everything attached to it moves too. That's how a car works: move the body, the wheels come along.",
+      "THE GIZMO: click a part and grab the arrows to Move it, the rings to Rotate it, the cubes to Scale it. Drag empty space to orbit around your object, right-drag to pan, scroll to zoom.",
+      "MATERIALS: Roughness is shiny-vs-dull (wet paint vs chalk). Metal makes it reflect like actual metal. Glow makes it give off light. Bevel rounds off a box's sharp corners — real objects almost never have perfectly sharp edges, which is why beveled things instantly look more real.",
+      "TEXTURES (this is the mapping part): a texture is a flat picture wrapped around a 3D shape, like wrapping paper on a present. The computer needs to know WHERE on the shape each bit of the picture goes — that's called mapping. Boxes map the picture onto each face; spheres wrap it around like a world map wraps a globe.",
+      "Click your box a SECOND time to pick one face (it glows gold). Now you can put a picture on just that face and move it around with Slide, make it repeat with Tiling, or turn it with Spin — until it sits exactly where you want. Why per-face? Because a crate's front label doesn't belong on its bottom.",
+      "CONNECTIONS: Fixed means welded solid. Spins means it turns on an axle — pick the axis it spins around. Wheels spin around X, propellers around Z, merry-go-rounds around Y."
+    ]
+  },
+  "foundry": {
+    "title": "Make — cook up sound effects",
+    "lines": [
+      "Every sound here is a recipe of numbers, not a recording — which means you can tweak the recipe forever. Start from a preset (Jump, Coin, Boom...) and drag sliders until it sounds right. Mutate rolls the dice and nudges everything a little — great when you're close but not quite there.",
+      "The top sliders shape the sound itself: what wave it uses, how high it starts, how it slides up or down, how long it holds and fades.",
+      "The power dials add polish: Brightness muffles or sharpens (like a pillow over a speaker). Wobble makes it wavy. Wah sweeps it like a funk pedal. Chorus makes one sound feel like several. Crunch distorts it. Echo repeats it. Reverb puts it in a big room.",
+      "Save it and it becomes an instrument too — over in Music, your saved sounds show up as things the tracks can play."
+    ]
+  },
+  "sfxedit": {
+    "title": "Edit — clean up and bend recorded sound",
+    "lines": [
+      "This edits actual audio — sounds you saved, or files you Import (like a recording of your own voice).",
+      "CLEAN UP row: Normalize evens the volume out to a healthy level. Louder and Softer do what they say (Louder is smart — it saturates instead of crackling). Trim Silence chops dead air off both ends — do this first on anything you record. Fade In and Fade Out smooth the start and end.",
+      "EFFECTS row: Reverb = big room. Echo = repeats. Robot = robot voice. Faster and Slower also change the pitch, like speeding up a record. Backwards is backwards.",
+      "Drag across the waveform to SELECT a piece — then Cut removes it, Keep throws away everything else, Quiet silences just that bit, and Play plays only your selection so you can check you grabbed the right part.",
+      "Undo steps backward. Save puts the finished sound in your game, ready for the Play SFX brick and the Music room."
+    ]
+  },
+  "soundbooth": {
+    "title": "Music — compose your game's songs",
+    "lines": [
+      "A song is a grid: each row is a TRACK (an instrument), each column is a moment in time. Click a cell to place the note shown in the note picker — or just play your computer keyboard: Q through P are notes, the number row above is sharps, the A row below is flats, Z and X move octaves. Whatever you play becomes the note you place.",
+      "TRACKS: pick a track on the left, then click any sound to put it on that track — chip sounds, or anything you made in the Sound room. Your own recorded sounds get played at different pitches like a real sampler.",
+      "TRACK FX on the right is each track's mixing desk: Volume and Pan (left/right), plus the same effect dials the Sound room has. Turn them WHILE the song loops — you'll hear changes on the next pass. That's how real producers mix.",
+      "Double-click a cell to split it into two quick notes (drum fills!). 2× Double stretches the whole pattern to twice the length; ½ Halve squeezes it back. Zoom in for detail work.",
+      "Chain patterns together to build a full song. WAV downloads it as a real audio file you can use anywhere."
+    ]
+  },
+  "stage": {
+    "title": "Build — put your world together",
+    "lines": [
+      "This is where your game's world gets built. Drag things in from the Toy Chest, place them, and press Play to try the level right here — no waiting.",
+      "The gizmo works like the 3D Shop: arrows move, rings rotate. Snap keeps things lined up on the grid so your level doesn't look crooked.",
+      "Some things you place are invisible helpers: trigger zones (something happens when the player walks in), spawners (things appear), checkpoints (where you come back after falling). The player never sees them — they're the level's secret wiring."
+    ]
+  },
+  "warehouse": {
+    "title": "Toy Chest — everything you can place",
+    "lines": [
+      "All your stuff lives here: things you drew, sounds you made, props you built, plus the packs that came in the box. Search it, then drag things straight into the Build room.",
+      "Everything in here is either made by you or free for anyone to use (CC0) — so your game is 100% yours to share."
+    ]
+  },
+  "bricks": {
+    "title": "Rule Cards — how your game thinks",
+    "lines": [
+      "Rules are cards that read like sentences: WHEN this happens, IF this is true, DO that. 'WHEN touched by player, IF has key, DO open.' That's real game logic — no code, no typing.",
+      "Cards live on a sheet attached to a thing in your game. The order matters: cards run top to bottom, like reading.",
+      "Can't say what you want with the cards you have? Check the Guidebook — every card is explained with a playground where you can try it safely."
+    ]
+  },
+  "codex": {
+    "title": "Guidebook — what everything does",
+    "lines": [
+      "Every card, effect, and tool has a page here: a one-liner, a proper explanation, and a SANDBOX — a tiny playground where that one thing is the only thing happening, so you can poke it and actually understand it.",
+      "Finishing a sandbox unlocks the advanced stuff. That's on purpose: in this studio you unlock power by understanding it, not by grinding."
+    ]
+  },
+  "deck": {
+    "title": "Play — try your game",
+    "lines": [
+      "Your game, running for real. This is the exact same engine your finished cartridge uses — if it works here, it works shipped.",
+      "Play early, play often. The fastest way to make a good game is to try it every few minutes and fix what feels wrong."
+    ]
+  },
+  "press": {
+    "title": "Ship It — box up your game",
+    "lines": [
+      "Pressing a cartridge turns your whole game into ONE file that runs in any browser. Send it to a friend, put it on another computer — it just works, no installing.",
+      "Everything gets baked in: your art, your music, your rules, your levels. The file is yours, forever."
+    ]
+  },
+  "tycoon": {
+    "title": "My Studio — your story so far",
+    "lines": [
+      "Every game you ship goes on the shelf. Your studio grows era by era — new wings open as you ship games and learn new tools.",
+      "The ledger only ever counts real money from real sales. No pretend gold — if it's in the ledger, it actually happened."
+    ]
+  },
+  "pitch": {
+    "title": "New Game — the pitch meeting",
+    "lines": [
+      "Tell the studio what you're dreaming of — pick answers or just type it. It matches your idea to a starter template with the right pieces already in place.",
+      "You always get a 'did we hear you right?' screen before anything is built, and every line of it can be changed. Nothing starts until you say so."
+    ]
+  },
+  "studio": {
+    "title": "Checkup — is everything healthy?",
+    "lines": [
+      "Grown-up corner: this page proves the machine works — saving, loading, surviving a browser restart. If something seems broken, the checks here say what and where."
+    ]
+  },
+  "backups": {
+    "title": "Backups — your safety net",
+    "lines": [
+      "The studio quietly snapshots your game while you work and keeps the newest twenty. Deleted something an hour ago? It's in here. Losing work once hurts more than this whole system costs."
+    ]
+  },
+  "about": {
+    "title": "About",
+    "lines": [
+      "Game Empire Tycoon: a game where you build a game studio by actually making real, shippable games. Everything runs on your machine, nothing needs the internet, and everything you make is yours."
+    ]
+  }
+}

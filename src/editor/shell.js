@@ -10,6 +10,7 @@
 import * as cart from './cartridge.js';
 import * as backup from './backup.js';
 import ROOMS from '../data/rooms.json';
+import HELP from '../data/help.json';
 import { renderWarehousePanel } from './panels/warehouse-panel.js';
 import { renderBackupsPanel } from './panels/backups-panel.js';
 import { renderStudioPanel } from './panels/studio-panel.js';
@@ -398,7 +399,33 @@ function renderMemberView(members, memoryKey, extraChrome) {
  */
 function renderPanelInto(target, tabId) {
   const render = PANELS[tabId];
-  if (render) render(target, { toast, refresh: () => showRoom(currentRoom) });
+  if (!render) return;
+  // Every panel gets a ? in the corner that explains what the room does
+  // and why — content lives in data/help.json.
+  const entry = HELP[tabId];
+  if (entry) {
+    const wrap = document.createElement('div');
+    wrap.className = 'help-wrap';
+    const fab = document.createElement('button');
+    fab.className = 'help-fab';
+    fab.textContent = '?';
+    fab.title = 'What is this room?';
+    const note = document.createElement('div');
+    note.className = 'help-note';
+    const heading = document.createElement('h4');
+    heading.textContent = entry.title;
+    note.appendChild(heading);
+    for (const line of entry.lines) {
+      const para = document.createElement('p');
+      para.textContent = line;
+      note.appendChild(para);
+    }
+    fab.addEventListener('click', () => note.classList.toggle('open'));
+    wrap.appendChild(fab);
+    wrap.appendChild(note);
+    target.appendChild(wrap);
+  }
+  render(target, { toast, refresh: () => showRoom(currentRoom) });
 }
 
 /** Office-only: let a grown-up (or tester) move the studio between eras. */
