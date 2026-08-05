@@ -68,7 +68,7 @@ export function buildTerrainMesh(terrain) {
 
   // Grid mode's painted/sculpted cells: each is a box slab — textured from
   // the terrain's numbered palette slots, raised in 0.5-unit steps.
-  if ((terrain.mode || 'stretch') === 'grid' && terrain.cells) {
+  if (terrain.cells && Object.keys(terrain.cells).length) {
     const group = new THREE.Group();
     group.add(mesh);
     mesh.rotation.x = -Math.PI / 2; // (re-set: mesh keeps its own transform inside the group)
@@ -76,7 +76,7 @@ export function buildTerrainMesh(terrain) {
     const slotMaterials = {};
     const slotMaterial = (slotIndex) => {
       if (slotMaterials[slotIndex]) return slotMaterials[slotIndex];
-      const slot = (terrain.palette || [])[slotIndex];
+      const slot = (terrain.layers || terrain.palette || [])[slotIndex];
       const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 });
       if (slot && slot.dataURL) {
         const tex = new THREE.TextureLoader().load(slot.dataURL);
@@ -90,12 +90,13 @@ export function buildTerrainMesh(terrain) {
       return m;
     };
     for (const [key, c] of Object.entries(terrain.cells)) {
-      if (c.t == null && !(c.h > 0)) continue;
+      const layerIdx = c.l != null ? c.l : c.t;
+      if (layerIdx == null && !(c.h > 0)) continue;
       const [row, col] = key.split(',').map(Number);
       const height = Math.max(0.1, (c.h || 0) * 0.5);
       const box = new THREE.Mesh(
         new THREE.BoxGeometry(cell, height, cell),
-        c.t == null ? slotMaterial(-1) : slotMaterial(c.t)
+        layerIdx == null ? slotMaterial(-1) : slotMaterial(layerIdx)
       );
       box.position.set(
         -size[0] / 2 + (col + 0.5) * cell,
