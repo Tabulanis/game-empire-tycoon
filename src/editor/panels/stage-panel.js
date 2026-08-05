@@ -371,6 +371,35 @@ export function renderStagePanel(host, ctx) {
     if (cfg.fog.on) {
       slide('Thickness', cfg.fog.density, 0.002, 0.09, 0.002, (v) => { cfg.fog.density = v; });
     }
+
+    /* -- clouds: puffy drifting clusters, volume from plain vertices -- */
+    if (!cfg.clouds) cfg.clouds = { on: false, count: 14, height: 14, size: 3, drift: 0.5, opacity: 0.82, color: '#ffffff' };
+    const cl = cfg.clouds;
+    const clRow = document.createElement('div');
+    clRow.className = 'stage-bar';
+    const clBtn = makeBtn(cl.on ? '☁ Clouds: ON' : '☁ Clouds: off', () => {
+      cl.on = !cl.on;
+      cart.touch();
+      engine.setLighting(cfg);
+      refreshLightCard();
+    });
+    if (cl.on) clBtn.className += ' active';
+    clRow.appendChild(clBtn);
+    if (cl.on) {
+      const clColor = document.createElement('input');
+      clColor.type = 'color'; clColor.value = cl.color;
+      clColor.title = 'Cloud color';
+      clColor.addEventListener('input', () => { cl.color = clColor.value; cart.touch(); engine.setLighting(cfg); });
+      clRow.appendChild(clColor);
+    }
+    lightBody.appendChild(clRow);
+    if (cl.on) {
+      slide('Amount', cl.count, 2, 40, 1, (v) => { cl.count = v; });
+      slide('Height', cl.height, 5, 40, 0.5, (v) => { cl.height = v; });
+      slide('Size', cl.size, 1, 8, 0.2, (v) => { cl.size = v; });
+      slide('Drift', cl.drift, 0, 3, 0.05, (v) => { cl.drift = v; });
+      slide('Fluffy', cl.opacity, 0.2, 1, 0.02, (v) => { cl.opacity = v; });
+    }
     const hint = document.createElement('div');
     hint.className = 'stage-hint';
     hint.textContent = 'Blob is cheap and cartoony; the map modes trade speed for softer, realer shadows. Bounce fakes light bouncing off the ground back up.';

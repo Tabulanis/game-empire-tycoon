@@ -141,6 +141,7 @@ export function createEngine(canvas, opts = {}) {
     lighting = { ...lighting, ...cfg };
     // volumetric haze: exponential fog thickens with distance, so far hills
     // and water melt into the air — the cheap-and-cheerful volumetrics
+    buildClouds(lighting.clouds);
     const fog = lighting.fog;
     scene.fog = (fog && fog.on)
       ? new THREE.FogExp2(new THREE.Color(fog.color || '#aebdd0'), fog.density !== undefined ? fog.density : 0.02)
@@ -196,6 +197,57 @@ export function createEngine(canvas, opts = {}) {
   let demoSprite = null;
   const gltfLoader = new GLTFLoader();
   const clock = new THREE.Clock();
+
+  /* -- clouds: volume built from vertices, the honest way — each cloud is a
+     cluster of squashed transparent spheres, drifting slowly and wrapping
+     around the map edge. Config lives in lighting.clouds (cartridge data). -- */
+  let cloudGroup = null;
+  const CLOUD_SPREAD = 90; // clouds live in a big square this wide, wrapping
+  function seededRand(seed) {
+    let s2 = seed;
+    return () => { s2 = (s2 * 16807) % 2147483647; return s2 / 2147483647; };
+  }
+  function buildClouds(cfg) {
+    if (cloudGroup) {
+      scene.remove(cloudGroup);
+      cloudGroup.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
+      if (cloudGroup.userData.mat) cloudGroup.userData.mat.dispose();
+      cloudGroup = null;
+    }
+    if (!cfg || !cfg.on) return;
+    cloudGroup = new THREE.Group();
+    const rand = seededRand(1337);
+    const puffGeo = new THREE.SphereGeometry(1, 10, 8);
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.color || '#ffffff'),
+      transparent: true,
+      opacity: cfg.opacity !== undefined ? cfg.opacity : 0.82,
+      roughness: 1, metalness: 0,
+      depthWrite: false
+    });
+    cloudGroup.userData.mat = mat;
+    const count = Math.round(cfg.count !== undefined ? cfg.count : 14);
+    for (let i = 0; i < count; i++) {
+      const cloud = new THREE.Group();
+      const puffs = 3 + Math.floor(rand() * 4);
+      const base = (cfg.size !== undefined ? cfg.size : 3) * (0.7 + rand() * 0.7);
+      for (let j = 0; j < puffs; j++) {
+        const m = new THREE.Mesh(puffGeo, mat);
+        const r = base * (0.45 + rand() * 0.5);
+        m.scale.set(r, r * 0.55, r); // squashed: flat-bottomed puffy tops
+        m.position.set((rand() - 0.5) * base * 2.2, (rand() - 0.5) * base * 0.4, (rand() - 0.5) * base * 1.4);
+        cloud.add(m);
+      }
+      cloud.position.set(
+        (rand() - 0.5) * CLOUD_SPREAD,
+        (cfg.height !== undefined ? cfg.height : 14) + (rand() - 0.5) * 3,
+        (rand() - 0.5) * CLOUD_SPREAD
+      );
+      cloudGroup.add(cloud);
+    }
+    cloudGroup.userData.drift = cfg.drift !== undefined ? cfg.drift : 0.5;
+    scene.add(cloudGroup);
+  }
 
   /**
    * @param {'2d'|'3d'} m
@@ -388,6 +440,12 @@ export function createEngine(canvas, opts = {}) {
   function tick() {
     const dt = clock.getDelta();
     for (const m of mixers) m.update(dt);
+    if (cloudGroup) {
+      for (const cloud of cloudGroup.children) {
+        cloud.position.x += cloudGroup.userData.drift * dt;
+        if (cloud.position.x > CLOUD_SPREAD / 2) cloud.position.x = -CLOUD_SPREAD / 2;
+      }
+    }
     if (withDemo) {
       if (demoMesh && mode === '3d') {
         demoMesh.rotation.y += dt * 0.6;

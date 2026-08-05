@@ -118,14 +118,22 @@ export function createWater(terrain) {
     const cy = Math.max(0, Math.min(gh - 1, Math.floor((z + size[1] / 2) / ch)));
     return cy * gw + cx;
   };
-  // average depth around a vertex (it sits on cell corners)
-  const vertexDepth = (x, z) => {
-    let sum = 0, n = 0;
-    for (const [dx, dz] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) {
-      sum += depth[cellIndexAt(x + dx * cw, z + dz * ch)];
-      n++;
+  // a vertex sits on the corner between up to four cells: find the highest
+  // WET surface among them. The surface extends flat at pool level and simply
+  // stabs into the hillside — the terrain hides the submerged part — instead
+  // of draping up the slope like a wet blanket.
+  const vertexSurf = (x, z) => {
+    const vx = Math.round((x + size[0] / 2) / cw);
+    const vz = Math.round((z + size[1] / 2) / ch);
+    let maxSurf = -Infinity, maxD = 0;
+    for (const [cx2, cy2] of [[vx - 1, vz - 1], [vx, vz - 1], [vx - 1, vz], [vx, vz]]) {
+      if (cx2 < 0 || cy2 < 0 || cx2 >= gw || cy2 >= gh) continue;
+      const j = cy2 * gw + cx2;
+      if (depth[j] < 0.02) continue;
+      if (ground[j] + depth[j] > maxSurf) maxSurf = ground[j] + depth[j];
+      if (depth[j] > maxD) maxD = depth[j];
     }
-    return sum / n;
+    return { surf: maxSurf, d: maxD };
   };
 
   let last = performance.now();
@@ -138,14 +146,14 @@ export function createWater(terrain) {
     step(dt);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
-      const d = vertexDepth(x, z);
-      if (d < 0.02) {
-        // dry land: tuck the surface just under the ground so no skirt shows
+      const { surf: vs, d } = vertexSurf(x, z);
+      if (d === 0) {
+        // no water touches this corner: tuck it under the ground, out of sight
         pos.setY(i, vGround[i] - 0.06);
         continue;
       }
       const bob = Math.sin(t * 2.2 + x * 1.9 + z * 1.3) + 0.5 * Math.sin(t * 3.7 + x * 0.7 - z * 2.1);
-      pos.setY(i, vGround[i] + d + cfg.wave * bob * Math.min(1, d * 2));
+      pos.setY(i, vs + cfg.wave * bob * Math.min(1, d * 2));
       // deeper water reads darker — cheap depth cue
       const shade = Math.max(0.5, 1 - d * 0.22);
       colors[i * 3] = shade; colors[i * 3 + 1] = shade; colors[i * 3 + 2] = Math.min(1, shade + 0.12);
