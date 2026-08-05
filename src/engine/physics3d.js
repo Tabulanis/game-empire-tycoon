@@ -19,6 +19,7 @@
  */
 
 import RAPIER3D from '@dimforge/rapier3d-compat';
+import { buildTerrainCollision } from './meshes.js';
 
 let ready = false;
 
@@ -79,6 +80,27 @@ export function buildWorld3D(scene) {
 
     if (!entity.components.body) continue;
     registerEntityBody3D(world, entity, colliderToEntity, colliderByEntity, bodiesByEntity, kinematicByEntity);
+  }
+
+  // painted/sculpted ground is solid: one fixed body carrying a base slab,
+  // per-cell boxes (blocky) or an exact surface trimesh (smooth) — same data
+  // the visual mesh is built from, so what you see is what you stand on
+  if (scene.terrain) {
+    const col = buildTerrainCollision(scene.terrain);
+    const groundBody = world.createRigidBody(RAPIER3D.RigidBodyDesc.fixed());
+    for (const b of col.boxes) {
+      world.createCollider(
+        RAPIER3D.ColliderDesc.cuboid(b.h[0], b.h[1], b.h[2])
+          .setTranslation(b.c[0], b.c[1], b.c[2]).setFriction(0.7),
+        groundBody
+      );
+    }
+    if (col.trimesh) {
+      world.createCollider(
+        RAPIER3D.ColliderDesc.trimesh(col.trimesh.vertices, col.trimesh.indices).setFriction(0.7),
+        groundBody
+      );
+    }
   }
 
   return {

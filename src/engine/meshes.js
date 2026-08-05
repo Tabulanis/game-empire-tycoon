@@ -53,17 +53,18 @@ export const SPLAT_SIZE = 256;
  * @param {any} terrain
  * @returns {THREE.Mesh}
  */
-function buildSmoothTerrainMesh(terrain) {
+/** Bilinear height sampler over cell-center heights — the single source of
+ * truth for the smooth terrain's surface, shared by the visual mesh and the
+ * physics collider so they can never disagree.
+ * @param {any} terrain @returns {(x: number, z: number) => number} */
+export function terrainHeightSampler(terrain) {
   const size = terrain.size || [20, 20];
   const cell = terrain.cell || 1;
-  const cols = Math.max(1, Math.ceil(size[0] / cell));
-  const rows = Math.max(1, Math.ceil(size[1] / cell));
-
   const cellH = (row, col) => {
     const c = (terrain.cells || {})[row + ',' + col];
     return c ? (c.h || 0) * 0.5 : 0;
   };
-  const heightAt = (x, z) => {
+  return (x, z) => {
     const fx = (x + size[0] / 2) / cell - 0.5;
     const fz = (z + size[1] / 2) / cell - 0.5;
     const c0 = Math.floor(fx), r0 = Math.floor(fz);
@@ -72,6 +73,56 @@ function buildSmoothTerrainMesh(terrain) {
     const h01 = cellH(r0 + 1, c0), h11 = cellH(r0 + 1, c0 + 1);
     return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
   };
+}
+
+/**
+ * Collision data for a scene's terrain, in plain arrays the physics layer can
+ * feed straight to Rapier without touching three.js: a flat base slab plus
+ * per-cell boxes for blocky ground, or an exact triangle mesh of the sculpted
+ * surface for smooth ground.
+ * @param {any} terrain
+ * @returns {{boxes: Array<{c: number[], h: number[]}>, trimesh: {vertices: Float32Array, indices: Uint32Array}|null}}
+ */
+export function buildTerrainCollision(terrain) {
+  const size = terrain.size || [20, 20];
+  const cell = terrain.cell || 1;
+  const boxes = [];
+  // base slab: top face exactly at y=0 so flat ground is always walkable
+  boxes.push({ c: [0, -0.5, 0], h: [size[0] / 2, 0.5, size[1] / 2] });
+  if (terrain.smooth) {
+    const cols = Math.max(1, Math.ceil(size[0] / cell));
+    const rows = Math.max(1, Math.ceil(size[1] / cell));
+    const geo = new THREE.PlaneGeometry(size[0], size[1], cols * 2, rows * 2);
+    geo.rotateX(-Math.PI / 2);
+    const heightAt = terrainHeightSampler(terrain);
+    const pos = geo.getAttribute('position');
+    for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+    const trimesh = {
+      vertices: new Float32Array(pos.array),
+      indices: new Uint32Array(geo.index.array)
+    };
+    geo.dispose();
+    return { boxes, trimesh };
+  }
+  for (const [key, c] of Object.entries(terrain.cells || {})) {
+    const hasLayer = (c.l != null ? c.l : c.t) != null;
+    if (!hasLayer && !(c.h > 0)) continue;
+    const [row, col] = key.split(',').map(Number);
+    const height = Math.max(0.1, (c.h || 0) * 0.5);
+    boxes.push({
+      c: [-size[0] / 2 + (col + 0.5) * cell, height / 2, -size[1] / 2 + (row + 0.5) * cell],
+      h: [cell / 2, height / 2, cell / 2]
+    });
+  }
+  return { boxes, trimesh: null };
+}
+
+function buildSmoothTerrainMesh(terrain) {
+  const size = terrain.size || [20, 20];
+  const cell = terrain.cell || 1;
+  const cols = Math.max(1, Math.ceil(size[0] / cell));
+  const rows = Math.max(1, Math.ceil(size[1] / cell));
+  const heightAt = terrainHeightSampler(terrain);
 
   // one displaced geometry per repeat factor: uv channel 1 carries the
   // repeat baked in, so each layer's picture tiles at its own rate while

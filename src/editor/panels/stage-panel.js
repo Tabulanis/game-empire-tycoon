@@ -421,7 +421,9 @@ export function renderStagePanel(host, ctx) {
     const c = ensureMask(t, i);
     const g = c.getContext('2d');
     const u = (wx + t.size[0] / 2) / t.size[0];
-    const v = 1 - (wz + t.size[1] / 2) / t.size[1];
+    // the GPU flips canvas textures vertically on upload (flipY), so canvas
+    // rows run the same direction as world z — no inversion here
+    const v = (wz + t.size[1] / 2) / t.size[1];
     const cx = u * SPLAT_SIZE, cy = v * SPLAT_SIZE;
     const r = Math.max(2, (radiusWorld / t.size[0]) * SPLAT_SIZE);
     const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
@@ -1497,7 +1499,10 @@ export function renderStagePanel(host, ctx) {
     const live = cart.getCartridge();
     const sc = ent.getScene(live, currentSceneId);
     view.clear();
-    if (sc) sc.entities.forEach((e) => view.refreshEntity(e.id));
+    if (sc) {
+      view.refreshTerrain(sc); // clear() wipes the ground too — rebuild it
+      sc.entities.forEach((e) => view.refreshEntity(e.id));
+    }
     deselect();
     refreshTree();
   });
@@ -1626,7 +1631,10 @@ export function renderStagePanel(host, ctx) {
     const live = cart.getCartridge();
     const sc = ent.getScene(live, currentSceneId);
     view.clear();
-    if (sc) sc.entities.forEach((e) => view.refreshEntity(e.id));
+    if (sc) {
+      view.refreshTerrain(sc); // clear() wipes the ground too — rebuild it
+      sc.entities.forEach((e) => view.refreshEntity(e.id));
+    }
     if (engine.mode === '2d') { engine.camera.position.x = 0; engine.camera.position.y = 0; }
     else if (engine.mode === '3d') { engine.camera.position.set(6, 6, 6); engine.camera.lookAt(0, 0, 0); }
     refreshTree();
