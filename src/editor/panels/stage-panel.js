@@ -18,6 +18,7 @@ import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../e
 import * as ent from '../../engine/entities.js';
 import { GENERIC_TEXTURES } from '../textures.js';
 import { startTour } from '../tour.js';
+import BEHAVIORS from '../../data/behaviors.json';
 
 /** module-level key dispatcher so panel re-renders never stack listeners */
 let stageKeyHandler = null;
@@ -234,6 +235,35 @@ export function renderStagePanel(host, ctx) {
   const inspMount = document.createElement('div');
   inspCard.appendChild(inspMount);
   right.appendChild(inspCard);
+
+  const shelfCard = document.createElement('div');
+  shelfCard.dataset.tour = 'shelf';
+  shelfCard.className = 'card';
+  shelfCard.innerHTML = '<h3>Behavior Shelf</h3><div class="stage-hint">Ready-made things that already work — drop one in, then change ANY part of it in the Inspector: its look, its speed, its rules.</div>';
+  const shelfGrid = document.createElement('div');
+  shelfGrid.className = 'shelf-grid';
+  for (const b of BEHAVIORS.behaviors) {
+    const tile = document.createElement('button');
+    tile.className = 'shelf-tile';
+    tile.title = b.name + ' — ' + b.desc;
+    tile.innerHTML = '<span class="shelf-icon">' + b.icon + '</span><span class="shelf-name">' + b.name + '</span>';
+    tile.addEventListener('click', () => {
+      const live = cart.getCartridge();
+      // install the behavior's rule sheet once; entities share it and any
+      // edit in the Rule Cards room changes every one of them together
+      const sheetName = 'shelf-' + b.id;
+      if (b.sheet.length && !live.bricksheets[sheetName]) {
+        live.bricksheets[sheetName] = JSON.parse(JSON.stringify(b.sheet));
+      }
+      const spec = JSON.parse(JSON.stringify(b.entity));
+      if (b.sheet.length) spec.components.bricks = { sheet: sheetName };
+      const entity = ent.createEntity(spec);
+      placeEntity(entity);
+    });
+    shelfGrid.appendChild(tile);
+  }
+  shelfCard.appendChild(shelfGrid);
+  right.appendChild(shelfCard);
 
   const prefabCard = document.createElement('div');
   prefabCard.className = 'card';

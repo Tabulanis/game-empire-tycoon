@@ -551,3 +551,18 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   0%, 100% { outline-color: var(--gold); }
   50% { outline-color: rgba(255, 207, 110, 0.35); }
 }
+
+/* ---- behavior shelf ---- */
+.shelf-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+}
+.shelf-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 8px; cursor: pointer; color: var(--ink); font-family: var(--font);
+  transition: transform .08s ease, border-color .1s ease;
+}
+.shelf-tile:hover { border-color: var(--gold); transform: translateY(-2px); }
+.shelf-icon { font-size: 20px; line-height: 1; }
+.shelf-name { font-size: 9.5px; color: var(--dim); text-align: center; line-height: 1.2; }

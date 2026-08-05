@@ -1,0 +1,827 @@
+{
+  "behaviors": [
+    {
+      "id": "coin",
+      "name": "Coin",
+      "icon": "🪙",
+      "desc": "Touch it, get a point, it vanishes.",
+      "entity": {
+        "name": "Coin",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "$",
+            "swatch": "#ffcf6e",
+            "size": [
+              0.4,
+              0.4
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "award-points",
+              "key": "coins",
+              "amount": 1
+            },
+            {
+              "do": "destroy-self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "key",
+      "name": "Key",
+      "icon": "🗝️",
+      "desc": "Pick it up to open locked doors.",
+      "entity": {
+        "name": "Key",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "🗝",
+            "swatch": "#e0a83a",
+            "size": [
+              0.4,
+              0.4
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "give-item",
+              "item": "key"
+            },
+            {
+              "do": "destroy-self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "locked-door",
+      "name": "Locked Door",
+      "icon": "🚪",
+      "desc": "Opens only if the player carries a key.",
+      "entity": {
+        "name": "Locked Door",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.55,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "box",
+            "swatch": "#8a5a2b",
+            "size": [
+              0.9,
+              1.1,
+              0.2
+            ]
+          },
+          "body": {
+            "type": "static",
+            "size": [
+              0.9,
+              1.1,
+              0.2
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [
+            {
+              "check": "has-item",
+              "item": "key"
+            }
+          ],
+          "do": [
+            {
+              "do": "take-item",
+              "item": "key"
+            },
+            {
+              "do": "open"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patrol-enemy",
+      "name": "Patrol Enemy",
+      "icon": "👾",
+      "desc": "Walks back and forth. Stomp it from above!",
+      "entity": {
+        "name": "Patrol Enemy",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "👾",
+            "swatch": "#c95b8f",
+            "size": [
+              0.5,
+              0.5
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "game-start",
+          "if": [],
+          "do": [
+            {
+              "do": "patrol-between",
+              "points": [
+                [
+                  -2,
+                  0.5
+                ],
+                [
+                  2,
+                  0.5
+                ]
+              ],
+              "speed": 1.5
+            }
+          ]
+        },
+        {
+          "when": "bumped",
+          "from": "above",
+          "if": [],
+          "do": [
+            {
+              "do": "defeat-self"
+            },
+            {
+              "do": "award-points",
+              "key": "score",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "when": "bumped",
+          "from": "side",
+          "if": [],
+          "do": [
+            {
+              "do": "deal-damage",
+              "amount": 1,
+              "target": "other"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chaser",
+      "name": "Chaser",
+      "icon": "😈",
+      "desc": "Runs straight at the player.",
+      "entity": {
+        "name": "Chaser",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "😈",
+            "swatch": "#ff7d9c",
+            "size": [
+              0.5,
+              0.5
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "game-start",
+          "if": [],
+          "do": [
+            {
+              "do": "chase",
+              "target": "player",
+              "speed": 2
+            }
+          ]
+        },
+        {
+          "when": "bumped",
+          "from": "side",
+          "if": [],
+          "do": [
+            {
+              "do": "deal-damage",
+              "amount": 1,
+              "target": "other"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "platform",
+      "name": "Moving Platform",
+      "icon": "➖",
+      "desc": "Glides along its path. Ride it!",
+      "entity": {
+        "name": "Moving Platform",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              1,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "box",
+            "swatch": "#6fb2dc",
+            "size": [
+              1.6,
+              0.2,
+              0.9
+            ]
+          },
+          "body": {
+            "type": "static",
+            "size": [
+              1.6,
+              0.2,
+              0.9
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "game-start",
+          "if": [],
+          "do": [
+            {
+              "do": "follow-path",
+              "points": [
+                [
+                  -2,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ]
+              ],
+              "speed": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "win-zone",
+      "name": "Win Zone",
+      "icon": "🏆",
+      "desc": "Touch it and the game is won!",
+      "entity": {
+        "name": "Win Zone",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "🏆",
+            "swatch": "#67e39b",
+            "size": [
+              0.6,
+              0.6
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "end-game",
+              "result": "win",
+              "message": "You did it!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lose-pit",
+      "name": "Lose Zone",
+      "icon": "💀",
+      "desc": "Touch it and the game is lost. Put it somewhere mean.",
+      "entity": {
+        "name": "Lose Zone",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.4,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "💀",
+            "swatch": "#ff6b8b",
+            "size": [
+              0.6,
+              0.6
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "end-game",
+              "result": "lose",
+              "message": "Ouch! Try again."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spikes",
+      "name": "Spikes",
+      "icon": "⚠️",
+      "desc": "Hurts and knocks the player back.",
+      "entity": {
+        "name": "Spikes",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.15,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "wedge",
+            "swatch": "#c7d0de",
+            "size": [
+              0.8,
+              0.3,
+              0.8
+            ]
+          },
+          "body": {
+            "type": "static",
+            "size": [
+              0.8,
+              0.3,
+              0.8
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "deal-damage",
+              "amount": 1,
+              "target": "other"
+            },
+            {
+              "do": "knockback",
+              "target": "other",
+              "vx": 0,
+              "vy": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "checkpoint",
+      "name": "Checkpoint",
+      "icon": "🚩",
+      "desc": "Come back here after falling.",
+      "entity": {
+        "name": "Checkpoint",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "🚩",
+            "swatch": "#7cc6ff",
+            "size": [
+              0.5,
+              0.7
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "set-checkpoint"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "health",
+      "name": "Health Pickup",
+      "icon": "❤️",
+      "desc": "Heals one heart, then it's gone.",
+      "entity": {
+        "name": "Health Pickup",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "sprite": {
+            "glyph": "❤",
+            "swatch": "#ff7d9c",
+            "size": [
+              0.4,
+              0.4
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "heal",
+              "amount": 1,
+              "target": "other"
+            },
+            {
+              "do": "destroy-self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boom-pad",
+      "name": "Boom Pad",
+      "icon": "💥",
+      "desc": "Launches whoever steps on it, with a satisfying shake.",
+      "entity": {
+        "name": "Boom Pad",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.1,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "cylinder",
+            "swatch": "#f0c463",
+            "size": [
+              0.8,
+              0.2,
+              0.8
+            ]
+          },
+          "body": {
+            "type": "static",
+            "size": [
+              0.8,
+              0.2,
+              0.8
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "touched",
+          "if": [],
+          "do": [
+            {
+              "do": "knockback",
+              "target": "other",
+              "vx": 0,
+              "vy": 9
+            },
+            {
+              "do": "shake-camera",
+              "seconds": 0.25,
+              "intensity": 0.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "turret",
+      "name": "Turret",
+      "icon": "🔫",
+      "desc": "Fires on its own every couple of seconds.",
+      "entity": {
+        "name": "Turret",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.3,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "cone",
+            "swatch": "#8a95ad",
+            "size": [
+              0.5,
+              0.6,
+              0.5
+            ]
+          },
+          "body": {
+            "type": "static",
+            "size": [
+              0.5,
+              0.6,
+              0.5
+            ]
+          }
+        }
+      },
+      "sheet": [
+        {
+          "when": "every-n-seconds",
+          "seconds": 2,
+          "if": [],
+          "do": [
+            {
+              "do": "shoot"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crate",
+      "name": "Pushable Crate",
+      "icon": "📦",
+      "desc": "A box with real physics — push it around.",
+      "entity": {
+        "name": "Pushable Crate",
+        "components": {
+          "transform": {
+            "p": [
+              0,
+              0.5,
+              0
+            ],
+            "r": [
+              0,
+              0,
+              0
+            ],
+            "s": [
+              1,
+              1,
+              1
+            ]
+          },
+          "model": {
+            "shape": "box",
+            "swatch": "#a8834a",
+            "size": [
+              0.7,
+              0.7,
+              0.7
+            ]
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.7,
+              0.7,
+              0.7
+            ]
+          }
+        }
+      },
+      "sheet": []
+    }
+  ]
+}
