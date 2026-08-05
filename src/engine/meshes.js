@@ -164,24 +164,77 @@ function buildSpriteMesh(engine, sprite) {
  * @param {any} model
  * @returns {THREE.Mesh}
  */
-function buildModelMesh(model) {
-  const size = model.size || [1, 1, 1];
-  const shape = model.shape || 'box';
-  let geo;
+/**
+ * One primitive's geometry. The full Kit Bay set: box, sphere, cylinder,
+ * cone, wedge (half-box ramp), plane, torus, capsule.
+ * @param {string} shape @param {number[]} size
+ * @returns {THREE.BufferGeometry}
+ */
+function buildPartGeo(shape, size) {
   switch (shape) {
     case 'sphere':
-      geo = new THREE.SphereGeometry(Math.max(size[0], size[1], size[2]) / 2, 20, 16);
-      break;
+      return new THREE.SphereGeometry(Math.max(size[0], size[1], size[2]) / 2, 20, 16);
     case 'cylinder':
-      geo = new THREE.CylinderGeometry(size[0] / 2, size[0] / 2, size[1], 20);
-      break;
+      return new THREE.CylinderGeometry(size[0] / 2, size[0] / 2, size[1], 20);
     case 'cone':
-      geo = new THREE.ConeGeometry(size[0] / 2, size[1], 20);
-      break;
+      return new THREE.ConeGeometry(size[0] / 2, size[1], 20);
+    case 'plane': {
+      const g = new THREE.BoxGeometry(size[0], Math.min(0.02, size[1]), size[2]);
+      return g;
+    }
+    case 'torus':
+      return new THREE.TorusGeometry(size[0] / 2, Math.max(0.02, size[1] / 4), 12, 24);
+    case 'capsule':
+      return new THREE.CapsuleGeometry(size[0] / 2, size[1], 6, 12);
+    case 'wedge': {
+      // Triangular prism ramp: box with the top-front edge collapsed.
+      const [w, h, d] = size;
+      const x = w / 2, y = h / 2, z = d / 2;
+      const verts = new Float32Array([
+        // bottom (two tris)
+        -x, -y, -z,  x, -y,  z,  x, -y, -z,   -x, -y, -z, -x, -y,  z,  x, -y,  z,
+        // back face
+        -x, -y, -z,  x, -y, -z,  x,  y, -z,   -x, -y, -z,  x,  y, -z, -x,  y, -z,
+        // slope
+        -x,  y, -z,  x,  y, -z,  x, -y,  z,   -x,  y, -z,  x, -y,  z, -x, -y,  z,
+        // sides
+        -x, -y, -z, -x,  y, -z, -x, -y,  z,    x, -y, -z,  x, -y,  z,  x,  y, -z
+      ]);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      g.computeVertexNormals();
+      return g;
+    }
     default:
-      geo = new THREE.BoxGeometry(size[0], size[1], size[2]);
+      return new THREE.BoxGeometry(size[0], size[1], size[2]);
+  }
+}
+
+export function buildModelMesh(model) {
+  // Compound Kit Bay models: a parts array with parent links builds a real
+  // nested THREE.Group — move a parent part, its children ride along.
+  if (Array.isArray(model.parts) && model.parts.length) {
+    const nodes = model.parts.map((part) => {
+      const mesh = new THREE.Mesh(
+        buildPartGeo(part.shape || 'box', part.size || [1, 1, 1]),
+        buildModelMaterial({ swatch: part.swatch, shader: null })
+      );
+      const holder = new THREE.Group();
+      holder.add(mesh);
+      const p = part.p || [0, 0, 0], r = part.r || [0, 0, 0];
+      holder.position.set(p[0], p[1], p[2]);
+      holder.rotation.set(r[0], r[1], r[2]);
+      return holder;
+    });
+    const root = new THREE.Group();
+    model.parts.forEach((part, i) => {
+      const parent = part.parent != null && part.parent >= 0 && part.parent !== i ? nodes[part.parent] : null;
+      (parent || root).add(nodes[i]);
+    });
+    return root;
   }
 
+  const geo = buildPartGeo(model.shape || 'box', model.size || [1, 1, 1]);
   const mat = buildModelMaterial(model);
   const mesh = new THREE.Mesh(geo, mat);
   if (model.shader) mesh.userData.animatedMaterial = true; // tick() needs to feed it a live time uniform
