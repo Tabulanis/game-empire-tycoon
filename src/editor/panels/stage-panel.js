@@ -259,6 +259,12 @@ export function renderStagePanel(host, ctx) {
   /** cells already touched this stroke, so raise/lower step once per pass */
   let strokeSet = new Set();
   let brushRing = null;
+  /** live status element in the Terrain card — the brush narrates itself */
+  let brushStatusEl = null;
+
+  function brushStatus(msg) {
+    if (brushStatusEl) brushStatusEl.textContent = msg;
+  }
 
   function terrainReady() {
     const scene = getTerrainScene();
@@ -398,6 +404,12 @@ export function renderStagePanel(host, ctx) {
         sizeRow.appendChild(sizeInput);
         terrainBody.appendChild(sizeRow);
 
+        brushStatusEl = document.createElement('div');
+        brushStatusEl.className = 'stage-hint';
+        brushStatusEl.style.cssText = 'color:var(--gold);min-height:16px;';
+        brushStatusEl.textContent = 'Move the mouse over the ground…';
+        terrainBody.appendChild(brushStatusEl);
+
         const layersHead = document.createElement('div');
         layersHead.className = 'stage-hint';
         layersHead.textContent = 'Texture layers — Paint uses the picked one (keys 1-3):';
@@ -420,6 +432,36 @@ export function renderStagePanel(host, ctx) {
           slotStrip.appendChild(tile);
         });
         terrainBody.appendChild(slotStrip);
+
+        // the picked layer's own mapping — layers can each map differently
+        const layer = t.layers[activeSlot];
+        if (layer) {
+          const mapRow = document.createElement('div');
+          mapRow.className = 'stage-bar';
+          const mapLabel = document.createElement('span');
+          mapLabel.textContent = 'Layer ' + (activeSlot + 1) + ' maps as:';
+          mapLabel.style.fontSize = '11px';
+          mapRow.appendChild(mapLabel);
+          for (const [mode, label] of [['grid', 'Grid'], ['big', 'One Big'], ['tiled', 'Tiled']]) {
+            const b = makeBtn(label, () => { layer.map = mode; terrainChanged(); });
+            if ((layer.map || 'grid') === mode) b.className += ' active';
+            mapRow.appendChild(b);
+          }
+          terrainBody.appendChild(mapRow);
+          if ((layer.map || 'grid') === 'tiled') {
+            const repRow = document.createElement('div');
+            repRow.className = 'brick-row';
+            const rl = document.createElement('span');
+            rl.textContent = 'Repeats'; rl.style.minWidth = '70px'; rl.style.fontSize = '11px';
+            repRow.appendChild(rl);
+            const rep = document.createElement('input');
+            rep.type = 'number'; rep.min = '1'; rep.max = '64'; rep.step = '1';
+            rep.value = String(layer.repeat || 6); rep.style.width = '70px';
+            rep.addEventListener('change', () => { layer.repeat = Math.max(1, Math.min(64, Number(rep.value) || 6)); terrainChanged(); });
+            repRow.appendChild(rep);
+            terrainBody.appendChild(repRow);
+          }
+        }
 
         const how = document.createElement('div');
         how.className = 'stage-hint';
@@ -1026,9 +1068,15 @@ export function renderStagePanel(host, ctx) {
   });
   canvas.addEventListener('pointermove', (e) => {
     if (playSession || tool !== 'terrain') return;
+    const scene = getTerrainScene();
+    if (!scene || !scene.terrain) { brushStatus('No ground yet — press + Add ground first.'); return; }
+    if (engine.mode !== '3d') { brushStatus('This scene is 2D — terrain sculpting needs a 3D scene.'); return; }
     const ndc = ptrNdc(e, canvas);
+    const pt = groundPoint(engine, ndc);
+    if (!pt) { brushStatus('Aim at the ground.'); return; }
+    brushStatus((stroking ? '● ' : '○ ') + brushOp + ' at ' + pt[0].toFixed(1) + ', ' + pt[2].toFixed(1));
     if (stroking) applyBrush(ndc);
-    else showBrushRing(groundPoint(engine, ndc));
+    else showBrushRing(pt);
   });
   window.addEventListener('pointerup', () => {
     if (stroking) { stroking = false; strokeSet = new Set(); }

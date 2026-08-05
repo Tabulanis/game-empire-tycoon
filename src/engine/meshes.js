@@ -73,20 +73,39 @@ export function buildTerrainMesh(terrain) {
     group.add(mesh);
     mesh.rotation.x = -Math.PI / 2; // (re-set: mesh keeps its own transform inside the group)
     const cell = terrain.cell || 1;
-    const slotMaterials = {};
-    const slotMaterial = (slotIndex) => {
-      if (slotMaterials[slotIndex]) return slotMaterials[slotIndex];
+    const layerTextures = {};
+    const layerTexture = (slotIndex) => {
+      if (layerTextures[slotIndex]) return layerTextures[slotIndex];
       const slot = (terrain.layers || terrain.palette || [])[slotIndex];
+      if (!slot || !slot.dataURL) return (layerTextures[slotIndex] = null);
+      const tex = new THREE.TextureLoader().load(slot.dataURL);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.NearestFilter;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      layerTextures[slotIndex] = tex;
+      return tex;
+    };
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(terrain.color || '#3a3f4c'), roughness: 0.95
+    });
+    const slotMaterial = (slotIndex, row, col) => {
+      const slot = (terrain.layers || terrain.palette || [])[slotIndex];
+      const tex = layerTexture(slotIndex);
+      if (!tex) return baseMaterial;
       const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 });
-      if (slot && slot.dataURL) {
-        const tex = new THREE.TextureLoader().load(slot.dataURL);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.magFilter = THREE.NearestFilter;
-        m.map = tex;
+      const mapMode = (slot && slot.map) || 'grid';
+      if (mapMode === 'grid') {
+        m.map = tex; // box UVs are already one image per cell
       } else {
-        m.color = new THREE.Color(terrain.color || '#3a3f4c');
+        // window this cell into the layer's ground-wide image
+        const cols = Math.ceil(size[0] / cell), rows = Math.ceil(size[1] / cell);
+        const n = mapMode === 'tiled' ? ((slot && slot.repeat) || 6) : 1;
+        const t2 = tex.clone();
+        t2.needsUpdate = true;
+        t2.repeat.set((n / cols), (n / rows));
+        t2.offset.set((col * n / cols) % 1, ((rows - 1 - row) * n / rows) % 1);
+        m.map = t2;
       }
-      slotMaterials[slotIndex] = m;
       return m;
     };
     for (const [key, c] of Object.entries(terrain.cells)) {
@@ -96,7 +115,7 @@ export function buildTerrainMesh(terrain) {
       const height = Math.max(0.1, (c.h || 0) * 0.5);
       const box = new THREE.Mesh(
         new THREE.BoxGeometry(cell, height, cell),
-        layerIdx == null ? slotMaterial(-1) : slotMaterial(layerIdx)
+        layerIdx == null ? baseMaterial : slotMaterial(layerIdx, row, col)
       );
       box.position.set(
         -size[0] / 2 + (col + 0.5) * cell,
