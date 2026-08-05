@@ -25,6 +25,7 @@ import { renderSoundboothPanel } from './panels/soundbooth-panel.js';
 import { renderPitchPanel } from './panels/pitch-panel.js';
 import { renderCodexPanel } from './panels/codex-panel.js';
 import { renderKitbayPanel } from './panels/kitbay-panel.js';
+import { renderMaterialsPanel } from './panels/materials-panel.js';
 import { renderLoftPanel } from './panels/loft-panel.js';
 import { renderLabPanel } from './panels/lab-panel.js';
 import { renderTycoonPanel } from './panels/tycoon-panel.js';
@@ -45,6 +46,7 @@ const PANELS = {
   pitch: renderPitchPanel,
   codex: renderCodexPanel,
   kitbay: renderKitbayPanel,
+  materials: renderMaterialsPanel,
   loft: renderLoftPanel,
   lab: renderLabPanel,
   tycoon: renderTycoonPanel,

@@ -125,5 +125,14 @@
     "lines": [
       "Game Empire Tycoon: a game where you build a game studio by actually making real, shippable games. Everything runs on your machine, nothing needs the internet, and everything you make is yours."
     ]
+  },
+  "materials": {
+    "title": "Materials — build shaders with sliders",
+    "lines": [
+      "A material is more than a picture — it's how a surface BEHAVES in light. This bench builds one out of four maps, each driven by a pattern and sliders instead of drawing.",
+      "DIFFUSE is the color itself — pick a pattern and two colors to blend. SPECULAR says where it shines (bright spots act like metal, dark spots stay matte). ROUGHNESS says where it's dull vs glossy — chalk vs wet paint, per pixel. NORMAL fakes bumps: it tilts how light hits each pixel so flat surfaces look carved, no extra geometry needed.",
+      "The sphere shows your material in real light — turn Depth up on the Normal slot and watch the bumps catch the light as it spins. That's the difference between a graphic and a shader.",
+      "Save it and it appears in the 3D Shop's texture palette with a ✨ — paint any part with it and the whole map set rides along, in the editor and in your shipped game."
+    ]
   }
 }

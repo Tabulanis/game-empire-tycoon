@@ -46,7 +46,7 @@ export function createCartridge(title = 'Untitled Game', author = '') {
       tone: 'none',
       input: { jump: ['Space', 'GamepadA', 'TouchA'] }
     },
-    assets: { sprites: [], models: [], songs: [], sfx: [], anims: [], effects: [] },
+    assets: { sprites: [], models: [], songs: [], sfx: [], anims: [], effects: [], materials: [] },
     scenes: [],
     prefabs: {},
     bricksheets: {},

@@ -100,7 +100,12 @@ export function renderKitbayPanel(host, ctx) {
   right.appendChild(texCard);
 
   function texEntries() {
-    const out = GENERIC_TEXTURES.map((g) => ({ id: g.id, name: g.name, dataURL: g.dataURL }));
+    const out = [];
+    // Material Maker shaders first — the good stuff
+    for (const m of (cart.getCartridge().assets.materials || [])) {
+      out.push({ id: 'mat:' + m.id, name: '✨ ' + m.name, dataURL: m.maps.diffuse, maps: m.maps });
+    }
+    for (const g of GENERIC_TEXTURES) out.push({ id: g.id, name: g.name, dataURL: g.dataURL });
     for (const sprite of cart.getCartridge().assets.sprites) {
       out.push({
         id: sprite.id, name: sprite.name,
@@ -148,8 +153,15 @@ export function renderKitbayPanel(host, ctx) {
       else { face.textureData = entry.dataURL; face.textureName = entry.id; }
     } else {
       if (!part.mat) part.mat = { rough: 0.8, metal: 0, glow: 0 };
-      if (!entry) { delete part.mat.textureData; delete part.mat.textureName; }
-      else { part.mat.textureData = entry.dataURL; part.mat.textureName = entry.id; }
+      delete part.mat.textureData; delete part.mat.textureName; delete part.mat.matMaps;
+      if (entry && entry.maps) {
+        // a Material Maker shader: the whole PBR map set rides on the part
+        part.mat.matMaps = entry.maps;
+        part.mat.textureName = entry.id;
+      } else if (entry) {
+        part.mat.textureData = entry.dataURL;
+        part.mat.textureName = entry.id;
+      }
     }
     renderAll();
     rebuildPreviewMesh();

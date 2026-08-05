@@ -32,6 +32,7 @@
       "era": "garage",
       "members": [
         { "tab": "atelier", "label": "Images", "era": "garage" },
+        { "tab": "materials", "label": "Materials", "era": "garage" },
         { "tab": "kitbay", "label": "3D Shop", "era": "tower" }
       ]
     },

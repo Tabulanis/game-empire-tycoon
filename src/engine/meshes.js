@@ -467,6 +467,19 @@ export function buildModelMesh(model) {
           m.emissive = new THREE.Color(part.swatch || '#6fb2dc');
           m.emissiveIntensity = mat.glow;
         }
+        // Material Maker output: full PBR map set baked into the part data
+        if (mat.matMaps) {
+          const loadMap = (data, srgb) => {
+            const tex = new THREE.TextureLoader().load(data);
+            if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+          };
+          if (mat.matMaps.diffuse) { m.map = loadMap(mat.matMaps.diffuse, true); m.color = new THREE.Color('#ffffff'); }
+          if (mat.matMaps.specular) { m.metalnessMap = loadMap(mat.matMaps.specular); m.metalness = 1; }
+          if (mat.matMaps.roughness) { m.roughnessMap = loadMap(mat.matMaps.roughness); m.roughness = 1; }
+          if (mat.matMaps.normal) m.normalMap = loadMap(mat.matMaps.normal);
+        }
         return m;
       };
       const shape = part.shape || 'box';
