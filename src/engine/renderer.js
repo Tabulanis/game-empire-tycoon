@@ -93,6 +93,7 @@ export function createEngine(canvas, opts = {}) {
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.xr.enabled = true; // WebXR: free until a headset session actually starts
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -106,6 +107,15 @@ export function createEngine(canvas, opts = {}) {
   const contentRoot = new THREE.Group();
   contentRoot.name = 'contentRoot';
   scene.add(contentRoot);
+
+  /* -- VR rig: while a headset session runs, the camera rides inside this
+     group. The game moves the RIG to the player's feet; the headset supplies
+     head position + look on top. Outside VR the rig is empty and inert. -- */
+  const xrRig = new THREE.Group();
+  xrRig.name = 'xrRig';
+  scene.add(xrRig);
+  renderer.xr.addEventListener('sessionstart', () => { xrRig.add(camera); });
+  renderer.xr.addEventListener('sessionend', () => { xrRig.remove(camera); xrRig.position.set(0, 0, 0); });
 
   /** @type {THREE.OrthographicCamera|THREE.PerspectiveCamera} */
   let camera = makeCamera('3d', 1);
@@ -455,7 +465,12 @@ export function createEngine(canvas, opts = {}) {
         demoSprite.rotation.z = Math.sin(clock.elapsedTime * 0.8) * 0.15;
       }
     }
-    composer.render(dt);
+    if (renderer.xr.isPresenting) {
+      // the composer's post passes can't drive a stereo headset — render direct
+      renderer.render(scene, camera);
+    } else {
+      composer.render(dt);
+    }
     return dt;
   }
 
@@ -477,6 +492,15 @@ export function createEngine(canvas, opts = {}) {
 
   return {
     get renderer() { return renderer; },
+    get xrPresenting() { return renderer.xr.isPresenting; },
+    get xrRig() { return xrRig; },
+    /** which way the headset is facing (yaw radians), or null outside VR */
+    headsetYaw() {
+      if (!renderer.xr.isPresenting) return null;
+      const q = new THREE.Quaternion();
+      camera.getWorldQuaternion(q);
+      return new THREE.Euler().setFromQuaternion(q, 'YXZ').y;
+    },
     get scene() { return scene; },
     get camera() { return camera; },
     get mode() { return mode; },

@@ -10,6 +10,7 @@
  */
 
 import { createEngine } from '../engine/renderer.js';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { startRuntime, createInputDesk } from '../engine/runtime.js';
 
 /**
@@ -74,9 +75,32 @@ function boot() {
     runtime = await startRuntime(engine, cartridge, firstSceneId, () => {});
   }
 
+  /** VR controllers: thumbstick walks, trigger or A jumps */
+  function pollVRInput(input) {
+    const xrSession = engine.renderer.xr.getSession && engine.renderer.xr.getSession();
+    if (!xrSession) return;
+    let ax = 0, ay = 0, jump = false;
+    for (const src of xrSession.inputSources) {
+      const gp = src.gamepad;
+      if (!gp) continue;
+      // thumbstick lives at axes[2,3] on Quest-style pads, [0,1] on simpler ones
+      const sx = gp.axes.length >= 4 ? gp.axes[2] : (gp.axes[0] || 0);
+      const sy = gp.axes.length >= 4 ? gp.axes[3] : (gp.axes[1] || 0);
+      if (Math.abs(sx) > Math.abs(ax)) ax = sx;
+      if (Math.abs(sy) > Math.abs(ay)) ay = sy;
+      if ((gp.buttons[0] && gp.buttons[0].pressed) || (gp.buttons[4] && gp.buttons[4].pressed)) jump = true;
+    }
+    input.left = ax < -0.35;
+    input.right = ax > 0.35;
+    input.up = ay < -0.35;
+    input.down = ay > 0.35;
+    input.jump = jump;
+  }
+
   function loop(ts) {
     const dt = Math.min((ts - lastTs) / 1000, 0.1);
     lastTs = ts;
+    if (engine.xrPresenting) pollVRInput(desk.input);
     if (running && runtime) {
       const { ended } = runtime.tick(dt, desk.input);
       if (ended) {
@@ -89,11 +113,19 @@ function boot() {
       }
     }
     engine.tick();
-    requestAnimationFrame(loop);
   }
 
   startLevel();
-  requestAnimationFrame((ts) => { lastTs = ts; loop(ts); });
+  // the renderer's own loop, not requestAnimationFrame — rAF freezes inside
+  // a headset session, setAnimationLoop runs everywhere
+  lastTs = performance.now();
+  engine.renderer.setAnimationLoop((ts) => loop(ts));
+
+  // any browser with a headset gets an Enter VR button — no setup, no setting
+  if (navigator.xr && cartridge.settings.mode === '3d') {
+    const vrBtn = VRButton.createButton(engine.renderer);
+    document.body.appendChild(vrBtn);
+  }
 }
 
 if (document.readyState === 'loading') {

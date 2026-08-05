@@ -567,9 +567,19 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
       }
     }
 
+    // VR: walking follows your gaze — feed the headset's yaw into the dummy
+    if (is3D && session.dummy && engine.xrPresenting) {
+      const hy = engine.headsetYaw();
+      if (hy !== null) { session.dummy.yaw = hy; input.yawDelta = 0; input.pitchDelta = 0; }
+    }
+
     if (playerEntity) {
       const pos = phys.bodyPosition(session, playerEntity.id);
-      if (pos && is3D && controlScheme === 'fps') {
+      if (pos && is3D && engine.xrPresenting) {
+        // headset session: plant the rig at the player's feet and let the
+        // headset supply all head movement and look on top
+        engine.xrRig.position.set(pos.x, pos.y - 0.45, pos.z);
+      } else if (pos && is3D && controlScheme === 'fps') {
         // True first-person: camera sits at eye height, immediate (no lerp
         // lag), oriented by the tracked yaw — turning should feel instant.
         const yaw = session.dummy ? session.dummy.yaw : 0;
