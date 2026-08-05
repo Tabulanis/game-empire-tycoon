@@ -79,6 +79,7 @@ export function buildWorld3D(scene) {
     }
 
     if (!entity.components.body) continue;
+    if (Array.isArray(entity.components.tags) && entity.components.tags.includes('player')) continue; // the dummy is the player's physics
     registerEntityBody3D(world, entity, colliderToEntity, colliderByEntity, bodiesByEntity, kinematicByEntity);
   }
 
@@ -211,11 +212,19 @@ const TURN_SPEED = 2.5; // radians/sec
 export function advancePlayerControlsFPS3D(session, input, dt) {
   const d = session.dummy;
   if (!d) return 0;
-  if (input.left) d.yaw += TURN_SPEED * dt;
-  if (input.right) d.yaw -= TURN_SPEED * dt;
+  // mouse look under pointer lock: consume the deltas the input desk piled up
+  d.yaw += (input.yawDelta || 0);
+  d.pitch = Math.max(-1.25, Math.min(1.25, (d.pitch || 0) + (input.pitchDelta || 0)));
+  input.yawDelta = 0;
+  input.pitchDelta = 0;
+  // no pointer lock (touch, or before the first click)? A/D fall back to turning
+  const locked = !!document.pointerLockElement;
+  if (!locked && input.left) d.yaw += TURN_SPEED * dt;
+  if (!locked && input.right) d.yaw -= TURN_SPEED * dt;
   const forward = ((input.up ? 1 : 0) - (input.down ? 1 : 0)) * DUMMY_SPEED * dt;
-  const dx = -Math.sin(d.yaw) * forward;
-  const dz = -Math.cos(d.yaw) * forward;
+  const strafe = locked ? ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * DUMMY_SPEED * dt : 0;
+  const dx = -Math.sin(d.yaw) * forward + Math.cos(d.yaw) * strafe;
+  const dz = -Math.cos(d.yaw) * forward - Math.sin(d.yaw) * strafe;
   if (d.grounded && input.jump) d.vy = DUMMY_JUMP;
   d.vy += GRAVITY.y * dt;
   d.vy = Math.max(d.vy, -30);

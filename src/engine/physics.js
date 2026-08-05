@@ -108,6 +108,7 @@ export function buildWorld(scene, opts = {}) {
     }
 
     if (entity.components.body) {
+      if (Array.isArray(entity.components.tags) && entity.components.tags.includes('player')) continue; // the dummy is the player's physics
       registerEntityBody(world, entity, colliderToEntity, colliderByEntity, bodiesByEntity, kinematicByEntity);
     }
   }

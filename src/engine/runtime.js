@@ -170,9 +170,11 @@ function entitySize(entity) {
  */
 export function createInputDesk(cartridge) {
   const inputConfig = cartridge.settings.input || {};
-  const input = { left: false, right: false, up: false, down: false, jump: false, actions: {} };
-  /** actionName -> key codes, merging cartridge config with the jump default */
-  const actionKeys = { jump: inputConfig.jump || DEFAULT_KEYS.jump };
+  const input = { left: false, right: false, up: false, down: false, jump: false, yawDelta: 0, pitchDelta: 0, actions: {} };
+  /** actionName -> key codes, merging cartridge config with the jump default.
+   * In 3D, W means walk forward — only Space jumps. */
+  const jumpDefault = cartridge.settings.mode === '3d' ? ['Space'] : DEFAULT_KEYS.jump;
+  const actionKeys = { jump: inputConfig.jump || jumpDefault };
   for (const [name, keys] of Object.entries(inputConfig)) {
     if (name !== 'jump') actionKeys[name] = keys;
     input.actions[name] = false;
@@ -205,10 +207,39 @@ export function createInputDesk(cartridge) {
     }
   }
 
+  // first-person: clicking the game locks the mouse to it, and moving the
+  // mouse looks around (Esc releases it — the browser handles that part)
+  const fps = cartridge.settings.controlScheme === 'fps';
+  function onClick() {
+    const canvas = document.querySelector('canvas');
+    if (canvas && document.pointerLockElement !== canvas) canvas.requestPointerLock();
+  }
+  function onMouseMove(e) {
+    if (!document.pointerLockElement) return;
+    input.yawDelta -= e.movementX * 0.0025;
+    input.pitchDelta -= e.movementY * 0.0025;
+  }
+
   return {
     input,
-    bind() { window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); },
-    unbind() { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); }
+    bind() {
+      window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('keyup', onKeyUp);
+      if (fps) {
+        window.addEventListener('click', onClick);
+        window.addEventListener('mousemove', onMouseMove);
+        onClick();
+      }
+    },
+    unbind() {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      if (fps) {
+        window.removeEventListener('click', onClick);
+        window.removeEventListener('mousemove', onMouseMove);
+        if (document.pointerLockElement) document.exitPointerLock();
+      }
+    }
   };
 }
 
@@ -516,8 +547,10 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
         // True first-person: camera sits at eye height, immediate (no lerp
         // lag), oriented by the tracked yaw — turning should feel instant.
         const yaw = session.dummy ? session.dummy.yaw : 0;
+        const pitch = session.dummy ? (session.dummy.pitch || 0) : 0;
         engine.camera.position.set(pos.x, pos.y + 0.35, pos.z);
-        engine.camera.rotation.set(0, yaw, 0);
+        engine.camera.rotation.order = 'YXZ'; // yaw first, then pitch — FPS look
+        engine.camera.rotation.set(pitch, yaw, 0);
       } else if (pos && is3D) {
         // Third-person follow: up and behind the player (player moves toward
         // -Z by default per advancePlayerControls3D's input mapping).

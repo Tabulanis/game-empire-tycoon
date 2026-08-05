@@ -1455,14 +1455,16 @@ export function renderStagePanel(host, ctx) {
   /* ---------------------------------------------------------------- */
   /* keyboard                                                          */
   /* ---------------------------------------------------------------- */
-  const playInput = { left: false, right: false, up: false, down: false, jump: false };
+  const playInput = { left: false, right: false, up: false, down: false, jump: false, yawDelta: 0, pitchDelta: 0 };
 
   function onKeyDown(e) {
     if (playSession) {
+      const three = cart.getCartridge().settings.mode === '3d';
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') playInput.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') playInput.right = true;
       if (e.code === 'ArrowDown' || e.code === 'KeyS') playInput.down = true;
-      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); playInput.jump = true; playInput.up = true; }
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); playInput.up = true; if (!three) playInput.jump = true; }
+      if (e.code === 'Space') { e.preventDefault(); playInput.jump = true; if (!three) playInput.up = true; }
       if (e.code === 'Escape') doStop();
       return;
     }
@@ -1488,6 +1490,20 @@ export function renderStagePanel(host, ctx) {
     if (e.code === 'ArrowDown' || e.code === 'KeyS') playInput.down = false;
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { playInput.jump = false; playInput.up = false; }
   }
+  /* first-person mouse look while testing: Play grabs the mouse, moving it
+   * looks around, Esc gives it back (then Esc again stops the test) */
+  function onPlayMouseMove(e) {
+    if (!playSession || !document.pointerLockElement) return;
+    playInput.yawDelta -= e.movementX * 0.0025;
+    playInput.pitchDelta -= e.movementY * 0.0025;
+  }
+  function onPlayClick() {
+    if (!playSession) return;
+    if (cart.getCartridge().settings.controlScheme !== 'fps') return;
+    if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+  }
+  window.addEventListener('mousemove', onPlayMouseMove);
+  canvas.addEventListener('click', onPlayClick);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
 
@@ -1610,6 +1626,7 @@ export function renderStagePanel(host, ctx) {
     engine.contentRoot.add(wireframe);
     setPhysicsSource(() => worldStats(playSession.session));
     logPlay('play started — ' + worldStats(playSession.session).colliders + ' colliders');
+    if (live.settings.controlScheme === 'fps') canvas.requestPointerLock();
   }
 
   function doStop() {
@@ -1623,6 +1640,7 @@ export function renderStagePanel(host, ctx) {
       spawnStash = null;
     }
     setPhysicsSource(null);
+    if (document.pointerLockElement) document.exitPointerLock();
     if (wireframe) { engine.contentRoot.remove(wireframe); wireGeo.dispose(); wireframe.material.dispose(); wireframe = null; wireGeo = null; }
     canvasWrap.classList.remove('playing');
     playBtn.style.display = '';
