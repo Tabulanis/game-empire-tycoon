@@ -29,16 +29,16 @@ export const PALETTE = [
  * @param {string} name @param {number} size
  * @returns {any} one layer
  */
-export function createLayer(name, size) {
-  return { name, pixels: new Array(size * size).fill(null), opacity: 1, visible: true };
+export function createLayer(name, w, h) {
+  return { name, pixels: new Array(w * h).fill(null), opacity: 1, visible: true };
 }
 
 /**
  * @param {number} size
  * @returns {{layers: Array}} a frame with one starting layer
  */
-export function createBlankFrame(size) {
-  return { layers: [createLayer('Layer 1', size)] };
+export function createBlankFrame(w, h) {
+  return { layers: [createLayer('Layer 1', w, h)] };
 }
 
 /**
@@ -47,7 +47,7 @@ export function createBlankFrame(size) {
  * @param {any} frame @param {number} size
  * @returns {{layers: Array}}
  */
-export function migrateFrame(frame, size) {
+export function migrateFrame(frame, w, h) {
   if (frame.layers) {
     return {
       layers: frame.layers.map((l) => ({
@@ -57,10 +57,10 @@ export function migrateFrame(frame, size) {
       }))
     };
   }
-  const back = createLayer('Back', size); back.pixels = [...(frame.bg || [])];
-  const front = createLayer('Front', size); front.pixels = [...(frame.fg || [])];
-  if (back.pixels.length !== size * size) back.pixels = new Array(size * size).fill(null);
-  if (front.pixels.length !== size * size) front.pixels = new Array(size * size).fill(null);
+  const back = createLayer('Back', w, h); back.pixels = [...(frame.bg || [])];
+  const front = createLayer('Front', w, h); front.pixels = [...(frame.fg || [])];
+  if (back.pixels.length !== w * h) back.pixels = new Array(w * h).fill(null);
+  if (front.pixels.length !== w * h) front.pixels = new Array(w * h).fill(null);
   return { layers: [back, front] };
 }
 
@@ -69,10 +69,10 @@ export function migrateFrame(frame, size) {
  * @param {number} size
  * @returns {any} a new, unsaved sprite — call saveSprite to add it to the cartridge
  */
-export function createSprite(name, size) {
+export function createSprite(name, w, h) {
   return {
-    id: '', name, size,
-    frames: [createBlankFrame(size)],
+    id: '', name, w, h, size: Math.max(w, h),
+    frames: [createBlankFrame(w, h)],
     swatch: '#6fb2dc', thumbnail: null, hitbox: [0, 0, 1, 1]
   };
 }
@@ -82,27 +82,27 @@ export function createSprite(name, size) {
  * @param {number} x @param {number} y @param {number} size
  * @param {string|null} color  null (or 'transparent') erases
  */
-export function setPixel(frame, layerIndex, x, y, size, color) {
+export function setPixel(frame, layerIndex, x, y, w, h, color) {
   const layer = frame.layers[layerIndex];
-  if (!layer || x < 0 || y < 0 || x >= size || y >= size) return;
-  layer.pixels[y * size + x] = color === 'transparent' ? null : color;
+  if (!layer || x < 0 || y < 0 || x >= w || y >= h) return;
+  layer.pixels[y * w + x] = color === 'transparent' ? null : color;
 }
 
 /**
  * @returns {string|null}
  */
-export function getPixel(frame, layerIndex, x, y, size) {
+export function getPixel(frame, layerIndex, x, y, w, h) {
   const layer = frame.layers[layerIndex];
-  if (!layer || x < 0 || y < 0 || x >= size || y >= size) return null;
-  return layer.pixels[y * size + x];
+  if (!layer || x < 0 || y < 0 || x >= w || y >= h) return null;
+  return layer.pixels[y * w + x];
 }
 
 /** Topmost visible color at (x, y) — what the eyedropper sees. */
-export function getCompositePixel(frame, x, y, size) {
+export function getCompositePixel(frame, x, y, w, h) {
   for (let i = frame.layers.length - 1; i >= 0; i--) {
     const layer = frame.layers[i];
     if (!layer.visible) continue;
-    const c = layer.pixels[y * size + x];
+    const c = layer.pixels[y * w + x];
     if (c) return c;
   }
   return null;
@@ -114,16 +114,16 @@ export function getCompositePixel(frame, x, y, size) {
  * @param {any} frame @param {number} size
  * @returns {HTMLCanvasElement}
  */
-export function compositeFrame(frame, size) {
+export function compositeFrame(frame, w, h) {
   const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
+  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   for (const layer of frame.layers) {
     if (!layer.visible || layer.opacity <= 0) continue;
     ctx.globalAlpha = layer.opacity;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const color = layer.pixels[y * size + x];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const color = layer.pixels[y * w + x];
         if (!color) continue;
         ctx.fillStyle = color;
         ctx.fillRect(x, y, 1, 1);
@@ -135,8 +135,8 @@ export function compositeFrame(frame, size) {
 }
 
 /** @returns {string} data URL */
-export function frameToDataURL(frame, size) {
-  return compositeFrame(frame, size).toDataURL('image/png');
+export function frameToDataURL(frame, w, h) {
+  return compositeFrame(frame, w, h).toDataURL('image/png');
 }
 
 /**
@@ -144,11 +144,11 @@ export function frameToDataURL(frame, size) {
  * Falls back to the full canvas when the frame is empty.
  * @returns {[number, number, number, number]} [x, y, w, h]
  */
-export function computeHitbox(frame, size) {
-  let minX = size, minY = size, maxX = -1, maxY = -1;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (getCompositePixel(frame, x, y, size)) {
+export function computeHitbox(frame, w, h) {
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (getCompositePixel(frame, x, y, w, h)) {
         if (x < minX) minX = x;
         if (y < minY) minY = y;
         if (x > maxX) maxX = x;
@@ -157,15 +157,15 @@ export function computeHitbox(frame, size) {
     }
   }
   if (maxX < 0) return [0, 0, 1, 1];
-  return [minX / size, minY / size, (maxX - minX + 1) / size, (maxY - minY + 1) / size];
+  return [minX / w, minY / h, (maxX - minX + 1) / w, (maxY - minY + 1) / h];
 }
 
 /** Most common visible color — the sprite's warehouse swatch. */
-export function dominantColor(frame, size) {
+export function dominantColor(frame, w, h) {
   const counts = {};
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const c = getCompositePixel(frame, x, y, size);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const c = getCompositePixel(frame, x, y, w, h);
       if (c) counts[c] = (counts[c] || 0) + 1;
     }
   }
@@ -179,8 +179,8 @@ export function dominantColor(frame, size) {
 /* ------------------------------------------------------------------ */
 
 /** @returns {number} new layer's index (added on top) */
-export function addLayer(frame, size) {
-  frame.layers.push(createLayer('Layer ' + (frame.layers.length + 1), size));
+export function addLayer(frame, w, h) {
+  frame.layers.push(createLayer('Layer ' + (frame.layers.length + 1), w, h));
   return frame.layers.length - 1;
 }
 
@@ -207,29 +207,29 @@ export function moveLayer(frame, index, dir) {
 /**
  * Flood fill from (x, y) on one layer.
  */
-export function floodFill(frame, layerIndex, x, y, size, color) {
+export function floodFill(frame, layerIndex, x, y, w, h, color) {
   const layer = frame.layers[layerIndex];
   if (!layer) return;
-  const target = getPixel(frame, layerIndex, x, y, size);
+  const target = getPixel(frame, layerIndex, x, y, w, h);
   const next = color === 'transparent' ? null : color;
   if (target === next) return;
   const stack = [[x, y]];
   while (stack.length) {
     const [cx, cy] = stack.pop();
-    if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
-    if (layer.pixels[cy * size + cx] !== target) continue;
-    layer.pixels[cy * size + cx] = next;
+    if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+    if (layer.pixels[cy * w + cx] !== target) continue;
+    layer.pixels[cy * w + cx] = next;
     stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
   }
 }
 
 /** Bresenham line on one layer. */
-export function drawLine(frame, layerIndex, x0, y0, x1, y1, size, color) {
+export function drawLine(frame, layerIndex, x0, y0, x1, y1, w, h, color) {
   const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
   const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
   let err = dx + dy;
   for (;;) {
-    setPixel(frame, layerIndex, x0, y0, size, color);
+    setPixel(frame, layerIndex, x0, y0, w, h, color);
     if (x0 === x1 && y0 === y1) break;
     const e2 = 2 * err;
     if (e2 >= dy) { err += dy; x0 += sx; }
@@ -238,11 +238,11 @@ export function drawLine(frame, layerIndex, x0, y0, x1, y1, size, color) {
 }
 
 /** Rectangle outline between two corners on one layer. */
-export function drawRect(frame, layerIndex, x0, y0, x1, y1, size, color) {
+export function drawRect(frame, layerIndex, x0, y0, x1, y1, w, h, color) {
   const [ax, bx] = x0 < x1 ? [x0, x1] : [x1, x0];
   const [ay, by] = y0 < y1 ? [y0, y1] : [y1, y0];
-  for (let x = ax; x <= bx; x++) { setPixel(frame, layerIndex, x, ay, size, color); setPixel(frame, layerIndex, x, by, size, color); }
-  for (let y = ay; y <= by; y++) { setPixel(frame, layerIndex, ax, y, size, color); setPixel(frame, layerIndex, bx, y, size, color); }
+  for (let x = ax; x <= bx; x++) { setPixel(frame, layerIndex, x, ay, w, h, color); setPixel(frame, layerIndex, x, by, w, h, color); }
+  for (let y = ay; y <= by; y++) { setPixel(frame, layerIndex, ax, y, w, h, color); setPixel(frame, layerIndex, bx, y, w, h, color); }
 }
 
 const hex2 = (n) => Math.round(n).toString(16).padStart(2, '0');
@@ -253,26 +253,26 @@ const hex2 = (n) => Math.round(n).toString(16).padStart(2, '0');
  * @param {any} frame @param {number} layerIndex @param {number} size
  * @param {number[]} [sel]
  */
-export function blurLayer(frame, layerIndex, size, sel) {
+export function blurLayer(frame, layerIndex, w, h, sel) {
   const layer = frame.layers[layerIndex];
   if (!layer) return;
-  const [ax, ay, bx, by] = sel || [0, 0, size - 1, size - 1];
+  const [ax, ay, bx, by] = sel || [0, 0, w - 1, h - 1];
   const src = layer.pixels;
   const out = [...src];
   const parse = (c) => c ? [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16), 255] : [0, 0, 0, 0];
-  for (let y = Math.max(0, ay); y <= Math.min(size - 1, by); y++) {
-    for (let x = Math.max(0, ax); x <= Math.min(size - 1, bx); x++) {
+  for (let y = Math.max(0, ay); y <= Math.min(h - 1, by); y++) {
+    for (let x = Math.max(0, ax); x <= Math.min(w - 1, bx); x++) {
       let r = 0, g = 0, b = 0, a = 0, n = 0;
       for (let oy = -1; oy <= 1; oy++) {
         for (let ox = -1; ox <= 1; ox++) {
           const cx = x + ox, cy = y + oy;
-          if (cx < 0 || cy < 0 || cx >= size || cy >= size) continue;
-          const [pr, pg, pb, pa] = parse(src[cy * size + cx]);
+          if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+          const [pr, pg, pb, pa] = parse(src[cy * w + cx]);
           r += pr * pa; g += pg * pa; b += pb * pa; a += pa; n++;
         }
       }
-      if (!n || a < n * 25) { out[y * size + x] = null; continue; }
-      out[y * size + x] = '#' + hex2(r / a) + hex2(g / a) + hex2(b / a);
+      if (!n || a < n * 25) { out[y * w + x] = null; continue; }
+      out[y * w + x] = '#' + hex2(r / a) + hex2(g / a) + hex2(b / a);
     }
   }
   layer.pixels = out;
@@ -281,9 +281,9 @@ export function blurLayer(frame, layerIndex, size, sel) {
 /**
  * Clear (erase) a selection rect on one layer.
  */
-export function clearRegion(frame, layerIndex, size, sel) {
+export function clearRegion(frame, layerIndex, w, h, sel) {
   const [ax, ay, bx, by] = sel;
-  for (let y = ay; y <= by; y++) for (let x = ax; x <= bx; x++) setPixel(frame, layerIndex, x, y, size, null);
+  for (let y = ay; y <= by; y++) for (let x = ax; x <= bx; x++) setPixel(frame, layerIndex, x, y, w, h, null);
 }
 
 /**
@@ -291,22 +291,28 @@ export function clearRegion(frame, layerIndex, size, sel) {
  * @param {HTMLImageElement} img @param {number} size
  * @returns {any} frame
  */
-export function importImageToFrame(img, size) {
+export function importImageToFrame(img, w, h) {
   const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
+  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = size >= 128;
-  const scale = Math.min(size / img.width, size / img.height);
-  const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
-  ctx.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
-  const data = ctx.getImageData(0, 0, size, size).data;
-  const frame = createBlankFrame(size);
+  ctx.imageSmoothingEnabled = Math.max(w, h) >= 128;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const frame = createBlankFrame(w, h);
   frame.layers[0].name = 'Imported';
-  for (let i = 0; i < size * size; i++) {
+  for (let i = 0; i < w * h; i++) {
     if (data[i * 4 + 3] < 128) continue;
     frame.layers[0].pixels[i] = '#' + hex2(data[i * 4]) + hex2(data[i * 4 + 1]) + hex2(data[i * 4 + 2]);
   }
   return frame;
+}
+
+/** Native-size import: the image at its own dimensions (longest side capped). */
+export function importImageNative(img, cap = 1024) {
+  const scale = Math.min(1, cap / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  return { frame: importImageToFrame(img, w, h), w, h };
 }
 
 /* ------------------------------------------------------------------ */
@@ -318,14 +324,14 @@ export function importImageToFrame(img, size) {
  * @param {'png'|'jpeg'} format  JPEG gets a white ground (no alpha there)
  * @returns {string} data URL
  */
-export function exportFrame(frame, size, format) {
-  const composite = compositeFrame(frame, size);
+export function exportFrame(frame, w, h, format) {
+  const composite = compositeFrame(frame, w, h);
   if (format === 'jpeg') {
     const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
+    canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(0, 0, w, h);
     ctx.drawImage(composite, 0, 0);
     return canvas.toDataURL('image/jpeg', 0.92);
   }
@@ -350,16 +356,17 @@ export function saveSprite(cartridge, sprite) {
     while (cartridge.assets.sprites.find((s) => s.id === id)) { id = slug + '-' + n; n++; }
     sprite.id = id;
   }
+  const w = sprite.w || sprite.size, h = sprite.h || sprite.size;
   const frame0 = sprite.frames[0];
-  const thumbnail = frameToDataURL(frame0, sprite.size);
-  const swatch = dominantColor(frame0, sprite.size);
-  const hitbox = computeHitbox(frame0, sprite.size);
+  const thumbnail = frameToDataURL(frame0, w, h);
+  const swatch = dominantColor(frame0, w, h);
+  const hitbox = computeHitbox(frame0, w, h);
   const frames = sprite.frames.map((f) => ({
     layers: f.layers.map((l) => ({ name: l.name, pixels: [...l.pixels], opacity: l.opacity, visible: l.visible })),
-    dataURL: frameToDataURL(f, sprite.size)
+    dataURL: frameToDataURL(f, w, h)
   }));
   const existing = cartridge.assets.sprites.findIndex((s) => s.id === sprite.id);
-  const record = { id: sprite.id, name: sprite.name, size: sprite.size, frames, swatch, thumbnail, hitbox };
+  const record = { id: sprite.id, name: sprite.name, w, h, size: Math.max(w, h), frames, swatch, thumbnail, hitbox };
   if (existing >= 0) cartridge.assets.sprites[existing] = record; else cartridge.assets.sprites.push(record);
   sprite.thumbnail = thumbnail; sprite.swatch = swatch; sprite.hitbox = hitbox;
   return sprite.id;
@@ -372,9 +379,10 @@ export function saveSprite(cartridge, sprite) {
  * @returns {any}
  */
 export function loadSpriteForEditing(record) {
+  const w = record.w || record.size, h = record.h || record.size;
   return {
-    id: record.id, name: record.name, size: record.size,
-    frames: record.frames.map((f) => migrateFrame(f, record.size)),
+    id: record.id, name: record.name, w, h, size: record.size,
+    frames: record.frames.map((f) => migrateFrame(f, w, h)),
     swatch: record.swatch, thumbnail: record.thumbnail, hitbox: record.hitbox
   };
 }

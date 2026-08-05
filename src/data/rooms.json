@@ -31,7 +31,7 @@
       "title": "The Pixel Atelier — draw your heroes",
       "era": "garage",
       "members": [
-        { "tab": "atelier", "label": "Pixels", "era": "garage" },
+        { "tab": "atelier", "label": "Images", "era": "garage" },
         { "tab": "kitbay", "label": "3D Shop", "era": "tower" }
       ]
     },

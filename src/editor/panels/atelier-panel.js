@@ -14,7 +14,7 @@ const CANVAS_DISPLAY_SIZE = 384;
 
 let currentSpriteId = null; // null = new/unsaved sprite
 /** @type {any} working sprite (editable copy — see atelier.js loadSpriteForEditing) */
-let working = atelier.createSprite('Sprite', 16);
+let working = atelier.createSprite('Image', 64, 64);
 let currentFrame = 0;
 let currentLayer = 0; // index into frame.layers
 let currentColor = atelier.PALETTE[4];
@@ -46,10 +46,11 @@ export function renderAtelierPanel(host, ctx) {
   const newBtn = makeBtn('+ New Sprite', () => {
     const name = prompt('Sprite name?', 'Sprite');
     if (name === null) return;
-    const sizeStr = prompt('Canvas size? Any number 8-512 (16, 32, 64, 128, 256 are the classics)', '16');
+    const sizeStr = prompt('Canvas size? width x height, e.g. 64x64 or 320x180 (8-1024 each)', '64x64');
     if (sizeStr === null) return;
-    const size = Math.max(atelier.MIN_SIZE, Math.min(atelier.MAX_SIZE, Math.round(Number(sizeStr) || 16)));
-    working = atelier.createSprite(name, size);
+    const m = /^\s*(\d+)\s*[x×,\s]\s*(\d+)\s*$/.exec(sizeStr) || [null, sizeStr, sizeStr];
+    const clampDim = (v) => Math.max(8, Math.min(1024, Math.round(Number(v) || 64)));
+    working = atelier.createSprite(name, clampDim(m[1]), clampDim(m[2]));
     currentSpriteId = null;
     currentFrame = 0;
     renderAll();
@@ -82,12 +83,12 @@ export function renderAtelierPanel(host, ctx) {
   bar.appendChild(mirrorBtn);
   bar.appendChild(makeSep());
   bar.appendChild(makeBtn('\ud83c\udf2b Blur', () => {
-    atelier.blurLayer(working.frames[currentFrame], currentLayer, working.size, sel);
+    atelier.blurLayer(working.frames[currentFrame], currentLayer, working.w, working.h, sel);
     renderAll();
   }));
   bar.appendChild(makeBtn('\ud83e\uddf9 Clear', () => {
-    const region = sel || [0, 0, working.size - 1, working.size - 1];
-    atelier.clearRegion(working.frames[currentFrame], currentLayer, working.size, region);
+    const region = sel || [0, 0, working.w - 1, working.h - 1];
+    atelier.clearRegion(working.frames[currentFrame], currentLayer, working.w, working.h, region);
     renderAll();
   }));
   bar.appendChild(makeSep());
@@ -99,10 +100,14 @@ export function renderAtelierPanel(host, ctx) {
     const img = new Image();
     img.onload = () => {
       // Import replaces the current frame, scaled to this sprite's canvas.
-      working.frames[currentFrame] = atelier.importImageToFrame(img, working.size);
+      // the image arrives at its own size — this becomes the canvas
+      const res = atelier.importImageNative(img);
+      working.w = res.w; working.h = res.h; working.size = Math.max(res.w, res.h);
+      working.frames = [res.frame];
+      currentFrame = 0; currentLayer = 0; sel = null;
       URL.revokeObjectURL(img.src);
       renderAll();
-      ctx.toast('Imported! (bigger canvases keep more detail — try 128 or 256)');
+      ctx.toast('Imported at ' + res.w + '×' + res.h + '.');
     };
     img.onerror = () => ctx.toast('Could not read that image.', true);
     img.src = URL.createObjectURL(file);
@@ -154,7 +159,7 @@ export function renderAtelierPanel(host, ctx) {
   const layersList = document.createElement('div');
   layersCard.appendChild(layersList);
   const addLayerBtn = makeBtn('+ Layer', () => {
-    currentLayer = atelier.addLayer(working.frames[currentFrame], working.size);
+    currentLayer = atelier.addLayer(working.frames[currentFrame], working.w, working.h);
     renderAll();
   });
   addLayerBtn.style.marginTop = '6px';
@@ -171,8 +176,8 @@ export function renderAtelierPanel(host, ctx) {
   const exRow = document.createElement('div');
   exRow.className = 'stage-bar';
   exRow.style.flexWrap = 'wrap';
-  exRow.appendChild(makeBtn('PNG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.size, 'png'), (working.name || 'sprite') + '.png')));
-  exRow.appendChild(makeBtn('JPEG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.size, 'jpeg'), (working.name || 'sprite') + '.jpg')));
+  exRow.appendChild(makeBtn('PNG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.w, working.h, 'png'), (working.name || 'sprite') + '.png')));
+  exRow.appendChild(makeBtn('JPEG', () => dl(atelier.exportFrame(working.frames[currentFrame], working.w, working.h, 'jpeg'), (working.name || 'sprite') + '.jpg')));
   exRow.appendChild(makeBtn('Sprite File', () => {
     // the proprietary format: the full layered sprite as JSON
     const blob = new Blob([JSON.stringify(working)], { type: 'application/json' });
@@ -188,9 +193,10 @@ export function renderAtelierPanel(host, ctx) {
     file.text().then((text) => {
       const data = JSON.parse(text);
       if (!data.frames || !data.size) throw new Error('not a sprite file');
+      const iw = data.w || data.size, ih = data.h || data.size;
       working = {
-        id: '', name: data.name || 'Imported Sprite', size: data.size,
-        frames: data.frames.map((f) => atelier.migrateFrame(f, data.size)),
+        id: '', name: data.name || 'Imported Image', w: iw, h: ih, size: Math.max(iw, ih),
+        frames: data.frames.map((f) => atelier.migrateFrame(f, iw, ih)),
         swatch: data.swatch || '#6fb2dc', thumbnail: null, hitbox: data.hitbox || [0, 0, 1, 1]
       };
       currentSpriteId = null; currentFrame = 0; currentLayer = 0; sel = null;
@@ -215,7 +221,7 @@ export function renderAtelierPanel(host, ctx) {
   frameBtns.className = 'stage-bar';
   frameBtns.style.marginTop = '6px';
   const addFrameBtn = makeBtn('+ Frame', () => {
-    working.frames.push(atelier.createBlankFrame(working.size));
+    working.frames.push(atelier.createBlankFrame(working.w, working.h));
     currentFrame = working.frames.length - 1;
     renderAll();
   });
@@ -272,7 +278,7 @@ export function renderAtelierPanel(host, ctx) {
     const live = cart.getCartridge();
     atelier.deleteSprite(live, currentSpriteId);
     cart.touch();
-    working = atelier.createSprite('Sprite', 16);
+    working = atelier.createSprite('Image', 64, 64);
     currentSpriteId = null;
     currentFrame = 0;
     ctx.toast('Deleted.');
@@ -316,12 +322,15 @@ export function renderAtelierPanel(host, ctx) {
 
   function drawCanvas() {
     const frame = working.frames[currentFrame];
-    const composite = atelier.compositeFrame(frame, working.size);
-    ctx2d.clearRect(0, 0, CANVAS_DISPLAY_SIZE, CANVAS_DISPLAY_SIZE);
+    const composite = atelier.compositeFrame(frame, working.w, working.h);
+    const maxDim = Math.max(working.w, working.h);
+    canvas.width = Math.round(CANVAS_DISPLAY_SIZE * working.w / maxDim);
+    canvas.height = Math.round(CANVAS_DISPLAY_SIZE * working.h / maxDim);
+    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
     ctx2d.imageSmoothingEnabled = false;
-    ctx2d.drawImage(composite, 0, 0, working.size, working.size, 0, 0, CANVAS_DISPLAY_SIZE, CANVAS_DISPLAY_SIZE);
+    ctx2d.drawImage(composite, 0, 0, working.w, working.h, 0, 0, canvas.width, canvas.height);
     if (sel) {
-      const k = CANVAS_DISPLAY_SIZE / working.size;
+      const k = canvas.width / working.w;
       ctx2d.strokeStyle = '#f0c463';
       ctx2d.setLineDash([5, 4]);
       ctx2d.strokeRect(sel[0] * k + 0.5, sel[1] * k + 0.5, (sel[2] - sel[0] + 1) * k - 1, (sel[3] - sel[1] + 1) * k - 1);
@@ -379,7 +388,7 @@ export function renderAtelierPanel(host, ctx) {
       const thumb = document.createElement('div');
       thumb.className = 'wh-thumb';
       const img = document.createElement('img');
-      img.src = atelier.frameToDataURL(frame, working.size);
+      img.src = atelier.frameToDataURL(frame, working.w, working.h);
       img.style.cssText = 'width:100%;height:100%;object-fit:contain;image-rendering:pixelated;';
       thumb.appendChild(img);
       cell.appendChild(thumb);
@@ -393,7 +402,7 @@ export function renderAtelierPanel(host, ctx) {
   }
 
   function refreshHitbox() {
-    const box = atelier.computeHitbox(working.frames[currentFrame], working.size);
+    const box = atelier.computeHitbox(working.frames[currentFrame], working.w, working.h);
     hitboxInfo.textContent = 'x:' + box[0].toFixed(2) + ' y:' + box[1].toFixed(2) +
       ' w:' + box[2].toFixed(2) + ' h:' + box[3].toFixed(2) + ' (normalized to the frame)';
   }
@@ -416,8 +425,8 @@ export function renderAtelierPanel(host, ctx) {
   function pixelAt(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     return [
-      Math.floor((clientX - rect.left) / rect.width * working.size),
-      Math.floor((clientY - rect.top) / rect.height * working.size)
+      Math.floor((clientX - rect.left) / rect.width * working.w),
+      Math.floor((clientY - rect.top) / rect.height * working.h)
     ];
   }
 
@@ -425,8 +434,8 @@ export function renderAtelierPanel(host, ctx) {
     const [px, py] = pixelAt(clientX, clientY);
     const frame = working.frames[currentFrame];
     const color = tool === 'erase' ? null : currentColor;
-    atelier.setPixel(frame, currentLayer, px, py, working.size, color);
-    if (mirror) atelier.setPixel(frame, currentLayer, working.size - 1 - px, py, working.size, color);
+    atelier.setPixel(frame, currentLayer, px, py, working.w, working.h, color);
+    if (mirror) atelier.setPixel(frame, currentLayer, working.w - 1 - px, py, working.w, working.h, color);
     drawCanvas();
   }
 
@@ -434,7 +443,7 @@ export function renderAtelierPanel(host, ctx) {
     const [px, py] = pixelAt(e.clientX, e.clientY);
     const frame = working.frames[currentFrame];
     if (tool === 'pick') {
-      const picked = atelier.getCompositePixel(frame, px, py, working.size);
+      const picked = atelier.getCompositePixel(frame, px, py, working.w, working.h);
       if (picked) { currentColor = picked; tool = 'draw'; refreshToolbar(); }
       return;
     }
@@ -444,7 +453,7 @@ export function renderAtelierPanel(host, ctx) {
       return;
     }
     if (tool === 'fill') {
-      atelier.floodFill(frame, currentLayer, px, py, working.size, currentColor);
+      atelier.floodFill(frame, currentLayer, px, py, working.w, working.h, currentColor);
       drawCanvas(); refreshFrameStrip(); refreshHitbox();
       return;
     }
@@ -459,10 +468,10 @@ export function renderAtelierPanel(host, ctx) {
   window.addEventListener('pointerup', (e) => {
     if (anchor && tool === 'select') {
       const [px, py] = pixelAt(e.clientX, e.clientY);
-      const clamp = (v) => Math.max(0, Math.min(working.size - 1, v));
+      const cw = (v) => Math.max(0, Math.min(working.w - 1, v)); const chh = (v) => Math.max(0, Math.min(working.h - 1, v));
       sel = [
-        clamp(Math.min(anchor[0], px)), clamp(Math.min(anchor[1], py)),
-        clamp(Math.max(anchor[0], px)), clamp(Math.max(anchor[1], py))
+        cw(Math.min(anchor[0], px)), chh(Math.min(anchor[1], py)),
+        cw(Math.max(anchor[0], px)), chh(Math.max(anchor[1], py))
       ];
       if (sel[2] - sel[0] < 1 && sel[3] - sel[1] < 1) sel = null; // a click clears
       anchor = null;
@@ -473,7 +482,7 @@ export function renderAtelierPanel(host, ctx) {
       const [px, py] = pixelAt(e.clientX, e.clientY);
       const frame = working.frames[currentFrame];
       const op = tool === 'line' ? atelier.drawLine : atelier.drawRect;
-      op(frame, currentLayer, anchor[0], anchor[1], px, py, working.size, currentColor);
+      op(frame, currentLayer, anchor[0], anchor[1], px, py, working.w, working.h, currentColor);
       anchor = null;
       drawCanvas(); refreshFrameStrip(); refreshHitbox();
       return;
