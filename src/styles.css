@@ -590,3 +590,13 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   padding: 9px 16px; font-size: 13px; color: var(--ink); cursor: pointer;
 }
 .palette-row:hover, .palette-row.active { background: var(--bg-2); color: var(--accent); }
+
+/* ---- touch devices: bigger targets ---- */
+@media (pointer: coarse) {
+  button.bar { padding: 11px 16px; font-size: 14px; }
+  .tab { padding: 13px 16px; font-size: 13px; }
+  .room { min-width: 88px; padding: 13px 14px 11px; }
+  .kit-tex-tile, .shelf-tile { min-height: 56px; }
+  input[type="range"] { height: 32px; }
+  .tracker-cell { min-width: 24px !important; }
+}

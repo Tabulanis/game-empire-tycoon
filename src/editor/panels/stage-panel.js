@@ -359,7 +359,29 @@ export function renderStagePanel(host, ctx) {
 
   /* ---- terrain sculpting brush (Blender/ZBrush style) ---- */
   let activeSlot = 0;
-  let brushOp = 'raise'; // raise | lower | paint
+  let brushOp = 'raise'; // raise | lower | paint | scatter
+  let scatterChoice = 'tree';
+  const SCATTER_PROPS = {
+    tree: { name: 'Tree', icon: '🌲', parts: [
+      { shape: 'cylinder', swatch: '#6b4a2b', size: [0.14, 0.5, 0.14], p: [0, 0.25, 0], r: [0, 0, 0], parent: -1 },
+      { shape: 'cone', swatch: '#3f7d4c', size: [0.55, 0.8, 0.55], p: [0, 0.65, 0], r: [0, 0, 0], parent: 0 }
+    ]},
+    rock: { name: 'Rock', icon: '🪨', parts: [
+      { shape: 'sphere', swatch: '#8a8f99', size: [0.45, 0.3, 0.4], p: [0, 0.13, 0], r: [0.2, 0.5, 0], parent: -1 }
+    ]},
+    bush: { name: 'Bush', icon: '🌿', parts: [
+      { shape: 'sphere', swatch: '#4d8a4d', size: [0.5, 0.35, 0.5], p: [0, 0.16, 0], r: [0, 0, 0], parent: -1 }
+    ]},
+    flower: { name: 'Flower', icon: '🌼', parts: [
+      { shape: 'cylinder', swatch: '#5c8a4d', size: [0.04, 0.3, 0.04], p: [0, 0.15, 0], r: [0, 0, 0], parent: -1 },
+      { shape: 'sphere', swatch: '#ffcf6e', size: [0.16, 0.16, 0.16], p: [0, 0.34, 0], r: [0, 0, 0], parent: 0 }
+    ]}
+  };
+  let scatterSeed = 1;
+  function scatterRand() {
+    scatterSeed = (scatterSeed * 16807) % 2147483647;
+    return scatterSeed / 2147483647;
+  }
   let brushRadius = 1.5; // in cells
   let stroking = false;
   /** cells already touched this stroke, so raise/lower step once per pass */
@@ -421,6 +443,28 @@ export function renderStagePanel(host, ctx) {
         const cz = -t.size[1] / 2 + (row + 0.5) * cell;
         if (Math.hypot(cx - pt[0], cz - pt[2]) > r) continue;
         const key = row + ',' + col;
+        if (brushOp === 'scatter') {
+          if (strokeSet.has(key)) continue;
+          strokeSet.add(key);
+          if (scatterRand() > 0.45) continue; // sparse feels natural
+          const prop = SCATTER_PROPS[scatterChoice];
+          const cellEntry = (t.cells || {})[key];
+          const groundY = cellEntry && cellEntry.h ? cellEntry.h * 0.5 : 0;
+          const px2 = -t.size[0] / 2 + (col + scatterRand()) * cell;
+          const pz2 = -t.size[1] / 2 + (row + scatterRand()) * cell;
+          const sc2 = 0.7 + scatterRand() * 0.6;
+          const entity = ent.createEntity({
+            name: prop.name,
+            components: {
+              transform: { p: [px2, groundY, pz2], r: [0, scatterRand() * 6.28, 0], s: [sc2, sc2, sc2] },
+              model: { parts: JSON.parse(JSON.stringify(prop.parts)) }
+            }
+          });
+          ent.addEntity(scene, entity);
+          view.refreshEntity(entity.id);
+          changed = true;
+          continue;
+        }
         if (!t.cells[key]) t.cells[key] = { l: null, h: 0 };
         const entry = t.cells[key];
         if (brushOp === 'paint') {
@@ -436,7 +480,8 @@ export function renderStagePanel(host, ctx) {
     }
     if (changed) {
       cart.touch();
-      view.refreshTerrain(scene);
+      if (brushOp === 'scatter') refreshTree();
+      else view.refreshTerrain(scene);
     }
   }
 
@@ -493,7 +538,7 @@ export function renderStagePanel(host, ctx) {
       if (tool === 'terrain') {
         const opRow = document.createElement('div');
         opRow.className = 'stage-bar';
-        for (const [op, label] of [['raise', '▲ Raise'], ['lower', '▼ Lower'], ['paint', '🖌 Paint']]) {
+        for (const [op, label] of [['raise', '▲ Raise'], ['lower', '▼ Lower'], ['paint', '🖌 Paint'], ['scatter', '🌲 Scatter']]) {
           const b = makeBtn(label, () => { brushOp = op; refreshTerrainCard(); });
           if (brushOp === op) b.className += ' active';
           opRow.appendChild(b);
@@ -517,6 +562,21 @@ export function renderStagePanel(host, ctx) {
         brushStatusEl.style.cssText = 'color:var(--gold);min-height:16px;';
         brushStatusEl.textContent = 'Move the mouse over the ground…';
         terrainBody.appendChild(brushStatusEl);
+
+        if (brushOp === 'scatter') {
+          const scRow = document.createElement('div');
+          scRow.className = 'stage-bar';
+          for (const [id2, prop] of Object.entries(SCATTER_PROPS)) {
+            const b = makeBtn(prop.icon + ' ' + prop.name, () => { scatterChoice = id2; refreshTerrainCard(); });
+            if (scatterChoice === id2) b.className += ' active';
+            scRow.appendChild(b);
+          }
+          terrainBody.appendChild(scRow);
+          const scHint = document.createElement('div');
+          scHint.className = 'stage-hint';
+          scHint.textContent = 'Drag to sprinkle them across the ground — random sizes and turns, sitting on raised cells. They become normal things you can select and delete.';
+          terrainBody.appendChild(scHint);
+        }
 
         const layersHead = document.createElement('div');
         layersHead.className = 'stage-hint';
