@@ -306,7 +306,7 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   .stage-layout:has(.stage-rail) { grid-template-columns: 1fr; height: auto; }
 }
 .stage-left, .stage-right { min-width: 0; }
-.stage-canvas-wrap { height: 56vh; max-height: 620px; margin-bottom: 6px; }
+.stage-canvas-wrap { position: relative; overflow: hidden; height: 56vh; max-height: 620px; margin-bottom: 6px; }
 .stage-hint {
   font-size: 11px; color: var(--dim); letter-spacing: .04em;
   padding: 4px 2px 12px;
