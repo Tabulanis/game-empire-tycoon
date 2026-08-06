@@ -1,11 +1,48 @@
 {
   "id": "fps",
   "era": "garage",
-  "tags": ["3d", "shoot", "first-person"],
-  "modules": ["motion3d", "triggers", "score"],
+  "tags": [
+    "3d",
+    "shoot",
+    "first-person"
+  ],
+  "modules": [
+    "motion3d",
+    "triggers",
+    "score"
+  ],
   "controlScheme": "fps",
-  "input": { "shoot": ["KeyX", "KeyJ"] },
+  "input": {
+    "shoot": [
+      "KeyX",
+      "KeyJ"
+    ]
+  },
+  "lighting": {
+    "shadows": "pcf",
+    "bounce": 0.4,
+    "sunAngle": 205,
+    "sunHeight": 62,
+    "fog": {
+      "on": true,
+      "color": "#cdd6e4",
+      "density": 0.028
+    }
+  },
   "starter": "scenes/range.json",
-  "brickPresets": ["player-shooter", "projectile", "enemy-target", "win-checker"],
-  "questions": ["hero", "tone", "difficulty"]
+  "brickPresets": [
+    "player-shooter",
+    "projectile",
+    "guard0",
+    "guard1",
+    "guard2",
+    "guard3",
+    "win-checker",
+    "checkpoint"
+  ],
+  "questions": [
+    "hero",
+    "tone",
+    "difficulty"
+  ]
 }

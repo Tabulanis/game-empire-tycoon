@@ -9,7 +9,12 @@
  * Ticket P3-2. Phase 3.
  */
 
-import { moveKinematicTo, bodyPosition, teleportBody } from '../physics.js';
+/* No physics import here anymore — every function takes a `phys` adapter
+ * (runtime.js's createPhysicsAdapter) so the SAME brick works for 2D and 3D
+ * games alike. 3D-ness is detected from the shape bodyPosition hands back:
+ * 2D returns {x,y}; 3D returns {x,y,z}. Ground-plane axes are (x,y) in 2D
+ * and (x,z) in 3D — height (world y) is held constant in 3D, since these
+ * are ground-walking patrols, not flying ones. */
 
 /**
  * @typedef {Object} MotionState
@@ -24,81 +29,100 @@ export function createMotionState() {
 
 /**
  * DO patrol-between: ping-pong a kinematic entity between waypoints.
+ * Waypoints are always 2-element [a, b] pairs: in a 2D scene that's [x, y];
+ * in a 3D scene it's [x, z] (ground-plane), with height held at whatever
+ * the entity was placed at.
  * @param {any} entity
- * @param {any} params  {points: [[x,y], ...], speed}
+ * @param {any} params  {points: [[a,b], ...], speed}
  * @param {any} session  physics PlaySession
  * @param {number} dt
  * @param {MotionState} state
+ * @param {any} phys  the runtime's physics adapter (2D or 3D)
  */
-export function doPatrolBetween(entity, params, session, dt, state) {
+export function doPatrolBetween(entity, params, session, dt, state, phys) {
   const points = params.points;
   if (!points || points.length < 2) return;
   let progress = state.patrol.get(entity.id);
   if (!progress) { progress = { targetIndex: 1 }; state.patrol.set(entity.id, progress); }
 
-  const pos = bodyPosition(session, entity.id);
+  const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
+  const is3D = pos.z !== undefined;
+  const groundB = is3D ? pos.z : pos.y;
   const target = points[progress.targetIndex];
-  const dx = target[0] - pos.x, dy = target[1] - pos.y;
-  const dist = Math.hypot(dx, dy);
+  const dx = target[0] - pos.x, db = target[1] - groundB;
+  const dist = Math.hypot(dx, db);
   const speed = params.speed || 2;
 
   if (dist < 0.05) {
     progress.targetIndex = (progress.targetIndex + 1) % points.length;
   } else {
     const nx = pos.x + (dx / dist) * speed * dt;
-    const ny = pos.y + (dy / dist) * speed * dt;
-    moveKinematicTo(session, entity.id, nx, ny);
-    // Face the direction of travel — 2D convention: transform.s[0] sign.
-    entity.components.transform.s[0] = dx < 0
-      ? -Math.abs(entity.components.transform.s[0])
-      : Math.abs(entity.components.transform.s[0]);
+    const nb = groundB + (db / dist) * speed * dt;
+    if (is3D) {
+      phys.moveKinematicTo(session, entity.id, nx, pos.y, nb);
+    } else {
+      phys.moveKinematicTo(session, entity.id, nx, nb);
+      // Face the direction of travel — 2D convention: transform.s[0] sign.
+      entity.components.transform.s[0] = dx < 0
+        ? -Math.abs(entity.components.transform.s[0])
+        : Math.abs(entity.components.transform.s[0]);
+    }
   }
 }
 
 /**
  * DO follow-path: walk a kinematic entity through an ordered list of points
- * once (not ping-ponging like patrol), then stop at the last one.
+ * once (not ping-ponging like patrol), then stop at the last one. Same
+ * [a,b] waypoint convention as patrol-between (2D: x,y — 3D: x,z).
  * @param {any} entity
- * @param {any} params  {points: [[x,y], ...], speed}
+ * @param {any} params  {points: [[a,b], ...], speed}
  * @param {any} session
  * @param {number} dt
  * @param {MotionState} state
+ * @param {any} phys
  */
-export function doFollowPath(entity, params, session, dt, state) {
+export function doFollowPath(entity, params, session, dt, state, phys) {
   const points = params.points;
   if (!points || !points.length) return;
   let idx = state.pathProgress.get(entity.id);
   if (idx === undefined) { idx = 0; state.pathProgress.set(entity.id, idx); }
   if (idx >= points.length) return; // arrived — stays put
 
-  const pos = bodyPosition(session, entity.id);
+  const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
+  const is3D = pos.z !== undefined;
+  const groundB = is3D ? pos.z : pos.y;
   const target = points[idx];
-  const dx = target[0] - pos.x, dy = target[1] - pos.y;
-  const dist = Math.hypot(dx, dy);
+  const dx = target[0] - pos.x, db = target[1] - groundB;
+  const dist = Math.hypot(dx, db);
   const speed = params.speed || 2;
 
   if (dist < 0.05) {
     state.pathProgress.set(entity.id, idx + 1);
   } else {
-    moveKinematicTo(session, entity.id, pos.x + (dx / dist) * speed * dt, pos.y + (dy / dist) * speed * dt);
+    const nx = pos.x + (dx / dist) * speed * dt;
+    const nb = groundB + (db / dist) * speed * dt;
+    if (is3D) phys.moveKinematicTo(session, entity.id, nx, pos.y, nb);
+    else phys.moveKinematicTo(session, entity.id, nx, nb);
   }
 }
 
 /**
- * DO teleport-to: instant relocation. Works on any body type via
- * physics.teleportBody; falls back to writing the transform directly for a
- * visual-only entity with no physics body at all.
+ * DO teleport-to: instant relocation. Works on any body type via the
+ * physics adapter's teleportBody; falls back to writing the transform
+ * directly for a visual-only entity with no physics body at all.
  * @param {any} entity
- * @param {any} params  {x, y}
+ * @param {any} params  {x, y, z?}
  * @param {any} session
+ * @param {any} phys
  */
-export function doTeleportTo(entity, params, session) {
-  const moved = teleportBody(session, entity.id, params.x, params.y);
+export function doTeleportTo(entity, params, session, phys) {
+  const moved = phys.teleportBody(session, entity.id, params.x, params.y, params.z);
   if (!moved) {
     entity.components.transform.p[0] = params.x;
     entity.components.transform.p[1] = params.y;
+    if (params.z !== undefined) entity.components.transform.p[2] = params.z;
   }
 }
 

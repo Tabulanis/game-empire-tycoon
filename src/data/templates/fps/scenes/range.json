@@ -2,15 +2,2639 @@
   "id": "range",
   "entities": [
     {
+      "id": "floor",
+      "name": "Floor",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0,
+            -0.5,
+            0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#4a4536",
+          "size": [
+            23.0,
+            1,
+            23.0
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            23.0,
+            1,
+            23.0
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall1",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -9.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall2",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            -9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall3",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall4",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall5",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.5,
+            1.3,
+            -9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall6",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall7",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall8",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall9",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            9.0,
+            1.3,
+            -10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall10",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            7.5,
+            1.3,
+            -9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall11",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            -9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall12",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -9.0,
+            1.3,
+            -7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall13",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall14",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            -7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall15",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            -7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall16",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            1.5,
+            1.3,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall17",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.5,
+            1.3,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall18",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            7.5,
+            1.3,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall19",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall20",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall21",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.0,
+            1.3,
+            -4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall22",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            -4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall23",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.5,
+            1.3,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall24",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            1.5,
+            1.3,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall25",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            7.5,
+            1.3,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall26",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall27",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -9.0,
+            1.3,
+            -1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall28",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall29",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -7.5,
+            1.3,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall30",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -4.5,
+            1.3,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall31",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            -1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall32",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            -1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall33",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.5,
+            1.3,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall34",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall35",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall36",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -7.5,
+            1.3,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall37",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall38",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall39",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1.3,
+            1.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall40",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            4.5,
+            1.3,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall41",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            7.5,
+            1.3,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall42",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall43",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall44",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.0,
+            1.3,
+            4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall45",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall46",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall47",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -1.5,
+            1.3,
+            6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall48",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            4.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall49",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall50",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -10.5,
+            1.3,
+            9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall51",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -9.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall52",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -7.5,
+            1.3,
+            9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall53",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall54",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall55",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall56",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            0.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall57",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall58",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall59",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1.3,
+            7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall60",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall61",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            9.0,
+            1.3,
+            7.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall62",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            9.0,
+            1.3,
+            10.5
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            3.3,
+            2.6,
+            0.3
+          ]
+        }
+      }
+    },
+    {
+      "id": "wall63",
+      "name": "Wall",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            10.5,
+            1.3,
+            9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#8a7f68",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        },
+        "body": {
+          "type": "static",
+          "size": [
+            0.3,
+            2.6,
+            3.3
+          ]
+        }
+      }
+    },
+    {
       "id": "player",
       "name": "Player",
       "prefab": null,
       "components": {
         "transform": {
           "p": [
-            0,
+            -9.0,
             1,
-            8
+            -9.0
           ],
           "r": [
             0,
@@ -24,77 +2648,36 @@
           ]
         },
         "model": {
-          "shape": "box",
-          "swatch": "#6fd3ff",
+          "shape": "capsule",
+          "swatch": "#67e39b",
           "size": [
-            0.6,
-            0.9,
-            0.6
+            0.5,
+            0.8,
+            0.5
           ]
         },
         "health": {
           "max": 3,
           "current": 3
         },
-        "bricks": {
-          "sheet": "player-shooter"
-        },
         "tags": [
           "player"
-        ]
-      }
-    },
-    {
-      "id": "floor",
-      "name": "Wall",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            0,
-            -1,
-            0
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#3b4a63",
-          "size": [
-            30,
-            1,
-            30
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            30,
-            1,
-            30
-          ]
+        ],
+        "bricks": {
+          "sheet": "player-shooter"
         }
       }
     },
     {
-      "id": "wall-left",
-      "name": "Wall",
+      "id": "goal",
+      "name": "Goal",
       "prefab": null,
       "components": {
         "transform": {
           "p": [
-            -10,
-            1,
-            -2
+            9.0,
+            1.3,
+            9.0
           ],
           "r": [
             0,
@@ -108,385 +2691,306 @@
           ]
         },
         "model": {
-          "shape": "box",
-          "swatch": "#3b4a63",
+          "shape": "sphere",
+          "swatch": "#ffd86b",
           "size": [
-            1,
-            4,
-            24
+            0.7,
+            0.7,
+            0.7
           ]
         },
         "body": {
           "type": "static",
           "size": [
-            1,
-            4,
-            24
-          ]
-        }
-      }
-    },
-    {
-      "id": "wall-right",
-      "name": "Wall",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            10,
-            1,
-            -2
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
+            0.7,
+            0.7,
+            0.7
           ]
         },
-        "model": {
-          "shape": "box",
-          "swatch": "#3b4a63",
+        "logic": {
+          "kind": "trigger",
           "size": [
-            1,
-            4,
-            24
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            1,
-            4,
-            24
-          ]
-        }
-      }
-    },
-    {
-      "id": "wall-back",
-      "name": "Wall",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            0,
-            1,
-            -14
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#3b4a63",
-          "size": [
-            20,
-            4,
-            1
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            20,
-            4,
-            1
-          ]
-        }
-      }
-    },
-    {
-      "id": "target-1",
-      "name": "Target",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            0,
-            0.5,
-            -4
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#ff6b8b",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "health": {
-          "max": 1,
-          "current": 1
-        },
-        "bricks": {
-          "sheet": "enemy-target"
-        },
-        "tags": [
-          "enemy"
-        ]
-      }
-    },
-    {
-      "id": "target-2",
-      "name": "Target",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            -5,
-            0.5,
-            -6
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#ff6b8b",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "health": {
-          "max": 1,
-          "current": 1
-        },
-        "bricks": {
-          "sheet": "enemy-target"
-        },
-        "tags": [
-          "enemy"
-        ]
-      }
-    },
-    {
-      "id": "target-3",
-      "name": "Target",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            5,
-            0.5,
-            -6
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#ff6b8b",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "health": {
-          "max": 1,
-          "current": 1
-        },
-        "bricks": {
-          "sheet": "enemy-target"
-        },
-        "tags": [
-          "enemy"
-        ]
-      }
-    },
-    {
-      "id": "target-4",
-      "name": "Target",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            -8,
-            0.5,
-            -10
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#ff6b8b",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "health": {
-          "max": 1,
-          "current": 1
-        },
-        "bricks": {
-          "sheet": "enemy-target"
-        },
-        "tags": [
-          "enemy"
-        ]
-      }
-    },
-    {
-      "id": "target-5",
-      "name": "Target",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            8,
-            0.5,
-            -10
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
-          ]
-        },
-        "model": {
-          "shape": "box",
-          "swatch": "#ff6b8b",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "body": {
-          "type": "static",
-          "size": [
-            0.6,
-            0.9,
-            0.6
-          ]
-        },
-        "health": {
-          "max": 1,
-          "current": 1
-        },
-        "bricks": {
-          "sheet": "enemy-target"
-        },
-        "tags": [
-          "enemy"
-        ]
-      }
-    },
-    {
-      "id": "manager",
-      "name": "Game Manager",
-      "prefab": null,
-      "components": {
-        "transform": {
-          "p": [
-            0,
-            10,
-            0
-          ],
-          "r": [
-            0,
-            0,
-            0
-          ],
-          "s": [
-            1,
-            1,
-            1
+            3.0,
+            3,
+            3.0
           ]
         },
         "bricks": {
           "sheet": "win-checker"
+        }
+      }
+    },
+    {
+      "id": "checkpoint0",
+      "name": "Checkpoint",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -3.0,
+            1,
+            -3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            3.0,
+            3,
+            3.0
+          ]
+        },
+        "bricks": {
+          "sheet": "checkpoint"
+        }
+      }
+    },
+    {
+      "id": "checkpoint1",
+      "name": "Checkpoint",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1,
+            3.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "logic": {
+          "kind": "trigger",
+          "size": [
+            3.0,
+            3,
+            3.0
+          ]
+        },
+        "bricks": {
+          "sheet": "checkpoint"
+        }
+      }
+    },
+    {
+      "id": "enemy0",
+      "name": "Maze Guard",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            3.0,
+            1,
+            -6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#ff6b6b",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "tags": [
+          "enemy"
+        ],
+        "bricks": {
+          "sheet": "guard0"
+        }
+      }
+    },
+    {
+      "id": "enemy1",
+      "name": "Maze Guard",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1,
+            6.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#ff6b6b",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "tags": [
+          "enemy"
+        ],
+        "bricks": {
+          "sheet": "guard1"
+        }
+      }
+    },
+    {
+      "id": "enemy2",
+      "name": "Maze Guard",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            -6.0,
+            1,
+            0.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#ff6b6b",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "tags": [
+          "enemy"
+        ],
+        "bricks": {
+          "sheet": "guard2"
+        }
+      }
+    },
+    {
+      "id": "enemy3",
+      "name": "Maze Guard",
+      "prefab": null,
+      "components": {
+        "transform": {
+          "p": [
+            6.0,
+            1,
+            -9.0
+          ],
+          "r": [
+            0,
+            0,
+            0
+          ],
+          "s": [
+            1,
+            1,
+            1
+          ]
+        },
+        "model": {
+          "shape": "box",
+          "swatch": "#ff6b6b",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "body": {
+          "type": "kinematic",
+          "size": [
+            0.6,
+            1.1,
+            0.6
+          ]
+        },
+        "health": {
+          "max": 2,
+          "current": 2
+        },
+        "tags": [
+          "enemy"
+        ],
+        "bricks": {
+          "sheet": "guard3"
         }
       }
     }

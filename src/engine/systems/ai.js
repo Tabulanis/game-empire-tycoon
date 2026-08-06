@@ -16,7 +16,8 @@
  */
 
 import * as YUKA from 'yuka';
-import { moveKinematicTo, bodyPosition } from '../physics.js';
+// No physics import here — every function takes a `phys` adapter, same
+// reasoning as motion.js: one implementation, works for 2D and 3D games.
 
 /**
  * @typedef {Object} AiState
@@ -43,7 +44,13 @@ function ensureVehicle(state, entityId, pos, maxSpeed = 3) {
     vehicle.maxForce = maxSpeed * 2;
     state.vehicles.set(entityId, vehicle);
   }
-  vehicle.position.set(pos.x, pos.y, 0);
+  // steering runs on the GROUND PLANE: world (x,y) in 2D, world (x,z) in 3D
+  // (height is held constant — these are walking enemies, not flying ones).
+  // Yuka's own Vector3 is reused as a flat 2D-in-3-slots workspace either
+  // way, exactly as it always was for 2D; the only change is which world
+  // axis feeds Yuka's "y".
+  const groundB = pos.z !== undefined ? pos.z : pos.y;
+  vehicle.position.set(pos.x, groundB, 0);
   return vehicle;
 }
 
@@ -55,13 +62,15 @@ function ensureVehicle(state, entityId, pos, maxSpeed = 3) {
  * @param {string} entityId
  * @param {number} dt
  */
-function applySteering(vehicle, session, entityId, dt) {
+function applySteering(vehicle, session, entityId, dt, phys) {
   const before = vehicle.position.clone();
   vehicle.update(dt);
   const dx = vehicle.position.x - before.x;
-  const dy = vehicle.position.y - before.y;
-  const pos = bodyPosition(session, entityId);
-  if (pos) moveKinematicTo(session, entityId, pos.x + dx, pos.y + dy);
+  const db = vehicle.position.y - before.y; // ground-plane delta (see ensureVehicle)
+  const pos = phys.bodyPosition(session, entityId);
+  if (!pos) return;
+  if (pos.z !== undefined) phys.moveKinematicTo(session, entityId, pos.x + dx, pos.y, pos.z + db);
+  else phys.moveKinematicTo(session, entityId, pos.x + dx, pos.y + db);
 }
 
 /* ------------------------------------------------------------------ */
@@ -77,15 +86,18 @@ function applySteering(vehicle, session, entityId, dt) {
  * @param {{entities: Array<any>}} scene
  * @returns {{x: number, y: number}|null}
  */
-function resolveTargetPosition(params, session, scene) {
+function resolveTargetPosition(params, session, scene, phys) {
   if (params.target) {
-    const pos = bodyPosition(session, params.target);
-    if (pos) return pos;
+    const pos = phys.bodyPosition(session, params.target);
+    if (pos) return pos; // {x,y} in 2D, {x,y,z} in 3D — same shape bodyPosition always returns
     const entity = scene.entities.find((e) => e.id === params.target);
-    if (entity) return { x: entity.components.transform.p[0], y: entity.components.transform.p[1] };
+    if (entity) {
+      const p = entity.components.transform.p;
+      return { x: p[0], y: p[1], z: p[2] };
+    }
     return null;
   }
-  if (params.x !== undefined && params.y !== undefined) return { x: params.x, y: params.y };
+  if (params.x !== undefined && params.y !== undefined) return { x: params.x, y: params.y, z: params.z };
   return null;
 }
 
@@ -97,15 +109,17 @@ function resolveTargetPosition(params, session, scene) {
  * @param {number} dt
  * @param {AiState} state
  */
-export function doChase(entity, params, session, scene, dt, state) {
-  const target = resolveTargetPosition(params, session, scene);
+export function doChase(entity, params, session, scene, dt, state, phys) {
+  const target = resolveTargetPosition(params, session, scene, phys);
   if (!target) return;
-  const pos = bodyPosition(session, entity.id);
+  const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
+  const is3D = pos.z !== undefined;
+  const targetB = is3D ? (target.z !== undefined ? target.z : 0) : target.y;
   const vehicle = ensureVehicle(state, entity.id, pos, params.speed || 3);
   vehicle.steering.clear();
-  vehicle.steering.add(new YUKA.SeekBehavior(new YUKA.Vector3(target.x, target.y, 0)));
-  applySteering(vehicle, session, entity.id, dt);
+  vehicle.steering.add(new YUKA.SeekBehavior(new YUKA.Vector3(target.x, targetB, 0)));
+  applySteering(vehicle, session, entity.id, dt, phys);
 }
 
 /**
@@ -116,15 +130,17 @@ export function doChase(entity, params, session, scene, dt, state) {
  * @param {number} dt
  * @param {AiState} state
  */
-export function doFlee(entity, params, session, scene, dt, state) {
-  const target = resolveTargetPosition(params, session, scene);
+export function doFlee(entity, params, session, scene, dt, state, phys) {
+  const target = resolveTargetPosition(params, session, scene, phys);
   if (!target) return;
-  const pos = bodyPosition(session, entity.id);
+  const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
+  const is3D = pos.z !== undefined;
+  const targetB = is3D ? (target.z !== undefined ? target.z : 0) : target.y;
   const vehicle = ensureVehicle(state, entity.id, pos, params.speed || 3);
   vehicle.steering.clear();
-  vehicle.steering.add(new YUKA.FleeBehavior(new YUKA.Vector3(target.x, target.y, 0)));
-  applySteering(vehicle, session, entity.id, dt);
+  vehicle.steering.add(new YUKA.FleeBehavior(new YUKA.Vector3(target.x, targetB, 0)));
+  applySteering(vehicle, session, entity.id, dt, phys);
 }
 
 /**
@@ -134,14 +150,14 @@ export function doFlee(entity, params, session, scene, dt, state) {
  * @param {number} dt
  * @param {AiState} state
  */
-export function doWander(entity, params, session, dt, state) {
-  const pos = bodyPosition(session, entity.id);
+export function doWander(entity, params, session, dt, state, phys) {
+  const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
   const vehicle = ensureVehicle(state, entity.id, pos, params.speed || 2);
   if (!vehicle.steering.behaviors.length) {
     vehicle.steering.add(new YUKA.WanderBehavior());
   }
-  applySteering(vehicle, session, entity.id, dt);
+  applySteering(vehicle, session, entity.id, dt, phys);
 }
 
 /**

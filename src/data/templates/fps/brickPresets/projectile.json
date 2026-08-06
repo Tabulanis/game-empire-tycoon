@@ -3,7 +3,9 @@
     "when": "touched",
     "if": [],
     "do": [
-      { "do": "destroy-self" }
+      {
+        "do": "destroy-self"
+      }
     ]
   }
 ]

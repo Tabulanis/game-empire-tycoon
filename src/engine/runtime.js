@@ -438,16 +438,17 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
 
     if (playerEntity && !storyState.activeCardId) phys.advancePlayerControls(session, input, dt);
 
-    if (!is3D) {
-      for (const [id, motion] of activeMotion) {
-        const entity = findEntity(scene, id);
-        if (!entity) { activeMotion.delete(id); continue; }
-        if (motion.kind === 'patrol-between') doPatrolBetween(entity, motion.params, session, dt, motionState);
-        else if (motion.kind === 'follow-path') doFollowPath(entity, motion.params, session, dt, motionState);
-        else if (motion.kind === 'chase') doChase(entity, motion.params, session, scene, dt, aiState);
-        else if (motion.kind === 'flee') doFlee(entity, motion.params, session, scene, dt, aiState);
-        else if (motion.kind === 'wander') doWander(entity, motion.params, session, dt, aiState);
-      }
+    // patrol/follow-path/chase/flee/wander all run through the phys adapter
+    // now, so this loop is dimension-agnostic — it used to be gated to 2D
+    // only, back when these five were hardcoded to physics.js
+    for (const [id, motion] of activeMotion) {
+      const entity = findEntity(scene, id);
+      if (!entity) { activeMotion.delete(id); continue; }
+      if (motion.kind === 'patrol-between') doPatrolBetween(entity, motion.params, session, dt, motionState, phys);
+      else if (motion.kind === 'follow-path') doFollowPath(entity, motion.params, session, dt, motionState, phys);
+      else if (motion.kind === 'chase') doChase(entity, motion.params, session, scene, dt, aiState, phys);
+      else if (motion.kind === 'flee') doFlee(entity, motion.params, session, scene, dt, aiState, phys);
+      else if (motion.kind === 'wander') doWander(entity, motion.params, session, dt, aiState, phys);
     }
 
     tickCombat(combatState, session, dt);
@@ -731,7 +732,7 @@ function executeDo(action, entity, ctx) {
       break;
     }
     case 'teleport-to':
-      if (!ctx.is3D) doTeleportTo(entity, action, ctx.session);
+      doTeleportTo(entity, action, ctx.session, ctx.phys);
       break;
     case 'face':
       doFace(entity, action);

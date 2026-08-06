@@ -4,9 +4,7 @@
     "if": [],
     "do": [
       {
-        "do": "end-game",
-        "result": "win",
-        "message": "You solved the maze!"
+        "do": "set-checkpoint"
       }
     ]
   }

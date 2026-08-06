@@ -4,14 +4,20 @@
     "action": "shoot",
     "if": [],
     "do": [
-      { "do": "shoot", "speed": 14, "sheet": "projectile" }
+      {
+        "do": "shoot",
+        "speed": 14,
+        "sheet": "projectile"
+      }
     ]
   },
   {
     "when": "health-zero",
     "if": [],
     "do": [
-      { "do": "respawn-at-checkpoint" }
+      {
+        "do": "respawn-at-checkpoint"
+      }
     ]
   }
 ]
