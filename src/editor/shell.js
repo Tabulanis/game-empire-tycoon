@@ -112,6 +112,15 @@ export function bootShell(root) {
     }
   });
 
+  // collapsible cards: tap any card title to fold it away, tap again to open.
+  // One delegated listener covers every room, present and future.
+  document.addEventListener('click', (e) => {
+    const h = e.target.closest('.card > h3');
+    if (!h) return;
+    if (e.target.closest('button, input, select, a, textarea')) return;
+    h.parentElement.classList.toggle('collapsed');
+  });
+
   window.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === 's') {

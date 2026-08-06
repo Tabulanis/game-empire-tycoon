@@ -11,6 +11,7 @@
 
 import { createEngine } from '../engine/renderer.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { createTouchControls } from '../engine/touch-controls.js';
 import { startRuntime, createInputDesk } from '../engine/runtime.js';
 
 /**
@@ -120,6 +121,12 @@ function boot() {
   // a headset session, setAnimationLoop runs everywhere
   lastTs = performance.now();
   engine.renderer.setAnimationLoop((ts) => loop(ts));
+
+  // phones and tablets get virtual pads — stick to move, buttons to act
+  createTouchControls(canvas.parentElement || document.body, desk.input, {
+    shoot: !!(cartridge.settings.input && cartridge.settings.input.shoot),
+    look: cartridge.settings.controlScheme === 'fps'
+  });
 
   // any browser with a headset gets an Enter VR button — no setup, no setting
   if (navigator.xr && cartridge.settings.mode === '3d') {

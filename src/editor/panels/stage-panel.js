@@ -14,6 +14,7 @@ import { Pane } from 'tweakpane';
 import { createEngine } from '../../engine/renderer.js';
 import { initPhysics, debugLines, worldStats } from '../../engine/physics.js';
 import { startRuntime } from '../../engine/runtime.js';
+import { createTouchControls } from '../../engine/touch-controls.js';
 import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../engine/debug.js';
 import * as ent from '../../engine/entities.js';
 import { GENERIC_TEXTURES } from '../textures.js';
@@ -1069,6 +1070,7 @@ export function renderStagePanel(host, ctx) {
   let pane = null;
   /** @type {any|null} */
   let playSession = null;
+  let touchPads = null;
   const playLogMessages = [];
 
   function updateGizmoAttach() {
@@ -1570,7 +1572,7 @@ export function renderStagePanel(host, ctx) {
   /* ---------------------------------------------------------------- */
   /* keyboard                                                          */
   /* ---------------------------------------------------------------- */
-  const playInput = { left: false, right: false, up: false, down: false, jump: false, yawDelta: 0, pitchDelta: 0 };
+  const playInput = { left: false, right: false, up: false, down: false, jump: false, yawDelta: 0, pitchDelta: 0, actions: { jump: false } };
 
   function onKeyDown(e) {
     if (playSession) {
@@ -1579,7 +1581,11 @@ export function renderStagePanel(host, ctx) {
       if (e.code === 'ArrowRight' || e.code === 'KeyD') playInput.right = true;
       if (e.code === 'ArrowDown' || e.code === 'KeyS') playInput.down = true;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); playInput.up = true; if (!three) playInput.jump = true; }
-      if (e.code === 'Space') { e.preventDefault(); playInput.jump = true; if (!three) playInput.up = true; }
+      if (e.code === 'Space') { e.preventDefault(); playInput.jump = true; if (!three) playInput.up = true; playInput.actions.jump = true; }
+      const map = cart.getCartridge().settings.input || {};
+      for (const [name, keys] of Object.entries(map)) {
+        if (Array.isArray(keys) && keys.includes(e.code)) { e.preventDefault(); playInput.actions[name] = true; }
+      }
       if (e.code === 'Escape') doStop();
       return;
     }
@@ -1603,7 +1609,11 @@ export function renderStagePanel(host, ctx) {
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') playInput.left = false;
     if (e.code === 'ArrowRight' || e.code === 'KeyD') playInput.right = false;
     if (e.code === 'ArrowDown' || e.code === 'KeyS') playInput.down = false;
-    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { playInput.jump = false; playInput.up = false; }
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { playInput.jump = false; playInput.up = false; playInput.actions.jump = false; }
+    const map = cart.getCartridge().settings.input || {};
+    for (const [name, keys] of Object.entries(map)) {
+      if (Array.isArray(keys) && keys.includes(e.code)) playInput.actions[name] = false;
+    }
   }
   /* first-person mouse look while testing: Play grabs the mouse, moving it
    * looks around, Esc gives it back (then Esc again stops the test) */
@@ -1743,6 +1753,10 @@ export function renderStagePanel(host, ctx) {
     setPhysicsSource(() => worldStats(playSession.session));
     logPlay('play started — ' + worldStats(playSession.session).colliders + ' colliders');
     if (live.settings.controlScheme === 'fps') canvas.requestPointerLock();
+    touchPads = createTouchControls(canvasWrap, playInput, {
+      shoot: !!(live.settings.input && live.settings.input.shoot),
+      look: live.settings.controlScheme === 'fps'
+    });
   }
 
   function doStop() {
@@ -1757,6 +1771,7 @@ export function renderStagePanel(host, ctx) {
     }
     setPhysicsSource(null);
     orbitControls.enabled = true;
+    if (touchPads) { touchPads.dispose(); touchPads = null; }
     if (document.pointerLockElement) document.exitPointerLock();
     if (wireframe) { engine.contentRoot.remove(wireframe); wireGeo.dispose(); wireframe.material.dispose(); wireframe = null; wireGeo = null; }
     canvasWrap.classList.remove('playing');

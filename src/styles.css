@@ -617,3 +617,48 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   input[type="range"] { height: 32px; }
   .tracker-cell { min-width: 24px !important; }
 }
+
+
+/* ---- virtual touch pads (play sessions on phones/tablets) ---- */
+.touch-controls {
+  position: absolute; inset: 0; z-index: 4;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.tc-stick {
+  position: absolute; width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.25);
+  pointer-events: none;
+}
+.tc-thumb {
+  position: absolute; left: 32px; top: 32px; width: 52px; height: 52px;
+  border-radius: 50%; background: rgba(255,255,255,0.35);
+}
+.tc-btn {
+  position: absolute; right: 22px; width: 76px; height: 76px; border-radius: 50%;
+  background: rgba(255,255,255,0.10); border: 2px solid rgba(255,255,255,0.3);
+  color: #fff; font-size: 30px; display: flex; align-items: center; justify-content: center;
+}
+.tc-btn.held { background: rgba(255,255,255,0.35); }
+.tc-jump { bottom: 26px; }
+.tc-shoot { bottom: 120px; right: 100px; }
+
+/* ---- collapsible cards ---- */
+.card > h3 { cursor: pointer; user-select: none; position: relative; padding-right: 20px; }
+.card > h3::after {
+  content: '▾'; position: absolute; right: 2px; top: 0;
+  color: var(--dim); transition: transform 0.15s;
+}
+.card.collapsed > h3 { margin-bottom: 0; }
+.card.collapsed > h3::after { transform: rotate(-90deg); }
+.card.collapsed > *:not(h3) { display: none !important; }
+
+/* ---- sound rooms on touch: fatter targets, single-column earlier ---- */
+@media (pointer: coarse) {
+  .tracker-grid { grid-template-columns: 60px repeat(32, 30px); }
+  .tracker-cell { min-width: 30px !important; height: 30px; font-size: 10px; }
+  .stage-bar { flex-wrap: wrap; }
+  .brick-row input[type="range"] { min-height: 34px; }
+}
+@media (max-width: 900px) {
+  .booth-layout { grid-template-columns: 1fr; }
+}
