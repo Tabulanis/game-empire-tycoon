@@ -2,3 +2,7 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# local headless test harnesses
+test-sfx.html
+test-shell.html

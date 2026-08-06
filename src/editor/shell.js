@@ -367,6 +367,22 @@ function syncChrome() {
  * Open a room (or 'play' / 'office' / 'pitch').
  * @param {string} id
  */
+/**
+ * Navigate to a room OR a member tab within one — 'sfxedit' resolves to the
+ * sound room with its Edit tab active. showRoom('sfxedit') alone would match
+ * no room and blank the screen (exactly the bug the Foundry Edit jump hit).
+ * @param {string} id  room id or member tab id
+ */
+function gotoRoom(id) {
+  const owner = ROOMS.rooms.find((r) => r.members.some((m) => m.tab === id));
+  if (owner) {
+    roomMemory[owner.id] = id;
+    showRoom(owner.id);
+    return;
+  }
+  showRoom(id);
+}
+
 function showRoom(id) {
   currentRoom = id;
   markSelectedRoom();
@@ -486,7 +502,7 @@ function renderPanelInto(target, tabId) {
     }
     target.appendChild(wrap);
   }
-  render(target, { toast, refresh: () => showRoom(currentRoom), gotoRoom: (id) => showRoom(id) });
+  render(target, { toast, refresh: () => showRoom(currentRoom), gotoRoom });
 }
 
 /** Office-only: let a grown-up (or tester) move the studio between eras. */

@@ -94,6 +94,33 @@ export function renderSfxeditPanel(host, ctx) {
   };
   sourceBar.appendChild(makeBtn('Open', openSelected));
 
+  // two-tap delete: first tap arms it, second within 2.5s deletes — no
+  // accidental thumb-loss on a tablet, and the global undo can bring it back
+  const delBtn = makeBtn('🗑 Delete', () => {
+    const live = cart.getCartridge();
+    const idx = live.assets.sfx.findIndex((s2) => s2.id === sourceSelect.value);
+    if (idx < 0) { ctx.toast('Pick a sound in the list first.', true); return; }
+    if (delBtn.dataset.armed !== '1') {
+      delBtn.dataset.armed = '1';
+      delBtn.textContent = '🗑 Really delete?';
+      setTimeout(() => { delBtn.dataset.armed = ''; delBtn.textContent = '🗑 Delete'; }, 2500);
+      return;
+    }
+    const [gone] = live.assets.sfx.splice(idx, 1);
+    cart.touch();
+    delBtn.dataset.armed = '';
+    delBtn.textContent = '🗑 Delete';
+    if (currentName === gone.name) {
+      buffer = null;
+      history = [];
+      selection = null;
+      redraw();
+    }
+    refreshSources();
+    ctx.toast('Deleted "' + gone.name + '" — Undo (Ctrl+Z) brings it back.');
+  });
+  sourceBar.appendChild(delBtn);
+
   const importInput = document.createElement('input');
   importInput.type = 'file';
   importInput.accept = 'audio/*';
