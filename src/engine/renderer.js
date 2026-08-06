@@ -119,6 +119,7 @@ export function createEngine(canvas, opts = {}) {
 
   /** @type {THREE.OrthographicCamera|THREE.PerspectiveCamera} */
   let camera = makeCamera('3d', 1);
+  scene.add(camera); // lets anything parented to the camera (FPS viewmodel) render
 
   const ambient = new THREE.AmbientLight(0xffffff, 0.55);
   const sun = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -313,7 +314,9 @@ export function createEngine(canvas, opts = {}) {
   function setMode(m) {
     mode = m === '2d' ? '2d' : '3d';
     const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
+    scene.remove(camera);
     camera = makeCamera(mode, aspect);
+    scene.add(camera);
     composer.removeAllPasses();
     renderPass = new RenderPass(scene, camera);
     composer.addPass(renderPass);

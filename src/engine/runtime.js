@@ -9,6 +9,7 @@
  * Ticket P3-5. Phase 3.
  */
 
+import * as THREE from 'three';
 import * as physics2D from './physics.js';
 import * as physics3D from './physics3d.js';
 import { buildSceneView, syncTransform } from './meshes.js';
@@ -267,6 +268,26 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
   const session = phys.buildWorld(scene, { perspective: cartridge.settings.perspective || 'side' });
   const view = buildSceneView(engine, scene, { play: true });
 
+  // FPS viewmodel: 'you ARE the camera' left nothing to see when you shoot —
+  // a simple low-poly gun rides fixed in front of the camera, the same
+  // primitive-shape kit the rest of the game is built from. It's purely
+  // cosmetic (no collider, doesn't touch aiming), so it can't affect gameplay.
+  let gun = null;
+  if (is3D && controlScheme === 'fps') {
+    gun = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({ color: '#2b2f38', roughness: 0.4, metalness: 0.5 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.11, 0.36), metal);
+    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.22), metal);
+    barrel.position.set(0, 0.015, -0.28);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.17, 0.09), metal);
+    grip.position.set(0, -0.13, 0.1);
+    grip.rotation.x = 0.35;
+    gun.add(body, barrel, grip);
+    gun.position.set(0.28, -0.24, -0.5);
+    gun.rotation.y = -0.05;
+    engine.camera.add(gun);
+  }
+
   const motionState = createMotionState();
   const aiState = createAiState();
   const animState = createAnimState();
@@ -278,7 +299,7 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
    * state that a DO action needs to change and tick() needs to read. Plain
    * `let`s wouldn't work here since executeDo is a module-level function,
    * not a closure over startRuntime's locals. */
-  const liveState = { musicPlayer: null, timeScale: 1, shakeTimer: 0, shakeIntensity: 0, particleSystems: [], elapsed: 0 };
+  const liveState = { musicPlayer: null, timeScale: 1, shakeTimer: 0, shakeIntensity: 0, gunKick: 0, particleSystems: [], elapsed: 0 };
   /** last frame's input.actions, for rising-edge detection (key-pressed fires once per press, not every held frame) */
   let previousActions = {};
   const bus = createEventBus();
@@ -589,6 +610,16 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
         engine.camera.position.set(pos.x, pos.y + 0.35, pos.z);
         engine.camera.rotation.order = 'YXZ'; // yaw first, then pitch — FPS look
         engine.camera.rotation.set(pitch, yaw, 0);
+        if (gun) {
+          // gentle idle sway so it reads as held, not glued on; a shot
+          // shoves it back and it eases home — cheap, deterministic (no
+          // Math.random — this isn't gameplay-affecting, but the house
+          // style is seeded/deterministic motion throughout)
+          liveState.gunKick = Math.max(0, liveState.gunKick - dt * 4.5);
+          const sway = Math.sin(liveState.elapsed * 1.6) * 0.006;
+          gun.position.set(0.28, -0.24 + sway, -0.5 + liveState.gunKick * 0.16);
+          gun.rotation.x = -liveState.gunKick * 0.25;
+        }
       } else if (pos && is3D) {
         // Third-person follow: up and behind the player (player moves toward
         // -Z by default per advancePlayerControls3D's input mapping).
@@ -619,6 +650,11 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
     if (liveState.musicPlayer) { liveState.musicPlayer.stop(); liveState.musicPlayer = null; }
     for (const entry of liveState.particleSystems) entry.system.dispose();
     liveState.particleSystems.length = 0;
+    if (gun) {
+      engine.camera.remove(gun);
+      gun.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      gun = null;
+    }
     phys.destroyWorld(session);
     view.clear();
   }
@@ -723,6 +759,9 @@ function executeDo(action, entity, ctx) {
       // (facing, tracked in physics.js); non-player shooters (turrets) get
       // no direction2D and keep the old transform.s[0]-sign aim, unchanged
       const isPlayer = ctx.playerEntity && entity.id === ctx.playerEntity.id;
+      // your gun kicks on YOUR shots only — an enemy firing back shouldn't
+      // recoil the viewmodel in your own hands
+      if (isPlayer && ctx.liveState) ctx.liveState.gunKick = 1;
       if (!ctx.is3D) {
         const dummy = ctx.session.dummy;
         const direction2D = (isPlayer && dummy && dummy.facing) ? [dummy.facing.x, dummy.facing.y] : undefined;
