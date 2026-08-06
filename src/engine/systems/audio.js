@@ -659,7 +659,11 @@ export function previewNote(note, voice, fx, sampleSlots, assets) {
     _previewChain = createChannelChain(ctx, buses.music, fx);
     _previewKey = key;
   }
-  scheduleNoteInto(ctx, _previewChain.input, 0, note, voice, 0.4, sampleSlots || [], assets);
+  // schedule at NOW, not at absolute time 0 — a when of 0 is only 'now' for
+  // the first instants of a context's life; after that the whole volume
+  // envelope lands in the past and resolves straight to silence, which is
+  // why live keys died after the first few notes
+  scheduleNoteInto(ctx, _previewChain.input, ctx.currentTime, note, voice, 0.4, sampleSlots || [], assets);
 }
 
 /* ------------------------------------------------------------------ */
