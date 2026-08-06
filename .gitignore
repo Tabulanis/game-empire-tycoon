@@ -6,3 +6,4 @@ dist/
 # local headless test harnesses
 test-sfx.html
 test-shell.html
+test-piano.html

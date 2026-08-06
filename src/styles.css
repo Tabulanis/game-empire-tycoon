@@ -676,3 +676,41 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   .stage-prefab-row button { padding: 10px 16px; font-size: 15px; }
   .lib-edit-btn { font-weight: 700; }
 }
+
+
+/* ---- Sound Booth on-screen piano ---- */
+.booth-piano {
+  display: flex; gap: 3px; margin: 10px 0 4px; align-items: stretch;
+  overflow-x: auto; padding-bottom: 4px;
+}
+.piano-key {
+  min-width: 40px; height: 58px; flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: 0 0 8px 8px;
+  background: #eef1f7; color: #1c202b; font-weight: 700; font-size: 13px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: 6px; cursor: pointer;
+}
+.piano-key small { font-weight: 400; opacity: 0.55; font-size: 9px; }
+.piano-key.black { background: #232733; color: #dfe4f0; height: 46px; align-self: flex-start; border-radius: 0 0 6px 6px; }
+.piano-key.active { outline: 3px solid var(--accent); outline-offset: -1px; }
+.piano-key:active { background: var(--accent); color: var(--bg); }
+.piano-oct {
+  min-width: 48px; height: 58px; flex-shrink: 0; border-radius: 8px;
+  background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+  font-size: 12px; cursor: pointer;
+}
+
+/* ---- music room on touch: everything bigger, keyboard hint gone ---- */
+@media (pointer: coarse) {
+  .piano-key { min-width: 52px; height: 74px; font-size: 16px; }
+  .piano-key.black { height: 58px; }
+  .piano-oct { min-width: 60px; height: 74px; font-size: 14px; }
+  .booth-layout .stage-hint { font-size: 13px; }
+  .tracker-grid { grid-template-columns: 72px repeat(32, 38px); }
+  .tracker-cell { min-width: 38px !important; height: 40px; font-size: 12px; }
+  .tracker-channel-label { font-size: 13px; }
+  .tracker-chain-chip { padding: 10px 14px; font-size: 14px; }
+  .booth-chip { padding: 12px 16px !important; font-size: 15px !important; }
+  .booth-layout select.deck-select { min-height: 42px; font-size: 15px; }
+  .booth-layout button { min-height: 42px; }
+}

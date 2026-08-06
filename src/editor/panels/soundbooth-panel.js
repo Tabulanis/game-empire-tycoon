@@ -151,7 +151,9 @@ export function renderSoundboothPanel(host, ctx) {
   const kbHint = document.createElement('span');
   kbHint.className = 'stage-hint';
   kbHint.style.marginLeft = '8px';
-  kbHint.textContent = '⌨ Q–P play notes · number row = sharps · A-row = flats · Z/X octave';
+  kbHint.textContent = matchMedia('(pointer: coarse)').matches
+    ? '👇 Tap a piano key, then tap steps in the grid to place the note'
+    : '⌨ Q–P play notes · number row = sharps · A-row = flats · Z/X octave — or tap the piano';
   const noteSelect = document.createElement('select');
   noteSelect.id = 'boothNoteSelect';
   noteSelect.className = 'deck-select';
@@ -164,6 +166,53 @@ export function renderSoundboothPanel(host, ctx) {
   noteBar.appendChild(noteSelect);
   noteBar.appendChild(kbHint);
   panel.appendChild(noteBar);
+
+  /* ---- the piano you can SEE: tap a key to hear the note on the picked
+     track's sound and make it the note-to-place. Same behavior as the
+     computer keyboard — which tablets don't have, so this IS the
+     instrument there. ---- */
+  const piano = document.createElement('div');
+  piano.className = 'booth-piano';
+  panel.appendChild(piano);
+  function playAndArm(note) {
+    selectedNote = note;
+    noteSelect.value = note;
+    const voice = working.channelVoices[selectedChannel] || 'pulse';
+    const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
+    const chFx = (working.channelFx || [])[selectedChannel];
+    audio.previewNote(note, voice, chFx, working.sampleSlots, assets);
+    rebuildPiano();
+  }
+  function rebuildPiano() {
+    piano.innerHTML = '';
+    const octDown = document.createElement('button');
+    octDown.className = 'piano-oct';
+    octDown.textContent = '−8va';
+    octDown.title = 'Lower octave';
+    octDown.addEventListener('click', () => {
+      kbOctave = Math.max(2, kbOctave - 1);
+      rebuildPiano();
+    });
+    piano.appendChild(octDown);
+    for (let i = 0; i < 12; i++) {
+      const name = KB_NAMES[i] + kbOctave;
+      const key = document.createElement('button');
+      key.className = 'piano-key' + (KB_NAMES[i].includes('#') ? ' black' : '') + (selectedNote === name ? ' active' : '');
+      key.innerHTML = KB_NAMES[i] + '<small>' + kbOctave + '</small>';
+      key.addEventListener('click', () => playAndArm(name));
+      piano.appendChild(key);
+    }
+    const octUp = document.createElement('button');
+    octUp.className = 'piano-oct';
+    octUp.textContent = '+8va';
+    octUp.title = 'Higher octave';
+    octUp.addEventListener('click', () => {
+      kbOctave = Math.min(6, kbOctave + 1);
+      rebuildPiano();
+    });
+    piano.appendChild(octUp);
+  }
+  rebuildPiano();
 
   const layout = document.createElement('div');
   layout.className = 'booth-layout';
