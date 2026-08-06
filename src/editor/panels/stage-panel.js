@@ -424,6 +424,37 @@ export function renderStagePanel(host, ctx) {
       slide('Drift', cl.drift, 0, 3, 0.05, (v) => { cl.drift = v; });
       slide('Fluffy', cl.opacity, 0.2, 1, 0.02, (v) => { cl.opacity = v; });
     }
+    /* -- light pattern: a stencil the sun shines through, casting a shaped
+       shadow using whichever shadow mode is already picked above -- */
+    if (!cfg.gobo) cfg.gobo = { on: false, pattern: 'bars', scale: 6 };
+    const gb = cfg.gobo;
+    const gbRow = document.createElement('div');
+    gbRow.className = 'stage-bar';
+    const gbBtn = makeBtn(gb.on ? '🎭 Light Pattern: ON' : '🎭 Light Pattern: off', () => {
+      gb.on = !gb.on;
+      cart.touch();
+      engine.setLighting(cfg);
+      refreshLightCard();
+    });
+    if (gb.on) gbBtn.className += ' active';
+    gbRow.appendChild(gbBtn);
+    lightBody.appendChild(gbRow);
+    if (gb.on) {
+      const gbPatterns = document.createElement('div');
+      gbPatterns.className = 'stage-bar';
+      for (const [id2, label] of [['bars', '🪟 Window'], ['dapple', '🍃 Leaves'], ['dots', '✨ Stars']]) {
+        const b = makeBtn(label, () => { gb.pattern = id2; cart.touch(); engine.setLighting(cfg); refreshLightCard(); });
+        if (gb.pattern === id2) b.className += ' active';
+        gbPatterns.appendChild(b);
+      }
+      lightBody.appendChild(gbPatterns);
+      slide('Pattern size', gb.scale, 1, 16, 0.5, (v) => { gb.scale = v; });
+      const gbHint = document.createElement('div');
+      gbHint.className = 'stage-hint';
+      gbHint.textContent = 'A shape cut into the sunlight, projected onto the ground as a real shadow — window bars, dappled leaves, or a scatter of stars. Needs a shadow mode above to show up.';
+      lightBody.appendChild(gbHint);
+    }
+
     const hint = document.createElement('div');
     hint.className = 'stage-hint';
     hint.textContent = 'Blob is cheap and cartoony; the map modes trade speed for softer, realer shadows. Bounce fakes light bouncing off the ground back up.';
@@ -725,7 +756,7 @@ export function renderStagePanel(host, ctx) {
       terrainBody.appendChild(styleRow);
 
       /* -- Water: shallow-water liquid over the terrain (TheBlob's fluid) -- */
-      const wDefaults = { on: false, level: 1, color: '#2e86d9', opacity: 0.72, wave: 0.06, speed: 1, detail: 1, react: 0.5 };
+      const wDefaults = { on: false, level: 1, color: '#2e86d9', opacity: 0.72, wave: 0.06, speed: 1, detail: 1, react: 0.5, reflective: 0 };
       if (!t.water) t.water = { ...wDefaults };
       const w = t.water;
       const waterChanged = () => { cart.touch(); view.refreshTerrain(getTerrainScene()); };
@@ -771,6 +802,7 @@ export function renderStagePanel(host, ctx) {
         wSlide('Tempo', 'speed', 0.2, 3, 0.1);
         wSlide('See-thru', 'opacity', 0.2, 1, 0.02);
         wSlide('Reactive', 'react', 0, 1, 0.05);
+        wSlide('Reflective', 'reflective', 0, 1, 0.05);
         const wHint = document.createElement('div');
         wHint.className = 'stage-hint';
         wHint.textContent = 'Water fills every valley below the Level line — sculpt basins and they become lakes. Reactive makes it flow and splash when the player wades through; 0 freezes it solid-still.';

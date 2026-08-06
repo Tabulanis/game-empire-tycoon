@@ -140,6 +140,73 @@ export function createEngine(canvas, opts = {}) {
     vsm: THREE.VSMShadowMap
   };
 
+  /* -- light pattern (gobo/stencil): a big invisible plane, textured with a
+     black/white cutout and alpha-tested, hangs above the scene and casts its
+     shape through the sun using the SAME shadow map already built — window
+     bars, dappled leaf-light, a scatter of stars. colorWrite:false keeps the
+     plane itself unseen; only its shadow shows. Deterministic hash (not
+     Math.random) so the same pattern renders byte-identical every load. -- */
+  function goboHash(x, y, seed) {
+    const h = Math.sin(x * 127.1 + y * 311.7 + seed * 43.7) * 43758.5453;
+    return h - Math.floor(h);
+  }
+  function buildGoboTexture(pattern) {
+    const res = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = res;
+    const g = c.getContext('2d');
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, res, res);
+    g.fillStyle = '#fff'; // white = solid stencil (blocks light, casts shadow)
+    if (pattern === 'bars') {
+      const barW = res / 10;
+      for (let i = 0; i < 10; i += 2) g.fillRect(i * barW, 0, barW, res);
+    } else if (pattern === 'dapple') {
+      for (let gy = 0; gy < 8; gy++) {
+        for (let gx = 0; gx < 8; gx++) {
+          const jx = goboHash(gx, gy, 1) - 0.5, jy = goboHash(gx, gy, 2) - 0.5;
+          const r = 10 + goboHash(gx, gy, 3) * 14;
+          g.beginPath();
+          g.arc((gx + 0.5 + jx * 0.6) * (res / 8), (gy + 0.5 + jy * 0.6) * (res / 8), r, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    } else if (pattern === 'dots') {
+      for (let gy = 0; gy < 6; gy++) {
+        for (let gx = 0; gx < 6; gx++) {
+          const r = 6 + goboHash(gx, gy, 4) * 6;
+          g.beginPath();
+          g.arc((gx + 0.5) * (res / 6), (gy + 0.5) * (res / 6), r, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+  let goboPlane = null;
+  function buildGobo(cfg) {
+    if (goboPlane) {
+      scene.remove(goboPlane);
+      goboPlane.geometry.dispose();
+      if (goboPlane.material.map) goboPlane.material.map.dispose();
+      goboPlane.material.dispose();
+      goboPlane = null;
+    }
+    if (!cfg || !cfg.on || !cfg.pattern || cfg.pattern === 'none') return;
+    const tex = buildGoboTexture(cfg.pattern);
+    tex.repeat.set(cfg.scale || 6, cfg.scale || 6);
+    const geo = new THREE.PlaneGeometry(50, 50);
+    geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ alphaMap: tex, transparent: true, alphaTest: 0.5, colorWrite: false });
+    goboPlane = new THREE.Mesh(geo, mat);
+    goboPlane.position.set(0, 18, 0);
+    goboPlane.castShadow = true;
+    goboPlane.receiveShadow = false;
+    scene.add(goboPlane);
+  }
+
   /**
    * Apply a lighting/shadow configuration. Shadow ladder, cheap→pretty:
    * off · blob (projected fake circles, toggled on tagged meshes) ·
@@ -153,6 +220,7 @@ export function createEngine(canvas, opts = {}) {
     // volumetric haze: exponential fog thickens with distance, so far hills
     // and water melt into the air — the cheap-and-cheerful volumetrics
     buildClouds(lighting.clouds);
+    buildGobo(lighting.gobo);
     const fog = lighting.fog;
     scene.fog = (fog && fog.on)
       ? new THREE.FogExp2(new THREE.Color(fog.color || '#aebdd0'), fog.density !== undefined ? fog.density : 0.02)
@@ -478,6 +546,7 @@ export function createEngine(canvas, opts = {}) {
   }
 
   function dispose() {
+    buildGobo(null); // tears down the gobo plane + its texture, if one exists
     for (const p of effectPasses) p.dispose();
     composer.dispose();
     renderer.dispose();

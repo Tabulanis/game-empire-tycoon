@@ -20,11 +20,12 @@
  */
 
 import * as THREE from 'three';
+import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { terrainHeightSampler } from './meshes.js';
 
 export const WATER_DEFAULTS = {
   on: false, level: 1, color: '#2e86d9', opacity: 0.72,
-  wave: 0.06, speed: 1, detail: 1, react: 0.5
+  wave: 0.06, speed: 1, detail: 1, react: 0.5, reflective: 0
 };
 
 /**
@@ -102,15 +103,35 @@ export function createWater(terrain) {
   const vGround = new Float32Array(pos.count);
   for (let i = 0; i < pos.count; i++) vGround[i] = heightAt(pos.getX(i), pos.getZ(i));
 
+  // basic reflectivity: a flat mirror plane (three.js's own render-to-texture
+  // Reflector, not a hand shader — cheap, correct, and one less shader to
+  // maintain) sits at rest level UNDER the wavy surface. Reflective just
+  // trades the water's own tint for more of the mirror showing through —
+  // real Fresnel-angle reflectivity would be the next step up from here.
+  let reflector = null;
+  if (cfg.reflective > 0) {
+    const flatGeo = new THREE.PlaneGeometry(size[0], size[1]);
+    flatGeo.rotateX(-Math.PI / 2);
+    reflector = new Reflector(flatGeo, {
+      color: new THREE.Color(cfg.color).lerp(new THREE.Color('#ffffff'), 0.35),
+      textureWidth: 512, textureHeight: 512
+    });
+    reflector.position.y = cfg.level;
+  }
+  const surfaceOpacity = cfg.opacity * (1 - Math.min(1, cfg.reflective) * 0.65);
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(cfg.color),
-    transparent: true, opacity: cfg.opacity,
+    transparent: true, opacity: surfaceOpacity,
     roughness: 0.15, metalness: 0.08,
     vertexColors: true, depthWrite: false
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.renderOrder = 5;
-  mesh.receiveShadow = true;
+  const surface = new THREE.Mesh(geo, mat);
+  surface.renderOrder = 6;
+  surface.receiveShadow = true;
+  surface.userData.water = true;
+  const mesh = new THREE.Group();
+  if (reflector) mesh.add(reflector);
+  mesh.add(surface);
   mesh.userData.water = true;
 
   const cellIndexAt = (x, z) => {
@@ -196,6 +217,7 @@ export function createWater(terrain) {
     dispose() {
       geo.dispose();
       mat.dispose();
+      if (reflector) reflector.dispose(); // owns its own render target, not covered by geo/mat above
     }
   };
 }
