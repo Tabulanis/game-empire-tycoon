@@ -1936,7 +1936,14 @@ export function renderStagePanel(host, ctx) {
     if (playSession) doStop();
     if (pane) { pane.dispose(); pane = null; }
     txControls.detach();
-    txControls.dispose();
+    // three@0.169's TransformControls.dispose() calls this.traverse(...), but
+    // the class extends Controls (not Object3D) and has no traverse method —
+    // an upstream bug that throws every time. disconnect() (what dispose()
+    // does before the broken line) is all that's actually needed: it drops
+    // the pointer/key listeners the control attached to the DOM. The visible
+    // gizmo meshes live on getHelper()'s root, which engine.dispose() already
+    // sweeps via its scene-wide traversal.
+    txControls.disconnect();
     orbitControls.dispose();
     setEntitySource(null);
     engine.dispose();
