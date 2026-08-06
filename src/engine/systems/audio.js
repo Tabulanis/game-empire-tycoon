@@ -682,8 +682,9 @@ const SCHEDULE_INTERVAL = 40; // ms — how often the lookahead timer fires
  *   4-channel tracker convention.
  * @returns {SongPlayer}
  */
-export function playSong(song, sfxList) {
+export function playSong(song, sfxList, opts = {}) {
   const ctx = getContext();
+  if (ctx.state === 'suspended') ctx.resume();
   const { assets } = prepareVoiceAssets(song, sfxList || []);
   const chains = [];
   for (let ch = 0; ch < 4; ch++) {
@@ -695,6 +696,24 @@ export function playSong(song, sfxList) {
   let stepIndex = 0;
   let nextStepTime = ctx.currentTime;
   let stopped = false;
+  /** what's been scheduled, so getPosition can report the AUDIBLE step —
+   * the raw counters run a lookahead ahead of the speakers, which made the
+   * playhead early and would land recorded notes late */
+  const timeline = [];
+
+  function metronomeTick(when, accent) {
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = accent ? 1568 : 1047;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(accent ? 0.22 : 0.13, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
+    osc.connect(g);
+    g.connect(buses.music);
+    osc.start(when);
+    osc.stop(when + 0.05);
+    osc.onended = () => { try { g.disconnect(); } catch (e) {} };
+  }
 
   function currentPattern() {
     const patternId = song.chain[chainIndex % song.chain.length];
@@ -716,6 +735,14 @@ export function playSong(song, sfxList) {
     }
     while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD) {
       const pattern = currentPattern();
+      timeline.push({
+        t: nextStepTime,
+        patternId: song.chain[chainIndex % song.chain.length],
+        chainIndex: chainIndex % song.chain.length,
+        stepIndex
+      });
+      if (timeline.length > 300) timeline.splice(0, 150);
+      if (opts.metronome && stepIndex % 4 === 0) metronomeTick(nextStepTime, stepIndex === 0);
       if (pattern) {
         pattern.channels.forEach((steps, channelIndex) => {
           const cell = steps[stepIndex];
@@ -755,8 +782,14 @@ export function playSong(song, sfxList) {
 
   return {
     stop() { stopped = true; for (const c of chains) c.stop(); },
-    /** Live playback position, for a UI playhead — polled, not pushed. */
+    /** Live AUDIBLE playback position (what the speakers are on right now,
+     * not what the lookahead has scheduled) — for the playhead and for
+     * quantizing recorded notes onto the beat the player actually heard. */
     getPosition() {
+      const now = ctx.currentTime;
+      for (let i = timeline.length - 1; i >= 0; i--) {
+        if (timeline[i].t <= now) return { patternId: timeline[i].patternId, chainIndex: timeline[i].chainIndex, stepIndex: timeline[i].stepIndex };
+      }
       const idx = chainIndex % song.chain.length;
       return { patternId: song.chain[idx], chainIndex: idx, stepIndex };
     }

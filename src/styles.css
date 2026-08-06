@@ -714,3 +714,8 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
   .booth-layout select.deck-select { min-height: 42px; font-size: 15px; }
   .booth-layout button { min-height: 42px; }
 }
+
+
+/* ---- Sound Booth recording ---- */
+.recording { background: #c0392b !important; color: #fff !important; animation: rec-pulse 1s infinite; }
+@keyframes rec-pulse { 50% { opacity: 0.65; } }

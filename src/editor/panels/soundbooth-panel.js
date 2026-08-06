@@ -22,6 +22,8 @@ let zoom = 1;
 let selectedChannel = 0;
 let kbOctave = 4;
 let kbBound = false;
+/** set by the active panel: called with each played note while recording */
+let recordHook = null;
 
 /* ---- the computer keyboard IS the instrument ----
    Q..P = naturals (C up through the next octave's E), number row above =
@@ -64,6 +66,7 @@ function bindKeyboard() {
     const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
     const fx = (working.channelFx || [])[selectedChannel];
     audio.previewNote(note, voice, fx, working.sampleSlots, assets);
+    if (recordHook) recordHook(note);
     e.preventDefault();
   });
 }  // tracker cell width multiplier
@@ -106,10 +109,13 @@ export function renderSoundboothPanel(host, ctx) {
   bpmInput.addEventListener('change', () => { working.bpm = Number(bpmInput.value) || 120; });
   bar.appendChild(bpmInput);
   bar.appendChild(makeSep());
-  const playBtn = makeBtn('\u25B6 Play', () => doPreviewPlay());
+  const playBtn = makeBtn('\u25B6 Play', () => doPreviewPlay(false));
+  const recBtn = makeBtn('⏺ Record', () => doRecord());
+  recBtn.title = 'Play the song with a metronome — notes you play land in the picked track';
   playBtn.className += ' primary';
   const stopBtn = makeBtn('\u25A0 Stop', () => doPreviewStop());
   bar.appendChild(playBtn);
+  bar.appendChild(recBtn);
   bar.appendChild(stopBtn);
   bar.appendChild(makeSep());
   // "Save as a sound file": render one full pass of the chain offline \u2014
@@ -181,6 +187,7 @@ export function renderSoundboothPanel(host, ctx) {
     const { assets } = audio.prepareVoiceAssets(working, cart.getCartridge().assets.sfx);
     const chFx = (working.channelFx || [])[selectedChannel];
     audio.previewNote(note, voice, chFx, working.sampleSlots, assets);
+    if (recordHook) recordHook(note);
     rebuildPiano();
   }
   function rebuildPiano() {
@@ -642,16 +649,40 @@ export function renderSoundboothPanel(host, ctx) {
     playRafId = requestAnimationFrame(pollPlayback);
   }
 
-  function doPreviewPlay() {
+  function doPreviewPlay(withMetronome) {
     doPreviewStop();
-    previewPlayer = playSong(working, cart.getCartridge().assets.sfx);
+    previewPlayer = playSong(working, cart.getCartridge().assets.sfx, { metronome: !!withMetronome });
     playBtn.disabled = true;
     stopBtn.disabled = false;
     playRafId = requestAnimationFrame(pollPlayback);
   }
+  let recording = false;
+  function doRecord() {
+    doPreviewPlay(true);
+    recording = true;
+    recBtn.classList.add('recording');
+    // played notes (piano taps or computer keys) land on the step you HEAR
+    recordHook = (note) => {
+      if (!recording || !previewPlayer) return;
+      const pos = previewPlayer.getPosition();
+      const pattern = working.patterns[pos.patternId];
+      if (!pattern) return;
+      pattern.channels[selectedChannel][pos.stepIndex] = note;
+      cart.touch();
+      if (pos.patternId === currentPatternId) {
+        const cell = gridCells[selectedChannel] && gridCells[selectedChannel][pos.stepIndex];
+        if (cell) {
+          cell.textContent = note;
+          cell.classList.add('filled');
+        }
+      }
+    };
+  }
   function doPreviewStop() {
     if (previewPlayer) { previewPlayer.stop(); previewPlayer = null; }
     if (playRafId) { cancelAnimationFrame(playRafId); playRafId = null; }
+    if (recording) { recording = false; recordHook = null; refreshGrid(); }
+    recBtn.classList.remove('recording');
     clearStepHighlight();
     chainRow.querySelectorAll('.tracker-chain-chip.playing').forEach((chip) => chip.classList.remove('playing'));
     playBtn.disabled = false;
