@@ -1,0 +1,53 @@
+[
+  {
+    "when": "game-start",
+    "if": [],
+    "do": [
+      {
+        "do": "patrol-between",
+        "points": [
+          [
+            -4.8,
+            4.800000000000001
+          ],
+          [
+            -8.0,
+            4.800000000000001
+          ],
+          [
+            -8.0,
+            1.6000000000000014
+          ],
+          [
+            -8.0,
+            -1.5999999999999996
+          ]
+        ],
+        "speed": 1.1
+      }
+    ]
+  },
+  {
+    "when": "bumped",
+    "if": [],
+    "do": [
+      {
+        "do": "chase",
+        "target": "player",
+        "speed": 1.4
+      }
+    ]
+  },
+  {
+    "when": "touched",
+    "by": "player",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "other"
+      }
+    ]
+  }
+]

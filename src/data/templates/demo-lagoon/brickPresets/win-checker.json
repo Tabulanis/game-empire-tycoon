@@ -9,7 +9,7 @@
       {
         "do": "end-game",
         "result": "win",
-        "message": "You found every orb — the lagoon is yours!"
+        "message": "You found every orb in the maze!"
       }
     ]
   }

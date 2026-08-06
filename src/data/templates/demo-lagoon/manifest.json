@@ -2,9 +2,9 @@
   "id": "demo-lagoon",
   "era": "garage",
   "demo": true,
-  "title": "VR Lagoon",
-  "icon": "🥽",
-  "blurb": "A lagoon built for headsets (plays flat too). Wade island to island and gather the five glowing orbs — mind the drifters.",
+  "title": "VR Maze",
+  "icon": "\ud83e\udd7d",
+  "blurb": "A hedge maze built for headsets (plays flat too). Wander the corridors and gather five glowing orbs \u2014 the drifters are slow, but they do not forget you.",
   "tags": [
     "3d",
     "first-person",
@@ -15,18 +15,18 @@
     "shadows": "pcfsoft",
     "bounce": 0.5,
     "sunAngle": 300,
-    "sunHeight": 35,
+    "sunHeight": 40,
     "fog": {
       "on": true,
       "color": "#cfd8e8",
-      "density": 0.012
+      "density": 0.02
     },
     "clouds": {
       "on": true,
-      "count": 18,
-      "height": 13,
+      "count": 16,
+      "height": 14,
       "size": 3.6,
-      "drift": 0.8,
+      "drift": 0.6,
       "opacity": 0.85,
       "color": "#fff4e8"
     }
@@ -35,8 +35,9 @@
   "brickPresets": [
     "player-hardy",
     "orb",
-    "chaser",
-    "win-checker"
+    "win-checker",
+    "drifter0",
+    "drifter1"
   ],
   "questions": []
 }

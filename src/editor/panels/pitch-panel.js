@@ -18,7 +18,7 @@ import { loadTemplate, applyTemplate } from '../templates.js';
  * worked fine, they just weren't reachable from the Pitch Meeting. */
 const AVAILABLE_TEMPLATES = ['platformer', 'word', 'side-scroller', 'story', 'rpg', 'strategy', 'collect-a-thon', 'fps'];
 /** finished mini-games on the Demo Shelf — open, play, take apart */
-const DEMO_TEMPLATES = ['demo-well', 'demo-canyon', 'demo-moat', 'demo-lake', 'demo-lagoon'];
+const DEMO_TEMPLATES = ['demo-well', 'demo-canyon', 'demo-moat', 'demo-lake', 'demo-lagoon', 'demo-maze'];
 
 const AXIS_LABELS = {
   perspective: 'Perspective', verb: 'What do you do?', hero: 'Who are you?',
