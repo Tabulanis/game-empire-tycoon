@@ -216,6 +216,29 @@ export function renderStagePanel(host, ctx) {
   const canvas = document.createElement('canvas');
   canvas.className = 'deck-canvas';
   canvasWrap.appendChild(canvas);
+
+  // touch-only selection bar: Duplicate/Delete/Done as big obvious taps,
+  // docked to the viewport so you never have to hunt a side rail for them.
+  // Desktop keeps using the Inspector card + keyboard (Ctrl+D, Delete) —
+  // this bar is invisible there (see .stage-selbar's coarse-pointer gate).
+  const selActionBar = document.createElement('div');
+  selActionBar.className = 'stage-selbar';
+  const selDupBtn = document.createElement('button');
+  selDupBtn.className = 'stage-selbar-btn';
+  selDupBtn.textContent = '⧉ Duplicate';
+  selDupBtn.addEventListener('click', () => doDuplicateSelected());
+  const selDelBtn = document.createElement('button');
+  selDelBtn.className = 'stage-selbar-btn bad';
+  selDelBtn.textContent = '🗑 Delete';
+  selDelBtn.addEventListener('click', () => doDeleteSelected());
+  const selDoneBtn = document.createElement('button');
+  selDoneBtn.className = 'stage-selbar-btn';
+  selDoneBtn.textContent = '✓ Done';
+  selDoneBtn.addEventListener('click', () => deselect());
+  selActionBar.appendChild(selDupBtn);
+  selActionBar.appendChild(selDelBtn);
+  selActionBar.appendChild(selDoneBtn);
+  canvasWrap.appendChild(selActionBar);
   layout.appendChild(canvasWrap);
 
   // two rails, each with its own scroll, viewport always visible between:
@@ -964,20 +987,7 @@ export function renderStagePanel(host, ctx) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && tag0 !== 'INPUT' && tag0 !== 'TEXTAREA' && tag0 !== 'SELECT') {
       if (document.body.contains(panel) && selectedId && !playSession) {
         e.preventDefault();
-        const l3 = cart.getCartridge();
-        const s3 = ent.getScene(l3, currentSceneId);
-        const original = s3 && s3.entities.find((en) => en.id === selectedId);
-        if (original) {
-          const copy = ent.deepClone(original);
-          copy.name = original.name + ' copy';
-          if (copy.components.transform) copy.components.transform.p[0] += 1;
-          ent.addEntity(s3, copy);
-          view.refreshEntity(copy.id);
-          cart.touch();
-          selectEntity(copy.id);
-          refreshTree();
-          ctx.toast('Duplicated: ' + copy.name);
-        }
+        doDuplicateSelected();
         return;
       }
     }
@@ -1041,6 +1051,12 @@ export function renderStagePanel(host, ctx) {
     orbitControls.enableRotate = false;
   }
   orbitControls.zoomToCursor = true;
+  // touch convention: one finger belongs entirely to the app — select, drag,
+  // paint — never the camera, so a stray finger can't nudge the view mid-
+  // edit. Two fingers always drive the camera: pinch to zoom always, and
+  // drag to orbit in 3D (there's nothing to orbit in 2D, so drag pans there).
+  orbitControls.touches.ONE = null;
+  orbitControls.touches.TWO = c.settings.mode === '2d' ? THREE.TOUCH.DOLLY_PAN : THREE.TOUCH.DOLLY_ROTATE;
 
   const txControls = new TransformControls(engine.camera, canvas);
   txControls.setMode(gizmoMode);
@@ -1153,11 +1169,45 @@ export function renderStagePanel(host, ctx) {
         }
       }
     }
+    selActionBar.classList.toggle('visible', !!id);
     refreshTree();
     refreshInspector();
   }
 
   function deselect() { selectEntity(null); }
+
+  /** Duplicate the selected entity one unit over. Shared by Ctrl+D, the
+   * Inspector's Duplicate button, and the touch selection bar. */
+  function doDuplicateSelected() {
+    if (!selectedId || playSession) return;
+    const live = cart.getCartridge();
+    const sc = ent.getScene(live, currentSceneId);
+    const original = sc && sc.entities.find((en) => en.id === selectedId);
+    if (!original) return;
+    const copy = ent.deepClone(original);
+    copy.name = original.name + ' copy';
+    if (copy.components.transform) copy.components.transform.p[0] += 1;
+    ent.addEntity(sc, copy);
+    view.refreshEntity(copy.id);
+    cart.touch();
+    selectEntity(copy.id);
+    refreshTree();
+    ctx.toast('Duplicated: ' + copy.name);
+  }
+
+  /** Delete the selected entity. Shared by the Delete/Backspace key, the
+   * Inspector's Delete button, and the touch selection bar. */
+  function doDeleteSelected() {
+    if (!selectedId || playSession) return;
+    const live = cart.getCartridge();
+    const sc = ent.getScene(live, currentSceneId);
+    ent.removeEntity(sc, selectedId);
+    const obj = view.objects.get(selectedId);
+    if (obj) { engine.contentRoot.remove(obj); view.objects.delete(selectedId); }
+    cart.touch();
+    deselect();
+    refreshTree();
+  }
 
   /* ---------------------------------------------------------------- */
   /* scene tree                                                        */
@@ -1322,20 +1372,7 @@ export function renderStagePanel(host, ctx) {
     const dupBtn = document.createElement('button');
     dupBtn.className = 'bar'; dupBtn.textContent = 'Duplicate'; dupBtn.style.width = '100%';
     dupBtn.style.marginBottom = '4px';
-    dupBtn.addEventListener('click', () => {
-      const copy = ent.deepClone(entity);
-      copy.name = entity.name + ' copy';
-      if (copy.components.transform) {
-        copy.components.transform.p[0] += 1;
-      }
-      const l2 = cart.getCartridge();
-      const s2 = ent.getScene(l2, currentSceneId);
-      ent.addEntity(s2, copy);
-      view.refreshEntity(copy.id);
-      cart.touch();
-      selectEntity(copy.id);
-      refreshTree();
-    });
+    dupBtn.addEventListener('click', () => doDuplicateSelected());
     actionsDiv.appendChild(dupBtn);
 
     const prefabSaveBtn = document.createElement('button');
@@ -1352,16 +1389,7 @@ export function renderStagePanel(host, ctx) {
 
     const delBtn = document.createElement('button');
     delBtn.className = 'bar bad-btn'; delBtn.textContent = 'Delete'; delBtn.style.width = '100%';
-    delBtn.addEventListener('click', () => {
-      const l2 = cart.getCartridge();
-      const s2 = ent.getScene(l2, currentSceneId);
-      ent.removeEntity(s2, selectedId);
-      const obj = view.objects.get(selectedId);
-      if (obj) { engine.contentRoot.remove(obj); view.objects.delete(selectedId); }
-      cart.touch();
-      deselect();
-      refreshTree();
-    });
+    delBtn.addEventListener('click', () => doDeleteSelected());
     actionsDiv.appendChild(delBtn);
 
     inspCard.appendChild(actionsDiv);
@@ -1482,6 +1510,21 @@ export function renderStagePanel(host, ctx) {
   /* ---------------------------------------------------------------- */
   let painting = false;
   let paintRaf = null;
+  // one-finger drag-to-move (touch only): grabs the ALREADY-selected
+  // object's body, no need to hit the tiny gizmo handles on a small screen
+  let touchDragId = null;
+  let touchDragOffset = null;
+  let touchDragPointerId = null;
+  function beginTouchDrag(id, ndc, pointerId) {
+    const obj = view.objects.get(id);
+    const pt = groundPoint(engine, ndc);
+    if (!obj || !pt) return;
+    touchDragId = id;
+    touchDragPointerId = pointerId;
+    touchDragOffset = engine.mode === '2d'
+      ? { a: obj.position.x - pt[0], b: obj.position.y - pt[1] }
+      : { a: obj.position.x - pt[0], b: obj.position.z - pt[2] };
+  }
 
   canvas.addEventListener('pointerdown', (e) => {
     if (playSession) return;
@@ -1498,6 +1541,11 @@ export function renderStagePanel(host, ctx) {
         return;
       }
       const id = pickEntity(engine, ndc);
+      if (e.pointerType === 'touch' && id && id === selectedId) {
+        // already selected — a held drag moves it, rather than re-picking
+        beginTouchDrag(id, ndc, e.pointerId);
+        return;
+      }
       selectEntity(id || null);
     } else if (tool === 'terrain') {
       return; // the brush layer owns these clicks
@@ -1543,6 +1591,29 @@ export function renderStagePanel(host, ctx) {
       if (scene && scene.terrain && scene.terrain.smooth) commitMasks(scene.terrain);
     }
   });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!touchDragId || e.pointerId !== touchDragPointerId || playSession || tool !== 'select') return;
+    const obj = view.objects.get(touchDragId);
+    const pt = groundPoint(engine, ptrNdc(e, canvas));
+    if (!obj || !pt) return;
+    if (engine.mode === '2d') {
+      obj.position.x = pt[0] + touchDragOffset.a;
+      obj.position.y = pt[1] + touchDragOffset.b;
+    } else {
+      obj.position.x = pt[0] + touchDragOffset.a;
+      obj.position.z = pt[2] + touchDragOffset.b;
+    }
+  });
+  function endTouchDrag(e) {
+    if (!touchDragId || e.pointerId !== touchDragPointerId) return;
+    flushEntitySync();
+    touchDragId = null;
+    touchDragOffset = null;
+    touchDragPointerId = null;
+  }
+  window.addEventListener('pointerup', endTouchDrag);
+  window.addEventListener('pointercancel', endTouchDrag);
 
   function doPaint(ndc) {
     const pt = groundPoint(engine, ndc);
@@ -1594,14 +1665,7 @@ export function renderStagePanel(host, ctx) {
     if (e.code === 'KeyE') { gizmoMode = 'rotate'; txControls.setMode('rotate'); refreshGizmoBtns(); }
     if (e.code === 'KeyR') { gizmoMode = 'scale'; txControls.setMode('scale'); refreshGizmoBtns(); }
     if ((e.code === 'Delete' || e.code === 'Backspace') && selectedId) {
-      const l2 = cart.getCartridge();
-      const s2 = ent.getScene(l2, currentSceneId);
-      ent.removeEntity(s2, selectedId);
-      const obj = view.objects.get(selectedId);
-      if (obj) { engine.contentRoot.remove(obj); view.objects.delete(selectedId); }
-      cart.touch();
-      deselect();
-      refreshTree();
+      doDeleteSelected();
     }
     if (e.code === 'Escape') deselect();
   }

@@ -238,7 +238,7 @@ button.bar.primary { border-color: var(--gold); color: var(--gold); }
   margin-bottom: 12px;
   overflow: hidden;
 }
-.deck-canvas { display: block; width: 100%; height: 100%; }
+.deck-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .deck-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
 .deck-subhead {
   font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
@@ -732,3 +732,28 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 /* ---- Sound Booth recording ---- */
 .recording { background: #c0392b !important; color: #fff !important; animation: rec-pulse 1s infinite; }
 @keyframes rec-pulse { 50% { opacity: 0.65; } }
+
+
+/* ---- Stage selection bar: touch-only Duplicate/Delete/Done ---- */
+.stage-selbar {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: none; gap: 8px; z-index: 5;
+  background: rgba(20, 22, 30, 0.92); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px; padding: 8px;
+}
+.stage-selbar-btn {
+  border: none; border-radius: 10px; background: rgba(255,255,255,0.14);
+  color: #fff; font-weight: 600; cursor: pointer; padding: 8px 12px; font-size: 13px;
+}
+.stage-selbar-btn.bad { background: #c0392b; }
+@media (pointer: coarse) {
+  .stage-selbar.visible { display: flex; }
+  .stage-selbar-btn { font-size: 16px; padding: 14px 22px; }
+}
+
+/* ---- top-bar Undo: touch-only — no Ctrl+Z on a tablet, so this is the
+   safety net that lets you experiment fearlessly with a finger ---- */
+.touch-undo-btn { display: none; }
+@media (pointer: coarse) {
+  .touch-undo-btn { display: inline-block; font-size: 15px; padding: 8px 16px; }
+}

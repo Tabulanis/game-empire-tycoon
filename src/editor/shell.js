@@ -202,6 +202,15 @@ function buildTopBar() {
   spacer.className = 'spacer';
   bar.appendChild(spacer);
 
+  // undo: no Ctrl+Z on a touchscreen — one big always-visible button gives
+  // the same safety net, so experimenting on a tablet never feels risky
+  const touchUndoBtn = barButton('↶ Undo', () => {
+    if (undoSvc.undo()) { showRoom(currentRoom); toast('↶ Undone'); }
+    else toast('Nothing to undo.');
+  });
+  touchUndoBtn.classList.add('touch-undo-btn');
+  bar.appendChild(touchUndoBtn);
+
   // fullscreen: browsers eat a lot of screen — one obvious button gives it back
   const fsBtn = barButton('⛶', () => {
     if (document.fullscreenElement) document.exitFullscreen();
