@@ -613,7 +613,22 @@ export function createChannelChain(ctx, destination, fx) {
     convolver.connect(post);
   }
 
-  return { input, stop() { for (const l of lfos) { try { l.stop(); } catch (e) {} } } };
+  return {
+    input,
+    stop() {
+      for (const l of lfos) { try { l.stop(); } catch (e) {} }
+      try { input.disconnect(); } catch (e) {}
+      // let echo/reverb tails ring out, then unplug the chain from the mixer.
+      // An abandoned chain otherwise stays connected forever — the echo
+      // feedback loop especially never dies on its own — and each knob tweak
+      // during playback added four more. Enough of those is exactly the
+      // classic slows-down-then-garbles Web Audio failure.
+      setTimeout(() => {
+        try { post.disconnect(); } catch (e) {}
+        try { panner.disconnect(); } catch (e) {}
+      }, 2500);
+    }
+  };
 }
 
 /** @param {any} song @returns {boolean} any channel has time-based fx (needs render tail) */
@@ -646,8 +661,8 @@ export function previewNote(note, voice, fx, sampleSlots, assets) {
 /* song playback — pattern-chain scheduler                              */
 /* ------------------------------------------------------------------ */
 
-const SCHEDULE_AHEAD = 0.15; // seconds — how far ahead we schedule notes
-const SCHEDULE_INTERVAL = 25; // ms — how often the lookahead timer fires
+const SCHEDULE_AHEAD = 0.35; // seconds — enough lookahead to ride out UI jank while editing
+const SCHEDULE_INTERVAL = 40; // ms — how often the lookahead timer fires
 
 /**
  * @typedef {Object} SongPlayer
@@ -684,6 +699,17 @@ export function playSong(song, sfxList) {
 
   function scheduler() {
     if (stopped) return;
+    // fell behind (heavy edit, throttled tab)? Skip the missed steps instead
+    // of firing them all at once in a burst of garble, and resume on the beat.
+    if (nextStepTime < ctx.currentTime - 0.05) {
+      const missed = Math.ceil((ctx.currentTime - nextStepTime) / stepDuration);
+      for (let i = 0; i < missed; i++) {
+        nextStepTime += stepDuration;
+        stepIndex++;
+        const pattern = currentPattern();
+        if (!pattern || stepIndex >= pattern.steps) { stepIndex = 0; chainIndex++; }
+      }
+    }
     while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD) {
       const pattern = currentPattern();
       if (pattern) {

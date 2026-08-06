@@ -32,6 +32,13 @@ const EFFECTS = [
  * @param {HTMLElement} host
  * @param {{toast: Function, refresh: Function}} ctx
  */
+let panelAudioContext = null;
+function getPanelContext() {
+  if (!panelAudioContext) panelAudioContext = new AudioContext();
+  if (panelAudioContext.state === 'suspended') panelAudioContext.resume();
+  return panelAudioContext;
+}
+
 export function renderSfxeditPanel(host, ctx) {
   const panel = document.createElement('div');
   panel.className = 'panel';
@@ -56,7 +63,7 @@ export function renderSfxeditPanel(host, ctx) {
   sourceSelect.className = 'deck-select';
   sourceBar.appendChild(sourceSelect);
 
-  sourceBar.appendChild(makeBtn('Open', () => {
+  const openSelected = () => {
     const live = cart.getCartridge();
     const sfx = live.assets.sfx.find((s) => s.id === sourceSelect.value);
     if (!sfx) return;
@@ -74,7 +81,8 @@ export function renderSfxeditPanel(host, ctx) {
       setBusy(false);
       ctx.toast('Could not open that sound.', true);
     });
-  }));
+  };
+  sourceBar.appendChild(makeBtn('Open', openSelected));
 
   const importInput = document.createElement('input');
   importInput.type = 'file';
@@ -85,7 +93,7 @@ export function renderSfxeditPanel(host, ctx) {
     if (!file) return;
     setBusy(true);
     file.arrayBuffer()
-      .then((bytes) => new AudioContext().decodeAudioData(bytes))
+      .then((bytes) => getPanelContext().decodeAudioData(bytes))
       .then((decoded) => {
         buffer = decoded;
         history = [];
@@ -277,13 +285,16 @@ export function renderSfxeditPanel(host, ctx) {
   function doPlay() {
     if (!buffer) return;
     // With a selection, play just that piece — instant "did I grab the
-    // right part?" feedback.
+    // right part?" feedback. One shared context for the whole panel:
+    // browsers cap live AudioContexts (~6) and a new one per press used to
+    // hit that cap within a few clicks, after which every sound in the app
+    // silently failed.
     const toPlay = selection ? fx.sliceRegion(buffer, selection.start, selection.end) : buffer;
-    const ctx2 = new AudioContext();
-    const source = ctx2.createBufferSource();
+    const actx = getPanelContext();
+    const source = actx.createBufferSource();
     source.buffer = toPlay;
-    source.connect(ctx2.destination);
-    source.onended = () => ctx2.close();
+    source.connect(actx.destination);
+    source.onended = () => { try { source.disconnect(); } catch (e) {} };
     source.start();
   }
 
@@ -296,6 +307,17 @@ export function renderSfxeditPanel(host, ctx) {
     playBtn.disabled = next || !buffer;
     undoBtn.disabled = next || !history.length;
   }
+
+  /* startup: buttons show disabled until a sound is actually loaded, and if
+   * the library has sounds the first one opens itself — the room is ready to
+   * edit the moment you walk in instead of silently ignoring every tap */
+  setTimeout(() => {
+    setBusy(false);
+    if (!buffer && sourceSelect.options.length > 0) {
+      sourceSelect.selectedIndex = 0;
+      openSelected();
+    }
+  }, 0);
 
   function redraw() {
     hint.style.display = buffer ? 'none' : '';
