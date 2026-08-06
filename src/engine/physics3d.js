@@ -191,7 +191,7 @@ export function spawnDummy3D(session, pos, entityId) {
   controller.enableAutostep(0.55, 0.2, true);
   controller.enableSnapToGround(0.35);
   controller.setApplyImpulsesToDynamicBodies(true);
-  session.dummy = { body, collider, controller, vy: 0, grounded: false, spawn: [...pos], respawn: [...pos], yaw: 0 };
+  session.dummy = { body, collider, controller, vy: 0, grounded: false, spawn: [...pos], respawn: [...pos], yaw: 0, facing: { x: 0, z: -1 } };
   session.dummyEntityId = entityId || null;
 }
 
@@ -248,8 +248,17 @@ export function advancePlayerControlsFPS3D(session, input, dt) {
 export function advancePlayerControls3D(session, input, dt) {
   const d = session.dummy;
   if (!d) return;
-  const dx = ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * DUMMY_SPEED * dt;
-  const dz = ((input.down ? 1 : 0) - (input.up ? 1 : 0)) * DUMMY_SPEED * dt;
+  const rawX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const rawZ = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+  // aimed shooting for THIS scheme (no yaw to aim with, unlike FPS) fires
+  // whichever way you're walking, held from your last step when standing
+  // still — the same "face your movement" convention as the 2D top-down player
+  if (rawX || rawZ) {
+    const len = Math.hypot(rawX, rawZ) || 1;
+    d.facing = { x: rawX / len, z: rawZ / len };
+  }
+  const dx = rawX * DUMMY_SPEED * dt;
+  const dz = rawZ * DUMMY_SPEED * dt;
   if (d.grounded && input.jump) d.vy = DUMMY_JUMP;
   d.vy += GRAVITY.y * dt;
   d.vy = Math.max(d.vy, -30);

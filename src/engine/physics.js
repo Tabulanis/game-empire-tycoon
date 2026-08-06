@@ -193,7 +193,8 @@ export function spawnDummy(session, pos, entityId) {
     vy: 0,
     grounded: false,
     spawn: [...pos],
-    respawn: [...pos]
+    respawn: [...pos],
+    facing: { x: 1, y: 0 } // arbitrary but sane before the first step
   };
   session.dummyEntityId = entityId || null;
 }
@@ -207,7 +208,12 @@ export function spawnDummy(session, pos, entityId) {
 function driveDummy(session, input, dt) {
   const d = session.dummy;
   if (!d) return;
-  const dx = ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * DUMMY_SPEED * dt;
+  const rawX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  // remember which way you're walking — aimed shooting fires this way,
+  // held from the last step you took while stationary (no vertical
+  // movement axis exists in this scheme, so facing is horizontal-only)
+  if (rawX) d.facing = { x: rawX, y: 0 };
+  const dx = rawX * DUMMY_SPEED * dt;
   if (d.grounded && input.jump) d.vy = DUMMY_JUMP;
   d.vy += GRAVITY.y * dt;
   d.vy = Math.max(d.vy, -30);
@@ -269,6 +275,9 @@ function driveDummyTopDown(session, input, dt) {
   const dx = ((input.right ? 1 : 0) - (input.left ? 1 : 0));
   const dy = ((input.up ? 1 : 0) - (input.down ? 1 : 0));
   const len = Math.hypot(dx, dy) || 1; // normalize diagonals to the same speed as cardinal directions
+  // aimed shooting fires whichever of the 8 directions you last moved in,
+  // held while standing still — a top-down player has no other "facing"
+  if (dx || dy) d.facing = { x: dx / len, y: dy / len };
   const vx = (dx / len) * DUMMY_SPEED;
   const vy = (dy / len) * DUMMY_SPEED;
   d.controller.computeColliderMovement(d.collider, { x: vx * dt, y: vy * dt });

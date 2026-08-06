@@ -125,11 +125,14 @@ export function doInvincible(entity, params, state) {
  * @param {{entities: Array<any>}} scene
  * @param {[number, number, number]} [direction3D]  explicit 3D firing
  *   direction (unit-length not required) — used by 3D-FPS mode, which has
- *   a real yaw to aim with. Omitted for 2D, where facing comes from the
- *   entity's own transform.s[0] sign instead.
+ *   a real yaw to aim with.
+ * @param {[number, number]} [direction2D]  explicit 2D firing direction —
+ *   a player's tracked movement-facing (side-scroller, top-down). Omitted
+ *   entirely for non-player shooters (turrets etc), which keep aiming from
+ *   the entity's own transform.s[0] sign, exactly as before.
  * @returns {any} the projectile entity (already added to scene.entities)
  */
-export function doShoot(entity, params, scene, direction3D) {
+export function doShoot(entity, params, scene, direction3D, direction2D) {
   const t = entity.components.transform;
   const speed = params.speed || 8;
   let velocity, spawnOffset;
@@ -138,6 +141,11 @@ export function doShoot(entity, params, scene, direction3D) {
     const nd = [direction3D[0] / len, direction3D[1] / len, direction3D[2] / len];
     velocity = { x: nd[0] * speed, y: nd[1] * speed, z: nd[2] * speed };
     spawnOffset = [t.p[0] + nd[0] * 0.9, (t.p[1] || 0) + nd[1] * 0.9, (t.p[2] || 0) + nd[2] * 0.9];
+  } else if (direction2D) {
+    const len = Math.hypot(direction2D[0], direction2D[1]) || 1;
+    const nx = direction2D[0] / len, ny = direction2D[1] / len;
+    velocity = { x: nx * speed, y: ny * speed };
+    spawnOffset = [t.p[0] + nx * 0.9, t.p[1] + ny * 0.9, t.p[2]];
   } else {
     const facing = t.s[0] < 0 ? -1 : 1;
     velocity = { x: facing * speed, y: 0 };

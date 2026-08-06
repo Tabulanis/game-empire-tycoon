@@ -719,11 +719,22 @@ function executeDo(action, entity, ctx) {
       doInvincible(resolveTarget(action, entity, ctx.playerEntity), action, ctx.combatState);
       break;
     case 'shoot': {
+      // any 2D player aims with the direction they're actually walking
+      // (facing, tracked in physics.js); non-player shooters (turrets) get
+      // no direction2D and keep the old transform.s[0]-sign aim, unchanged
+      const isPlayer = ctx.playerEntity && entity.id === ctx.playerEntity.id;
       if (!ctx.is3D) {
-        ctx.pendingSpawns.push(doShoot(entity, action, ctx.scene));
-      } else if (ctx.controlScheme === 'fps' && ctx.session.dummy && ctx.playerEntity && entity.id === ctx.playerEntity.id) {
-        const yaw = ctx.session.dummy.yaw;
-        const direction3D = [-Math.sin(yaw), 0, -Math.cos(yaw)];
+        const dummy = ctx.session.dummy;
+        const direction2D = (isPlayer && dummy && dummy.facing) ? [dummy.facing.x, dummy.facing.y] : undefined;
+        ctx.pendingSpawns.push(doShoot(entity, action, ctx.scene, undefined, direction2D));
+      } else if (ctx.session.dummy && isPlayer) {
+        const dummy = ctx.session.dummy;
+        // FPS has a real look direction (yaw) to aim with; every other 3D
+        // scheme has no camera-independent facing, so it aims the way
+        // you're currently walking instead — same convention as 2D
+        const direction3D = ctx.controlScheme === 'fps'
+          ? [-Math.sin(dummy.yaw), 0, -Math.cos(dummy.yaw)]
+          : [dummy.facing.x, 0, dummy.facing.z];
         ctx.pendingSpawns.push(doShoot(entity, action, ctx.scene, direction3D));
       }
       break;
