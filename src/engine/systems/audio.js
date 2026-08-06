@@ -652,6 +652,7 @@ let _previewChain = null, _previewKey = '';
  */
 export function previewNote(note, voice, fx, sampleSlots, assets) {
   const ctx = getContext();
+  if (ctx.state === 'suspended') ctx.resume(); // phones suspend audio until a gesture
   const key = JSON.stringify(fx || {});
   if (!_previewChain || _previewKey !== key) {
     if (_previewChain) _previewChain.stop();

@@ -678,33 +678,46 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 }
 
 
-/* ---- Sound Booth on-screen piano ---- */
+/* ---- Sound Booth on-screen piano: real two-tier layout ---- */
+.booth-piano-wrap {
+  display: flex; gap: 6px; margin: 10px 0 4px; align-items: stretch;
+}
 .booth-piano {
-  display: flex; gap: 3px; margin: 10px 0 4px; align-items: stretch;
-  overflow-x: auto; padding-bottom: 4px;
+  flex: 1; display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  grid-template-rows: 42% 58%;
+  height: 96px; min-width: 0;
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
 .piano-key {
-  min-width: 40px; height: 58px; flex-shrink: 0;
-  border: 1px solid var(--line); border-radius: 0 0 8px 8px;
-  background: #eef1f7; color: #1c202b; font-weight: 700; font-size: 13px;
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-  padding-bottom: 6px; cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 5px; font-weight: 700; font-size: 12px; cursor: pointer;
 }
-.piano-key small { font-weight: 400; opacity: 0.55; font-size: 9px; }
-.piano-key.black { background: #232733; color: #dfe4f0; height: 46px; align-self: flex-start; border-radius: 0 0 6px 6px; }
-.piano-key.active { outline: 3px solid var(--accent); outline-offset: -1px; }
-.piano-key:active { background: var(--accent); color: var(--bg); }
+.piano-key.white {
+  background: #eef1f7; color: #1c202b;
+  border: 1px solid #9aa2b1; border-radius: 0 0 7px 7px;
+}
+.piano-key.black {
+  background: #232733; color: #dfe4f0; z-index: 2;
+  border: 1px solid #10131b; border-radius: 0 0 6px 6px;
+  font-size: 10px; margin: 0 8%;
+}
+.piano-key.active { outline: 3px solid var(--accent); outline-offset: -2px; }
+.piano-key.white:active { background: var(--accent); }
+.piano-key.black:active { background: var(--accent); }
+.piano-oct-col { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
 .piano-oct {
-  min-width: 48px; height: 58px; flex-shrink: 0; border-radius: 8px;
+  min-width: 46px; border-radius: 8px; flex: 1;
   background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
-  font-size: 12px; cursor: pointer;
+  font-size: 11px; cursor: pointer;
 }
+.piano-oct-label { text-align: center; font-size: 10px; color: var(--dim); }
 
 /* ---- music room on touch: everything bigger, keyboard hint gone ---- */
 @media (pointer: coarse) {
-  .piano-key { min-width: 52px; height: 74px; font-size: 16px; }
-  .piano-key.black { height: 58px; }
-  .piano-oct { min-width: 60px; height: 74px; font-size: 14px; }
+  .booth-piano { height: 132px; }
+  .piano-key { font-size: 15px; }
+  .piano-oct { min-width: 56px; font-size: 13px; }
   .booth-layout .stage-hint { font-size: 13px; }
   .tracker-grid { grid-template-columns: 72px repeat(32, 38px); }
   .tracker-cell { min-width: 38px !important; height: 40px; font-size: 12px; }

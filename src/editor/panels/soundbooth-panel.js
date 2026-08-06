@@ -144,6 +144,10 @@ export function renderSoundboothPanel(host, ctx) {
   });
   bar.appendChild(wavBtn);
   panel.appendChild(bar);
+  const jamHint = document.createElement('div');
+  jamHint.className = 'stage-hint';
+  jamHint.textContent = '▶ Play = practice: jam on the keys over the loop, nothing is saved. ⏺ Record = what you play lands in the picked track, on the beat.';
+  panel.appendChild(jamHint);
 
   // note picker
   const noteBar = document.createElement('div');
@@ -177,9 +181,31 @@ export function renderSoundboothPanel(host, ctx) {
      track's sound and make it the note-to-place. Same behavior as the
      computer keyboard — which tablets don't have, so this IS the
      instrument there. ---- */
+  const pianoWrap = document.createElement('div');
+  pianoWrap.className = 'booth-piano-wrap';
+  const octDown = document.createElement('button');
+  octDown.className = 'piano-oct';
+  octDown.textContent = '−8va';
+  const octLabel = document.createElement('div');
+  octLabel.className = 'piano-oct-label';
+  const octUp = document.createElement('button');
+  octUp.className = 'piano-oct';
+  octUp.textContent = '+8va';
   const piano = document.createElement('div');
   piano.className = 'booth-piano';
-  panel.appendChild(piano);
+  pianoWrap.appendChild(octDown);
+  pianoWrap.appendChild(piano);
+  const octCol = document.createElement('div');
+  octCol.className = 'piano-oct-col';
+  octCol.appendChild(octUp);
+  octCol.appendChild(octLabel);
+  pianoWrap.replaceChild(octCol, octDown);
+  pianoWrap.insertBefore(octDown, piano);
+  panel.appendChild(pianoWrap);
+
+  octDown.addEventListener('click', () => { kbOctave = Math.max(2, kbOctave - 1); rebuildPiano(); });
+  octUp.addEventListener('click', () => { kbOctave = Math.min(6, kbOctave + 1); rebuildPiano(); });
+
   function playAndArm(note) {
     selectedNote = note;
     noteSelect.value = note;
@@ -188,38 +214,64 @@ export function renderSoundboothPanel(host, ctx) {
     const chFx = (working.channelFx || [])[selectedChannel];
     audio.previewNote(note, voice, chFx, working.sampleSlots, assets);
     if (recordHook) recordHook(note);
-    rebuildPiano();
+    // update highlight in place — never rebuild mid-glide
+    piano.querySelectorAll('.piano-key.active').forEach((k) => k.classList.remove('active'));
+    const key = piano.querySelector('[data-note="' + note + '"]');
+    if (key) key.classList.add('active');
   }
+
+  /* a real piano: white keys span the full height, black keys ride on top
+     between them — laid out on a 14-column grid so it fills any screen
+     width, phone included, with no scrolling */
   function rebuildPiano() {
     piano.innerHTML = '';
-    const octDown = document.createElement('button');
-    octDown.className = 'piano-oct';
-    octDown.textContent = '−8va';
-    octDown.title = 'Lower octave';
-    octDown.addEventListener('click', () => {
-      kbOctave = Math.max(2, kbOctave - 1);
-      rebuildPiano();
-    });
-    piano.appendChild(octDown);
-    for (let i = 0; i < 12; i++) {
-      const name = KB_NAMES[i] + kbOctave;
-      const key = document.createElement('button');
-      key.className = 'piano-key' + (KB_NAMES[i].includes('#') ? ' black' : '') + (selectedNote === name ? ' active' : '');
-      key.innerHTML = KB_NAMES[i] + '<small>' + kbOctave + '</small>';
-      key.addEventListener('click', () => playAndArm(name));
-      piano.appendChild(key);
+    octLabel.textContent = 'oct ' + kbOctave;
+    const WHITES = [['C', 1], ['D', 3], ['E', 5], ['F', 7], ['G', 9], ['A', 11], ['B', 13]];
+    const BLACKS = [['C#', 2], ['D#', 4], ['F#', 8], ['G#', 10], ['A#', 12]];
+    for (const [name, col] of WHITES) {
+      const k = document.createElement('div');
+      k.className = 'piano-key white' + (selectedNote === name + kbOctave ? ' active' : '');
+      k.dataset.note = name + kbOctave;
+      k.textContent = name;
+      k.style.gridColumn = col + ' / span 2';
+      k.style.gridRow = '1 / 3';
+      piano.appendChild(k);
     }
-    const octUp = document.createElement('button');
-    octUp.className = 'piano-oct';
-    octUp.textContent = '+8va';
-    octUp.title = 'Higher octave';
-    octUp.addEventListener('click', () => {
-      kbOctave = Math.min(6, kbOctave + 1);
-      rebuildPiano();
-    });
-    piano.appendChild(octUp);
+    for (const [name, col] of BLACKS) {
+      const k = document.createElement('div');
+      k.className = 'piano-key black' + (selectedNote === name + kbOctave ? ' active' : '');
+      k.dataset.note = name + kbOctave;
+      k.textContent = name;
+      k.style.gridColumn = col + ' / span 2';
+      k.style.gridRow = '1 / 2';
+      piano.appendChild(k);
+    }
   }
   rebuildPiano();
+
+  /* instrument-grade input: pointerdown plays instantly (no click delay),
+     several fingers make chords, and sliding a held finger across the keys
+     plays each one it crosses — a glissando, like a piano app should */
+  const downPointers = new Map();
+  piano.addEventListener('pointerdown', (e) => {
+    const k = e.target.closest('.piano-key');
+    if (!k) return;
+    e.preventDefault();
+    downPointers.set(e.pointerId, k);
+    playAndArm(k.dataset.note);
+  });
+  piano.addEventListener('pointermove', (e) => {
+    if (!downPointers.has(e.pointerId)) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const k = el && el.closest('.piano-key');
+    if (k && k !== downPointers.get(e.pointerId)) {
+      downPointers.set(e.pointerId, k);
+      playAndArm(k.dataset.note);
+    }
+  });
+  const liftPointer = (e) => downPointers.delete(e.pointerId);
+  window.addEventListener('pointerup', liftPointer);
+  window.addEventListener('pointercancel', liftPointer);
 
   const layout = document.createElement('div');
   layout.className = 'booth-layout';
