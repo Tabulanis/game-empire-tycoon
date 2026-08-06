@@ -202,6 +202,18 @@ function buildTopBar() {
   spacer.className = 'spacer';
   bar.appendChild(spacer);
 
+  // fullscreen: browsers eat a lot of screen — one obvious button gives it back
+  const fsBtn = barButton('⛶', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  });
+  fsBtn.title = 'Fullscreen on/off';
+  fsBtn.classList.add('fs-btn');
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '🗗' : '⛶';
+  });
+  bar.appendChild(fsBtn);
+
   bar.appendChild(barButton('New', doNew));
   bar.appendChild(barButton('Open', doOpen));
   bar.appendChild(barButton('Save', () => doSave(false), true));

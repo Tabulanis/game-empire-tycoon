@@ -662,3 +662,10 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 @media (max-width: 900px) {
   .booth-layout { grid-template-columns: 1fr; }
 }
+
+
+/* ---- fullscreen toggle ---- */
+.fs-btn { font-size: 17px; padding: 4px 12px; }
+@media (pointer: coarse) {
+  .fs-btn { font-size: 21px; padding: 6px 16px; }
+}

@@ -122,6 +122,21 @@ function boot() {
   lastTs = performance.now();
   engine.renderer.setAnimationLoop((ts) => loop(ts));
 
+  // fullscreen toggle: floats top-right, above everything, obvious on touch
+  const fsBtn = document.createElement('button');
+  fsBtn.className = 'player-fs-btn';
+  fsBtn.textContent = '⛶';
+  fsBtn.title = 'Fullscreen';
+  fsBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:20;width:44px;height:44px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.45);color:#fff;font-size:22px;cursor:pointer;';
+  fsBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '🗗' : '⛶';
+  });
+  document.body.appendChild(fsBtn);
+
   // phones and tablets get virtual pads — stick to move, buttons to act
   createTouchControls(canvas.parentElement || document.body, desk.input, {
     shoot: !!(cartridge.settings.input && cartridge.settings.input.shoot),
