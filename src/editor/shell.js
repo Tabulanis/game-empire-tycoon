@@ -486,7 +486,7 @@ function renderPanelInto(target, tabId) {
     }
     target.appendChild(wrap);
   }
-  render(target, { toast, refresh: () => showRoom(currentRoom) });
+  render(target, { toast, refresh: () => showRoom(currentRoom), gotoRoom: (id) => showRoom(id) });
 }
 
 /** Office-only: let a grown-up (or tester) move the studio between eras. */

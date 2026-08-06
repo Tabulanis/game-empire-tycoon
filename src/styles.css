@@ -669,3 +669,10 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 @media (pointer: coarse) {
   .fs-btn { font-size: 21px; padding: 6px 16px; }
 }
+
+
+/* ---- sound library rows: desktop stays compact, touch gets thumb targets ---- */
+@media (pointer: coarse) {
+  .stage-prefab-row button { padding: 10px 16px; font-size: 15px; }
+  .lib-edit-btn { font-weight: 700; }
+}

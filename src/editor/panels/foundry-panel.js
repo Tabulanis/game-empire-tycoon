@@ -199,13 +199,22 @@ export function renderFoundryPanel(host, ctx) {
       label.textContent = sfx.name;
       row.appendChild(label);
       const playBtn2 = makeBtn('\u25B6', () => foundry.play(sfx.params));
-      const editBtn = makeBtn('Edit', () => {
+      // Dials: reload this sound's recipe into the parameter grid here.
+      const dialsBtn = makeBtn('🎛 Dials', () => {
         params = { ...sfx.params };
         currentSfxId = sfx.id;
         currentName = sfx.name;
         renderAll();
+        ctx.toast('"' + sfx.name + '" is on the dials — tweak away.');
       });
+      // Edit: carry the sound over to the Sound Editor room, waveform and all.
+      const editBtn = makeBtn('✏️ Edit', () => {
+        sessionStorage.setItem('get-sfxedit-open', sfx.id);
+        ctx.gotoRoom('sfxedit');
+      });
+      editBtn.classList.add('lib-edit-btn');
       row.appendChild(playBtn2);
+      row.appendChild(dialsBtn);
       row.appendChild(editBtn);
       libList.appendChild(row);
     }

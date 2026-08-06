@@ -313,6 +313,14 @@ export function renderSfxeditPanel(host, ctx) {
    * edit the moment you walk in instead of silently ignoring every tap */
   setTimeout(() => {
     setBusy(false);
+    // another room may have sent a sound over (Foundry's ✏️ Edit)
+    const requested = sessionStorage.getItem('get-sfxedit-open');
+    if (requested) {
+      sessionStorage.removeItem('get-sfxedit-open');
+      for (const opt of sourceSelect.options) {
+        if (opt.value === requested) { sourceSelect.value = requested; openSelected(); return; }
+      }
+    }
     if (!buffer && sourceSelect.options.length > 0) {
       sourceSelect.selectedIndex = 0;
       openSelected();
