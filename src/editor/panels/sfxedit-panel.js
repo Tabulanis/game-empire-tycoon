@@ -66,9 +66,18 @@ export function renderSfxeditPanel(host, ctx) {
   const openSelected = () => {
     const live = cart.getCartridge();
     const sfx = live.assets.sfx.find((s) => s.id === sourceSelect.value);
-    if (!sfx) return;
+    if (!sfx) { ctx.toast('Pick a sound in the list first.', true); return; }
     setBusy(true);
-    const load = sfx.kind === 'sample' ? decodeSample(sfx) : renderSfxParams(sfx.params);
+    let load;
+    try {
+      load = sfx.kind === 'sample' ? decodeSample(sfx) : renderSfxParams(sfx.params);
+    } catch (err) {
+      // a synchronous throw here used to freeze the whole room busy-locked
+      console.error('[sfxedit] open failed:', err);
+      setBusy(false);
+      ctx.toast('Could not open "' + sfx.name + '": ' + (err && err.message || err), true);
+      return;
+    }
     load.then((loaded) => {
       buffer = loaded;
       history = [];
@@ -77,9 +86,10 @@ export function renderSfxeditPanel(host, ctx) {
       nameInput.value = currentName;
       setBusy(false);
       redraw();
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('[sfxedit] open failed:', err);
       setBusy(false);
-      ctx.toast('Could not open that sound.', true);
+      ctx.toast('Could not open "' + sfx.name + '": ' + (err && err.message || err), true);
     });
   };
   sourceBar.appendChild(makeBtn('Open', openSelected));

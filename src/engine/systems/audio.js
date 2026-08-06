@@ -290,10 +290,14 @@ export function playSfx(params, pan = 0) {
  * @returns {Promise<AudioBuffer>}
  */
 export function renderSfxParams(params) {
+  // sparse or legacy recipes fill from defaults — a missing volume/sustain
+  // would otherwise feed NaN into setValueAtTime/OfflineAudioContext, which
+  // THROW synchronously and take the whole caller down with them
+  const p = { wave: 'square', startFreq: 440, freqSlide: 0, sustain: 0.08, decay: 0.15, volume: 0.5, ...(params || {}) };
   const rate = 44100;
-  const duration = Math.max(0.05, params.sustain + params.decay) + paramsTailSeconds(params);
+  const duration = Math.max(0.05, (Number(p.sustain) || 0) + (Number(p.decay) || 0)) + paramsTailSeconds(p);
   const ctx = new OfflineAudioContext(1, Math.ceil(duration * rate), rate);
-  synthesizeParamsInto(ctx, ctx.destination, 0, params);
+  synthesizeParamsInto(ctx, ctx.destination, 0, p);
   return ctx.startRendering();
 }
 
