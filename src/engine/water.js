@@ -23,6 +23,48 @@ import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { terrainHeightSampler } from './meshes.js';
 
+/* Reflector's own shader always outputs alpha 1 across its FULL rectangle —
+ * fine for a pond that fills its whole plane, wrong for water that only
+ * covers part of an irregular terrain: the mirror showed through dry hills
+ * wherever land rose near the water's rest level (reported as "reflections
+ * clipping geometry"). This variant adds a wetness mask (built once from
+ * the same depth grid the sim already computes) and discards dry fragments,
+ * so the mirror only ever appears where there's actually water above it. */
+const MaskedReflectorShader = {
+  name: 'MaskedReflectorShader',
+  uniforms: { color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null }, tMask: { value: null } },
+  vertexShader: /* glsl */`
+    uniform mat4 textureMatrix;
+    varying vec4 vUv;
+    varying vec2 vMaskUv;
+    #include <common>
+    #include <logdepthbuf_pars_vertex>
+    void main() {
+      vUv = textureMatrix * vec4( position, 1.0 );
+      vMaskUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      #include <logdepthbuf_vertex>
+    }`,
+  fragmentShader: /* glsl */`
+    uniform vec3 color;
+    uniform sampler2D tDiffuse;
+    uniform sampler2D tMask;
+    varying vec4 vUv;
+    varying vec2 vMaskUv;
+    #include <logdepthbuf_pars_fragment>
+    float blendOverlay( float base, float blend ) { return( base < 0.5 ? ( 2.0 * base * blend ) : ( 1.0 - 2.0 * ( 1.0 - base ) * ( 1.0 - blend ) ) ); }
+    vec3 blendOverlay( vec3 base, vec3 blend ) { return vec3( blendOverlay( base.r, blend.r ), blendOverlay( base.g, blend.g ), blendOverlay( base.b, blend.b ) ); }
+    void main() {
+      #include <logdepthbuf_fragment>
+      float wet = texture2D( tMask, vMaskUv ).r;
+      if ( wet < 0.15 ) discard;
+      vec4 base = texture2DProj( tDiffuse, vUv );
+      gl_FragColor = vec4( blendOverlay( base.rgb, color ), wet );
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`
+};
+
 export const WATER_DEFAULTS = {
   on: false, level: 1, color: '#2e86d9', opacity: 0.72,
   wave: 0.06, speed: 1, detail: 1, react: 0.5, reflective: 0
@@ -114,9 +156,26 @@ export function createWater(terrain) {
     flatGeo.rotateX(-Math.PI / 2);
     reflector = new Reflector(flatGeo, {
       color: new THREE.Color(cfg.color).lerp(new THREE.Color('#ffffff'), 0.35),
-      textureWidth: 512, textureHeight: 512
+      textureWidth: 512, textureHeight: 512,
+      shader: MaskedReflectorShader
     });
     reflector.position.y = cfg.level;
+    // wetness mask, straight from the sim's own depth grid — same footprint
+    // the wavy surface itself uses, so the mirror never outruns the water
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = gw; maskCanvas.height = gh;
+    const mctx = maskCanvas.getContext('2d');
+    const img = mctx.createImageData(gw, gh);
+    for (let i = 0; i < gw * gh; i++) {
+      const wet = depth[i] > 0.02 ? 255 : 0;
+      img.data[i * 4] = wet; img.data[i * 4 + 1] = wet; img.data[i * 4 + 2] = wet; img.data[i * 4 + 3] = 255;
+    }
+    mctx.putImageData(img, 0, 0);
+    const maskTex = new THREE.CanvasTexture(maskCanvas);
+    maskTex.minFilter = THREE.LinearFilter;
+    reflector.material.uniforms.tMask.value = maskTex;
+    reflector.material.transparent = true;
+    reflector.material.depthWrite = false;
   }
   const surfaceOpacity = cfg.opacity * (1 - Math.min(1, cfg.reflective) * 0.65);
   const mat = new THREE.MeshStandardMaterial({
@@ -217,7 +276,10 @@ export function createWater(terrain) {
     dispose() {
       geo.dispose();
       mat.dispose();
-      if (reflector) reflector.dispose(); // owns its own render target, not covered by geo/mat above
+      if (reflector) {
+        if (reflector.material.uniforms.tMask.value) reflector.material.uniforms.tMask.value.dispose();
+        reflector.dispose(); // owns its own render target, not covered by geo/mat above
+      }
     }
   };
 }
