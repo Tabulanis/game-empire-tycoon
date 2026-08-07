@@ -757,3 +757,28 @@ button.bar.bad-btn { border-color: var(--bad); color: var(--bad); }
 @media (pointer: coarse) {
   .touch-undo-btn { display: inline-block; font-size: 15px; padding: 8px 16px; }
 }
+
+/* ---- Poser dials (Animation Loft) ---- */
+.poser-dials {
+  display: flex; gap: 6px; justify-content: space-between; margin: 12px 0 8px;
+}
+.dial-wrap { position: relative; flex: 1; text-align: center; }
+.dial { width: 100%; max-width: 88px; cursor: ns-resize; touch-action: none; }
+.dial-read {
+  font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums;
+  margin-top: -2px;
+}
+.dial-cap {
+  font-size: 10px; letter-spacing: .12em; color: var(--dim); margin-top: 1px;
+}
+.poser-ticks { position: relative; height: 14px; margin-top: -4px; }
+.poser-tick {
+  position: absolute; top: 3px; width: 9px; height: 9px; margin-left: -4px;
+  background: var(--gold); border-radius: 2px; transform: rotate(45deg);
+  cursor: pointer; opacity: .75;
+}
+.poser-tick.on { opacity: 1; box-shadow: 0 0 6px var(--gold); }
+@media (pointer: coarse) {
+  .dial { max-width: 104px; }
+  .poser-tick { width: 13px; height: 13px; margin-left: -6px; }
+}
