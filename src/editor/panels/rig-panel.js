@@ -9,6 +9,9 @@
 import * as THREE from 'three';
 import * as cart from '../cartridge.js';
 import * as rig from '../rig.js';
+
+/** Ships with the studio — see src/data/warehouse/characters/. */
+const DEMO_CHARACTER_URL = new URL('../../data/warehouse/characters/blockman.glb', import.meta.url).href;
 import { createEngine } from '../../engine/renderer.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
@@ -71,6 +74,24 @@ export function renderRigPanel(host, ctx) {
   loadBtn.className += ' primary';
   loadBtn.style.width = '100%';
   loadCard.appendChild(loadBtn);
+
+  // Somewhere to start. A rigged character is the one thing you can't make
+  // inside the studio, so without a bundled one this room opens empty and
+  // there is nothing to press play on.
+  const demoBtn = makeBtn('🧍 Load the demo character', () => {
+    rig.loadRigUrl(DEMO_CHARACTER_URL).then(({ root, clips }) => {
+      setCharacter(root, clips, 'Block Man');
+      const bones = rig.boneNames(root).length;
+      ctx.toast('Block Man loaded — ' + bones + ' bones, ' + clips.length + ' animations. Click one to play it.');
+    }).catch(() => ctx.toast('Could not load the demo character.', true));
+  });
+  demoBtn.style.width = '100%';
+  demoBtn.style.marginTop = '6px';
+  loadCard.appendChild(demoBtn);
+  const demoHint = document.createElement('div');
+  demoHint.className = 'stage-hint';
+  demoHint.textContent = 'Block Man is made of one block per bone, so you can see the skeleton doing the work. He walks, waves, jumps, and idles.';
+  loadCard.appendChild(demoHint);
   right.appendChild(loadCard);
 
   const clipsCard = document.createElement('div');

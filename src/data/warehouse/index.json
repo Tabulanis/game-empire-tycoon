@@ -6,16 +6,97 @@
       "name": "Starter Shapes",
       "license": "CC0",
       "source": "in-house",
-      "tags": ["starter", "placeholder"],
+      "tags": [
+        "starter",
+        "placeholder"
+      ],
       "items": [
-        { "id": "block", "name": "Block", "kind": "tile", "tags": ["ground", "solid"], "path": null, "swatch": "#3b4a63" },
-        { "id": "slope", "name": "Slope", "kind": "tile", "tags": ["ground", "ramp"], "path": null, "swatch": "#3b5a4f" },
-        { "id": "coin", "name": "Coin", "kind": "sprite", "tags": ["pickup", "score"], "path": null, "swatch": "#7a6528" },
-        { "id": "door", "name": "Door", "kind": "sprite", "tags": ["openable"], "path": null, "swatch": "#5a3f2c" },
-        { "id": "spike", "name": "Spike", "kind": "sprite", "tags": ["hazard"], "path": null, "swatch": "#5c2a35" },
-        { "id": "hero-blob", "name": "Hero Blob", "kind": "character", "tags": ["player", "2d"], "path": null, "swatch": "#2f5d7a" },
-        { "id": "walker", "name": "Walker", "kind": "character", "tags": ["enemy", "patrol"], "path": null, "swatch": "#603a5e" },
-        { "id": "crate", "name": "Crate", "kind": "model", "tags": ["prop", "3d"], "path": null, "swatch": "#4a3f2e" }
+        {
+          "id": "block",
+          "name": "Block",
+          "kind": "tile",
+          "tags": [
+            "ground",
+            "solid"
+          ],
+          "path": null,
+          "swatch": "#3b4a63"
+        },
+        {
+          "id": "slope",
+          "name": "Slope",
+          "kind": "tile",
+          "tags": [
+            "ground",
+            "ramp"
+          ],
+          "path": null,
+          "swatch": "#3b5a4f"
+        },
+        {
+          "id": "coin",
+          "name": "Coin",
+          "kind": "sprite",
+          "tags": [
+            "pickup",
+            "score"
+          ],
+          "path": null,
+          "swatch": "#7a6528"
+        },
+        {
+          "id": "door",
+          "name": "Door",
+          "kind": "sprite",
+          "tags": [
+            "openable"
+          ],
+          "path": null,
+          "swatch": "#5a3f2c"
+        },
+        {
+          "id": "spike",
+          "name": "Spike",
+          "kind": "sprite",
+          "tags": [
+            "hazard"
+          ],
+          "path": null,
+          "swatch": "#5c2a35"
+        },
+        {
+          "id": "hero-blob",
+          "name": "Hero Blob",
+          "kind": "character",
+          "tags": [
+            "player",
+            "2d"
+          ],
+          "path": null,
+          "swatch": "#2f5d7a"
+        },
+        {
+          "id": "walker",
+          "name": "Walker",
+          "kind": "character",
+          "tags": [
+            "enemy",
+            "patrol"
+          ],
+          "path": null,
+          "swatch": "#603a5e"
+        },
+        {
+          "id": "crate",
+          "name": "Crate",
+          "kind": "model",
+          "tags": [
+            "prop",
+            "3d"
+          ],
+          "path": null,
+          "swatch": "#4a3f2e"
+        }
       ]
     },
     {
@@ -23,12 +104,79 @@
       "name": "Starter Audio",
       "license": "CC0",
       "source": "in-house",
-      "tags": ["starter", "audio"],
+      "tags": [
+        "starter",
+        "audio"
+      ],
       "items": [
-        { "id": "sfx-jump", "name": "Jump", "kind": "sfx", "tags": ["player"], "path": null, "swatch": "#2f4a52" },
-        { "id": "sfx-coin", "name": "Coin", "kind": "sfx", "tags": ["pickup"], "path": null, "swatch": "#2f4a52" },
-        { "id": "sfx-hit", "name": "Hit", "kind": "sfx", "tags": ["combat"], "path": null, "swatch": "#2f4a52" },
-        { "id": "song-meadow", "name": "Meadow Theme", "kind": "song", "tags": ["cozy", "loop"], "path": null, "swatch": "#38414f" }
+        {
+          "id": "sfx-jump",
+          "name": "Jump",
+          "kind": "sfx",
+          "tags": [
+            "player"
+          ],
+          "path": null,
+          "swatch": "#2f4a52"
+        },
+        {
+          "id": "sfx-coin",
+          "name": "Coin",
+          "kind": "sfx",
+          "tags": [
+            "pickup"
+          ],
+          "path": null,
+          "swatch": "#2f4a52"
+        },
+        {
+          "id": "sfx-hit",
+          "name": "Hit",
+          "kind": "sfx",
+          "tags": [
+            "combat"
+          ],
+          "path": null,
+          "swatch": "#2f4a52"
+        },
+        {
+          "id": "song-meadow",
+          "name": "Meadow Theme",
+          "kind": "song",
+          "tags": [
+            "cozy",
+            "loop"
+          ],
+          "path": null,
+          "swatch": "#38414f"
+        }
+      ]
+    },
+    {
+      "id": "starter-characters",
+      "name": "Starter Characters",
+      "license": "CC0",
+      "source": "in-house",
+      "tags": [
+        "starter",
+        "character",
+        "rigged"
+      ],
+      "items": [
+        {
+          "id": "blockman",
+          "name": "Block Man",
+          "kind": "charmodel",
+          "tags": [
+            "character",
+            "rigged",
+            "animated",
+            "humanoid"
+          ],
+          "path": "characters/blockman.glb",
+          "swatch": "#4a6fa5",
+          "note": "19 bones, Mixamo naming. Clips: Idle, Walk, Wave, Jump. Load him in Animate."
+        }
       ]
     }
   ]

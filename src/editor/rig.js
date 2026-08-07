@@ -21,6 +21,25 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
  * @param {File} file
  * @returns {Promise<{root: THREE.Object3D|null, clips: THREE.AnimationClip[]}>}
  */
+/**
+ * Load a rig that ships with the studio (a URL) rather than one the user
+ * picked off disk. Same parse path as loadRigFile — only the source differs.
+ * @param {string} url @param {string} [name]
+ * @returns {Promise<{root: any, clips: any[]}>}
+ */
+export function loadRigUrl(url) {
+  return fetch(url)
+    .then((r) => {
+      if (!r.ok) throw new Error('could not fetch ' + url);
+      return r.arrayBuffer();
+    })
+    .then((buffer) => new Promise((resolve, reject) => {
+      new GLTFLoader().parse(buffer, '', (gltf) => {
+        resolve({ root: gltf.scene, clips: gltf.animations || [] });
+      }, reject);
+    }));
+}
+
 export function loadRigFile(file) {
   const name = file.name.toLowerCase();
   return file.arrayBuffer().then((buffer) => new Promise((resolve, reject) => {
