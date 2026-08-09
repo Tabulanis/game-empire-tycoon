@@ -263,9 +263,15 @@
           "type": "number",
           "default": 2,
           "label": "speed"
+        },
+        {
+          "name": "relative",
+          "type": "boolean",
+          "default": false,
+          "label": "route is from where it stands"
         }
       ],
-      "description": "Start walking back and forth between two or more points, forever, until Stop."
+      "description": "Start walking back and forth between two or more points, forever, until Stop. With 'route is from where it stands' on, the points are offsets from wherever this thing was placed, so two copies each patrol their own spot."
     },
     {
       "id": "follow-path",
