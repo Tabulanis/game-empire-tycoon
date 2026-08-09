@@ -343,7 +343,7 @@ export function buildSceneView(engine, scene, opts = {}) {
 
   for (const entity of scene.entities) {
     if (opts.play && entity.components.logic && entity.components.logic.kind !== 'water') continue;
-    const obj = buildEntityObject(engine, entity);
+    const obj = buildEntityObject(engine, entity, !!opts.play);
     if (!obj) continue;
     root.add(obj);
     objects.set(entity.id, obj);
@@ -357,7 +357,7 @@ export function buildSceneView(engine, scene, opts = {}) {
       if (old) { root.remove(old); disposeObject(old); objects.delete(id); }
       const entity = findEntity(scene, id);
       if (!entity || (opts.play && entity.components.logic && entity.components.logic.kind !== 'water')) return;
-      const obj = buildEntityObject(engine, entity);
+      const obj = buildEntityObject(engine, entity, !!opts.play);
       if (!obj) return;
       root.add(obj);
       objects.set(id, obj);
@@ -441,14 +441,14 @@ function blobShadowTexture() {
   return _blobTexture;
 }
 
-export function buildEntityObject(engine, entity) {
+export function buildEntityObject(engine, entity, play = false) {
   const group = new THREE.Group();
   group.name = entity.id;
   group.userData.entityId = entity.id;
   const c = entity.components;
 
   if (c.tilemap) group.add(buildTilemapMesh(c.tilemap));
-  if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite));
+  if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite, play));
   if (c.model && c.model.asset) {
     // a saved character: GLB decoded once per asset, cloned per placement
     // (SkeletonUtils.clone keeps skinned meshes bound to their own bones),
@@ -517,21 +517,36 @@ export function buildEntityObject(engine, entity) {
  * @param {any} sprite
  * @returns {THREE.Mesh}
  */
-function buildSpriteMesh(engine, sprite) {
+function buildSpriteMesh(engine, sprite, play = false) {
+  /* The swatch card is editor furniture: it makes a placeholder big enough to
+     see and grab on the Stage. In play it reads as a debug box drawn around
+     everything, so a glyph sprite drops the card and shows just the glyph.
+     A sprite with no glyph keeps its fill — that IS the thing (walls, floors,
+     coloured blocks), not a backing plate behind it. */
+  const bare = play && !!sprite.glyph;
   const tex = engine.makeCanvasTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
-    ctx.fillStyle = sprite.swatch || '#6fb2dc';
-    roundRect(ctx, size * 0.06, size * 0.06, size * 0.88, size * 0.88, size * 0.12);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = size * 0.03;
-    ctx.stroke();
+    if (!bare) {
+      ctx.fillStyle = sprite.swatch || '#6fb2dc';
+      roundRect(ctx, size * 0.06, size * 0.06, size * 0.88, size * 0.88, size * 0.12);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = size * 0.03;
+      ctx.stroke();
+    }
     if (sprite.glyph) {
-      ctx.fillStyle = 'rgba(16,19,26,0.8)';
-      ctx.font = 'bold ' + Math.round(size * 0.5) + 'px sans-serif';
+      // on its own the glyph needs to fill the tile and carry its own edge,
+      // since it no longer sits on a contrasting card
+      ctx.fillStyle = bare ? '#ffffff' : 'rgba(16,19,26,0.8)';
+      ctx.font = 'bold ' + Math.round(size * (bare ? 0.78 : 0.5)) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      if (bare) {
+        ctx.shadowColor = 'rgba(0,0,0,0.65)';
+        ctx.shadowBlur = size * 0.06;
+      }
       ctx.fillText(sprite.glyph, size / 2, size / 2);
+      ctx.shadowBlur = 0;
     }
   });
   const size = sprite.size || [1, 1];
