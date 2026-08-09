@@ -15,6 +15,7 @@ import { createEngine } from '../../engine/renderer.js';
 import { initPhysics, debugLines, worldStats } from '../../engine/physics.js';
 import { startRuntime } from '../../engine/runtime.js';
 import { createTouchControls } from '../../engine/touch-controls.js';
+import { createGameHud } from '../../engine/game-hud.js';
 import { setEntitySource, setPhysicsSource, getWireframesEnabled } from '../../engine/debug.js';
 import * as ent from '../../engine/entities.js';
 import { GENERIC_TEXTURES } from '../textures.js';
@@ -1119,6 +1120,7 @@ export function renderStagePanel(host, ctx) {
   /** @type {any|null} */
   let playSession = null;
   let touchPads = null;
+  let gameHud = null;
   const playLogMessages = [];
 
   function updateGizmoAttach() {
@@ -1853,6 +1855,7 @@ export function renderStagePanel(host, ctx) {
       shoot: !!(live.settings.input && live.settings.input.shoot),
       look: live.settings.controlScheme === 'fps'
     });
+    gameHud = createGameHud(canvasWrap, live, playSession.sceneClone);
   }
 
   function doStop() {
@@ -1868,6 +1871,7 @@ export function renderStagePanel(host, ctx) {
     setPhysicsSource(null);
     orbitControls.enabled = true;
     if (touchPads) { touchPads.dispose(); touchPads = null; }
+    if (gameHud) { gameHud.dispose(); gameHud = null; }
     if (document.pointerLockElement) document.exitPointerLock();
     if (wireframe) { engine.contentRoot.remove(wireframe); wireGeo.dispose(); wireframe.material.dispose(); wireframe = null; wireGeo = null; }
     canvasWrap.classList.remove('playing');
@@ -1950,6 +1954,7 @@ export function renderStagePanel(host, ctx) {
         showCrash(err);
         stepResult = null;
       }
+      if (gameHud && !crashed) gameHud.update(playSession, stepResult);
       const info = crashed ? null : playSession.debugInfo;
       debugHud.textContent = crashed
         ? 'DEBUG HUD — crashed, see banner above'

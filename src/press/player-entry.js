@@ -12,6 +12,7 @@
 import { createEngine } from '../engine/renderer.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { createTouchControls } from '../engine/touch-controls.js';
+import { createGameHud } from '../engine/game-hud.js';
 import { startRuntime, createInputDesk } from '../engine/runtime.js';
 
 /**
@@ -59,6 +60,7 @@ function boot() {
   let runtime = null;
   let lastTs = performance.now();
   let running = true;
+  let gameHud = null;
 
   function showOverlay(text, buttonLabel, onClick) {
     overlayText.textContent = text;
@@ -74,6 +76,10 @@ function boot() {
     hideOverlay();
     running = true;
     runtime = await startRuntime(engine, cartridge, firstSceneId, () => {});
+    // the scene is rebuilt per level, so the HUD is too -- it reads health
+    // straight off the live entities
+    if (gameHud) gameHud.dispose();
+    gameHud = createGameHud(canvas.parentElement || document.body, cartridge, runtime.sceneClone);
   }
 
   /** VR controllers: thumbstick walks, trigger or A jumps */
@@ -103,7 +109,9 @@ function boot() {
     lastTs = ts;
     if (engine.xrPresenting) pollVRInput(desk.input);
     if (running && runtime) {
-      const { ended } = runtime.tick(dt, desk.input);
+      const stepResult = runtime.tick(dt, desk.input);
+      const { ended } = stepResult;
+      if (gameHud) gameHud.update(runtime, stepResult);
       if (ended) {
         running = false;
         showOverlay(
