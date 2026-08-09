@@ -1,5 +1,15 @@
 [
   {
+    "when": "game-start",
+    "if": [],
+    "do": [
+      {
+        "do": "say",
+        "card": "goal"
+      }
+    ]
+  },
+  {
     "when": "health-zero",
     "if": [],
     "do": [

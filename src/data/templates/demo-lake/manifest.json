@@ -1,49 +1,50 @@
 {
-  "id": "demo-lake",
-  "era": "garage",
-  "demo": true,
-  "title": "Lake Assault",
-  "icon": "🎯",
-  "blurb": "First person. Six targets ring a mountain lake — swim, climb, and shoot them all. X or J fires.",
-  "tags": [
-    "3d",
-    "shoot",
-    "first-person"
-  ],
-  "controlScheme": "fps",
-  "input": {
-    "shoot": [
-      "KeyX",
-      "KeyJ"
-    ]
+ "id": "demo-lake",
+ "era": "garage",
+ "demo": true,
+ "title": "Lake Assault",
+ "icon": "\ud83c\udfaf",
+ "blurb": "First person. Six targets ring a mountain lake \u2014 swim, climb, and shoot them all. X or J fires.",
+ "tags": [
+  "3d",
+  "shoot",
+  "first-person"
+ ],
+ "controlScheme": "fps",
+ "input": {
+  "shoot": [
+   "KeyX",
+   "KeyJ"
+  ]
+ },
+ "lighting": {
+  "shadows": "pcf",
+  "bounce": 0.35,
+  "sunAngle": 210,
+  "sunHeight": 45,
+  "fog": {
+   "on": true,
+   "color": "#b8c4d6",
+   "density": 0.016
   },
-  "lighting": {
-    "shadows": "pcf",
-    "bounce": 0.35,
-    "sunAngle": 210,
-    "sunHeight": 45,
-    "fog": {
-      "on": true,
-      "color": "#b8c4d6",
-      "density": 0.016
-    },
-    "clouds": {
-      "on": true,
-      "count": 14,
-      "height": 16,
-      "size": 3.4,
-      "drift": 0.6,
-      "opacity": 0.82,
-      "color": "#ffffff"
-    }
-  },
-  "starter": "scenes/main.json",
-  "brickPresets": [
-    "player-shooter",
-    "projectile",
-    "enemy-target",
-    "chaser",
-    "win-checker"
-  ],
-  "questions": []
+  "clouds": {
+   "on": true,
+   "count": 14,
+   "height": 16,
+   "size": 3.4,
+   "drift": 0.6,
+   "opacity": 0.82,
+   "color": "#ffffff"
+  }
+ },
+ "starter": "scenes/main.json",
+ "brickPresets": [
+  "player-shooter",
+  "projectile",
+  "enemy-target",
+  "chaser",
+  "win-checker"
+ ],
+ "questions": [],
+ "story": "story.json"
 }

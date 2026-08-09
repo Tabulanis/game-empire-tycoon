@@ -39,5 +39,6 @@
   "checkpoint",
   "guard-patrol"
  ],
- "questions": []
+ "questions": [],
+ "story": "story.json"
 }

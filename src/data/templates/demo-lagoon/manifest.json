@@ -1,43 +1,44 @@
 {
-  "id": "demo-lagoon",
-  "era": "garage",
-  "demo": true,
-  "title": "VR Maze",
-  "icon": "\ud83e\udd7d",
-  "blurb": "A hedge maze built for headsets (plays flat too). Wander the corridors and gather five glowing orbs \u2014 the drifters are slow, but they do not forget you.",
-  "tags": [
-    "3d",
-    "first-person",
-    "explore"
-  ],
-  "controlScheme": "fps",
-  "lighting": {
-    "shadows": "pcfsoft",
-    "bounce": 0.5,
-    "sunAngle": 300,
-    "sunHeight": 40,
-    "fog": {
-      "on": true,
-      "color": "#cfd8e8",
-      "density": 0.02
-    },
-    "clouds": {
-      "on": true,
-      "count": 16,
-      "height": 14,
-      "size": 3.6,
-      "drift": 0.6,
-      "opacity": 0.85,
-      "color": "#fff4e8"
-    }
+ "id": "demo-lagoon",
+ "era": "garage",
+ "demo": true,
+ "title": "VR Maze",
+ "icon": "\ud83e\udd7d",
+ "blurb": "A hedge maze built for headsets (plays flat too). Wander the corridors and gather five glowing orbs \u2014 the drifters are slow, but they do not forget you.",
+ "tags": [
+  "3d",
+  "first-person",
+  "explore"
+ ],
+ "controlScheme": "fps",
+ "lighting": {
+  "shadows": "pcfsoft",
+  "bounce": 0.5,
+  "sunAngle": 300,
+  "sunHeight": 40,
+  "fog": {
+   "on": true,
+   "color": "#cfd8e8",
+   "density": 0.02
   },
-  "starter": "scenes/main.json",
-  "brickPresets": [
-    "player-hardy",
-    "orb",
-    "win-checker",
-    "drifter0",
-    "drifter1"
-  ],
-  "questions": []
+  "clouds": {
+   "on": true,
+   "count": 16,
+   "height": 14,
+   "size": 3.6,
+   "drift": 0.6,
+   "opacity": 0.85,
+   "color": "#fff4e8"
+  }
+ },
+ "starter": "scenes/main.json",
+ "brickPresets": [
+  "player-hardy",
+  "orb",
+  "win-checker",
+  "drifter0",
+  "drifter1"
+ ],
+ "questions": [],
+ "story": "story.json"
 }

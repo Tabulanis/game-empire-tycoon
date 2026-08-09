@@ -1,28 +1,29 @@
 {
-  "id": "demo-moat",
-  "era": "garage",
-  "demo": true,
-  "title": "Moat Arena",
-  "icon": "🏟️",
-  "blurb": "Top-down arena. Chasers pour in from the corners — shoot 8 of them before they wear you down.",
-  "tags": [
-    "2d",
-    "top",
-    "shoot"
-  ],
-  "perspective": "top",
-  "input": {
-    "shoot": [
-      "KeyX",
-      "KeyJ"
-    ]
-  },
-  "starter": "scenes/main.json",
-  "brickPresets": [
-    "player-arena",
-    "projectile",
-    "chaser",
-    "win-checker"
-  ],
-  "questions": []
+ "id": "demo-moat",
+ "era": "garage",
+ "demo": true,
+ "title": "Moat Arena",
+ "icon": "\ud83c\udfdf\ufe0f",
+ "blurb": "Top-down arena. Chasers pour in from the corners \u2014 shoot 8 of them before they wear you down.",
+ "tags": [
+  "2d",
+  "top",
+  "shoot"
+ ],
+ "perspective": "top",
+ "input": {
+  "shoot": [
+   "KeyX",
+   "KeyJ"
+  ]
+ },
+ "starter": "scenes/main.json",
+ "brickPresets": [
+  "player-arena",
+  "projectile",
+  "chaser",
+  "win-checker"
+ ],
+ "questions": [],
+ "story": "story.json"
 }
