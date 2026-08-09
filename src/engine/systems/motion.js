@@ -42,14 +42,25 @@ export function createMotionState() {
 export function doPatrolBetween(entity, params, session, dt, state, phys) {
   const points = params.points;
   if (!points || points.length < 2) return;
-  let progress = state.patrol.get(entity.id);
-  if (!progress) { progress = { targetIndex: 1 }; state.patrol.set(entity.id, progress); }
 
   const pos = phys.bodyPosition(session, entity.id);
   if (!pos) return;
   const is3D = pos.z !== undefined;
   const groundB = is3D ? pos.z : pos.y;
-  const target = points[progress.targetIndex];
+
+  let progress = state.patrol.get(entity.id);
+  if (!progress) {
+    // Remember where this one started, so a route can be written as offsets.
+    // Without this, points are absolute world coordinates -- which meant two
+    // copies of the same patrolling enemy both walked to the same two spots
+    // instead of each patrolling where it was placed.
+    progress = { targetIndex: 1, origin: [pos.x, groundB] };
+    state.patrol.set(entity.id, progress);
+  }
+
+  const rel = params.relative ? progress.origin : [0, 0];
+  const raw = points[progress.targetIndex];
+  const target = [raw[0] + rel[0], raw[1] + rel[1]];
   const dx = target[0] - pos.x, db = target[1] - groundB;
   const dist = Math.hypot(dx, db);
   const speed = params.speed || 2;
@@ -60,7 +71,7 @@ export function doPatrolBetween(entity, params, session, dt, state, phys) {
     const nx = pos.x + (dx / dist) * speed * dt;
     const nb = groundB + (db / dist) * speed * dt;
     if (is3D) {
-      phys.moveKinematicTo(session, entity.id, nx, pos.y, nb);
+      phys.moveKinematicTo(session, entity.id, nx, pos.y, nb, dt);
     } else {
       phys.moveKinematicTo(session, entity.id, nx, nb);
       // Face the direction of travel — 2D convention: transform.s[0] sign.
@@ -103,7 +114,7 @@ export function doFollowPath(entity, params, session, dt, state, phys) {
   } else {
     const nx = pos.x + (dx / dist) * speed * dt;
     const nb = groundB + (db / dist) * speed * dt;
-    if (is3D) phys.moveKinematicTo(session, entity.id, nx, pos.y, nb);
+    if (is3D) phys.moveKinematicTo(session, entity.id, nx, pos.y, nb, dt);
     else phys.moveKinematicTo(session, entity.id, nx, nb);
   }
 }

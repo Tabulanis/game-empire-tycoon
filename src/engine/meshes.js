@@ -401,6 +401,18 @@ function disposeObject(obj) {
  * @param {any} entity
  * @returns {THREE.Object3D|null}
  */
+/* Characters that ship with the studio, referenceable by id from any scene
+   or template. Without this a template could only use a character that had
+   already been imported into the cartridge's own assets, which meant the
+   demos couldn't use Block Man at all without embedding a copy of him. */
+const BUILTIN_CHARACTERS = {
+  blockman: {
+    id: 'blockman',
+    name: 'Block Man',
+    glb: new URL('../data/warehouse/characters/blockman.glb', import.meta.url).href
+  }
+};
+
 const _glbCache = new Map();
 /** @param {{id: string, glb: string}} record @returns {Promise<{scene: any, clips: any[]}>} */
 function loadCharacterGLB(record) {
@@ -437,11 +449,13 @@ export function buildEntityObject(engine, entity) {
 
   if (c.tilemap) group.add(buildTilemapMesh(c.tilemap));
   if (c.sprite) group.add(buildSpriteMesh(engine, c.sprite));
-  if (c.model && c.model.asset && typeof engine.resolveModelAsset === 'function') {
+  if (c.model && c.model.asset) {
     // a saved character: GLB decoded once per asset, cloned per placement
     // (SkeletonUtils.clone keeps skinned meshes bound to their own bones),
-    // its clip playing through the engine's mixer registry
-    const record = engine.resolveModelAsset(c.model.asset);
+    // its clip playing through the engine's mixer registry. Falls back to the
+    // characters that ship with the studio, so templates can name one.
+    const record = (typeof engine.resolveModelAsset === 'function'
+      ? engine.resolveModelAsset(c.model.asset) : null) || BUILTIN_CHARACTERS[c.model.asset];
     if (record && record.glb) {
       loadCharacterGLB(record).then(({ scene, clips }) => {
         const inst = SkeletonUtils.clone(scene);

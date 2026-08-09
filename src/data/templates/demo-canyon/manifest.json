@@ -1,42 +1,43 @@
 {
-  "id": "demo-canyon",
-  "era": "garage",
-  "demo": true,
-  "title": "Flood Canyon",
-  "icon": "🏞️",
-  "blurb": "Swim and scramble island to island across a drowned canyon. Guards patrol the dry ground — the water is the safe road.",
-  "tags": [
-    "3d",
-    "explore"
-  ],
-  "controlScheme": "strafe",
-  "lighting": {
-    "shadows": "pcf",
-    "bounce": 0.4,
-    "sunAngle": 130,
-    "sunHeight": 50,
-    "fog": {
-      "on": true,
-      "color": "#aebdd0",
-      "density": 0.014
-    },
-    "clouds": {
-      "on": true,
-      "count": 12,
-      "height": 15,
-      "size": 3,
-      "drift": 0.5,
-      "opacity": 0.8,
-      "color": "#ffffff"
-    }
+ "id": "demo-canyon",
+ "era": "garage",
+ "demo": true,
+ "title": "Flood Canyon",
+ "icon": "\ud83c\udfde\ufe0f",
+ "blurb": "Swim and scramble island to island across a drowned canyon. Guards patrol the dry ground \u2014 the water is the safe road.",
+ "tags": [
+  "3d",
+  "explore"
+ ],
+ "controlScheme": "strafe",
+ "lighting": {
+  "shadows": "pcf",
+  "bounce": 0.4,
+  "sunAngle": 130,
+  "sunHeight": 50,
+  "fog": {
+   "on": true,
+   "color": "#aebdd0",
+   "density": 0.014
   },
-  "starter": "scenes/main.json",
-  "brickPresets": [
-    "player-hardy",
-    "chaser",
-    "gem",
-    "goal",
-    "checkpoint"
-  ],
-  "questions": []
+  "clouds": {
+   "on": true,
+   "count": 12,
+   "height": 15,
+   "size": 3,
+   "drift": 0.5,
+   "opacity": 0.8,
+   "color": "#ffffff"
+  }
+ },
+ "starter": "scenes/main.json",
+ "brickPresets": [
+  "player-hardy",
+  "chaser",
+  "gem",
+  "goal",
+  "checkpoint",
+  "guard-patrol"
+ ],
+ "questions": []
 }

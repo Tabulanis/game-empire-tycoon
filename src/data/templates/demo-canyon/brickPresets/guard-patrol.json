@@ -1,0 +1,60 @@
+[
+  {
+    "when": "game-start",
+    "if": [],
+    "do": [
+      {
+        "do": "patrol-between",
+        "relative": true,
+        "points": [
+          [
+            0,
+            -2
+          ],
+          [
+            0,
+            2
+          ]
+        ],
+        "speed": 1.6
+      }
+    ]
+  },
+  {
+    "when": "touched",
+    "by": "projectile",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "self"
+      }
+    ]
+  },
+  {
+    "when": "bumped",
+    "from": "side",
+    "if": [],
+    "do": [
+      {
+        "do": "deal-damage",
+        "amount": 1,
+        "target": "other"
+      }
+    ]
+  },
+  {
+    "when": "health-zero",
+    "if": [],
+    "do": [
+      {
+        "do": "defeat-self"
+      },
+      {
+        "do": "award-points",
+        "amount": 5
+      }
+    ]
+  }
+]

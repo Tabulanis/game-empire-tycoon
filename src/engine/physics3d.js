@@ -336,10 +336,41 @@ export function teleportBody3D(session, entityId, x, y, z) {
  * @param {string} entityId
  * @param {number} x @param {number} y @param {number} z
  */
-export function moveKinematicTo3D(session, entityId, x, y, z) {
+export function moveKinematicTo3D(session, entityId, x, y, z, dt) {
   const body = session.kinematicByEntity.get(entityId);
+  if (body) { body.setNextKinematicTranslation({ x, y, z }); return; }
+
+  /* Dynamic bodies used to fall out here and silently do nothing, which is
+     why enemies dropped in from the Behavior Shelf never moved in 3D: both
+     Patrol Enemy and Chaser ship a dynamic body, and every chase/patrol
+     command aimed at one was a no-op with no error to notice.
+
+     Drive them by velocity rather than teleporting, so they still collide
+     with the world instead of tunnelling through it, and leave the vertical
+     component alone so gravity and buoyancy keep working. */
+  const dyn = session.bodiesByEntity.get(entityId);
+  if (!dyn) return;
+  const p = dyn.translation();
+  const step = dt && dt > 0 ? dt : 1 / 60;
+  const v = dyn.linvel();
+  dyn.setLinvel({ x: (x - p.x) / step, y: v.y, z: (z - p.z) / step }, true);
+}
+
+/**
+ * Push a submerged dynamic body toward the surface. The player had buoyancy
+ * from the start; nothing else did, so enemies walked into water and sank to
+ * the bottom, where they stuck.
+ * @param {PlaySession3D} session
+ * @param {string} entityId
+ * @param {number} sub  0..1, how deeply submerged
+ * @param {number} dt
+ */
+export function floatBody3D(session, entityId, sub, dt) {
+  const body = session.bodiesByEntity.get(entityId);
   if (!body) return;
-  body.setNextKinematicTranslation({ x, y, z });
+  const v = body.linvel();
+  // same numbers the player swims with, so everything floats alike
+  body.setLinvel({ x: v.x, y: Math.min(v.y + 30 * sub * dt, 2.5), z: v.z }, true);
 }
 
 /**

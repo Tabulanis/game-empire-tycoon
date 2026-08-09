@@ -101,7 +101,8 @@ function createPhysicsAdapter(is3D, controlScheme) {
       readBodies: P.readBodies3D,
       bodyPosition: P.bodyPosition3D,
       teleportBody: (session, entityId, x, y, z) => P.teleportBody3D(session, entityId, x, y, z || 0),
-      moveKinematicTo: (session, entityId, x, y, z) => P.moveKinematicTo3D(session, entityId, x, y, z || 0),
+      moveKinematicTo: (session, entityId, x, y, z, dt) => P.moveKinematicTo3D(session, entityId, x, y, z || 0, dt),
+      floatBody: P.floatBody3D,
       setEntityColliderEnabled: null, // not yet supported in 3D — open/close is a documented v1 gap
       addEntityToWorld: P.addEntityToWorld3D,
       removeEntityFromWorld: P.removeEntityFromWorld3D,
@@ -587,6 +588,25 @@ export async function startRuntime(engine, cartridge, sceneId, log) {
           session.dummy.vy = Math.min(session.dummy.vy + 30 * sub * dt, 2.5);
           const moving = input.left || input.right || input.up || input.down;
           if (moving) view.water.splash(wpos.x, wpos.z, 1.4, 2.2 * dt);
+        }
+      }
+    }
+
+    /* Everything else floats too. Only the player had buoyancy, so an enemy
+       that stepped into water sank to the bottom and stuck there — which is
+       exactly what a guard chasing you into a river did. */
+    if (view.water && is3D && phys.floatBody) {
+      for (const entity of scene.entities) {
+        if (!entity.components.body) continue;
+        if (playerEntity && entity.id === playerEntity.id) continue;
+        const ep = phys.bodyPosition(session, entity.id);
+        if (!ep) continue;
+        const surf = view.water.surfaceAt(ep.x, ep.z);
+        const depth = view.water.depthAt(ep.x, ep.z);
+        const half = (entity.components.body.size && entity.components.body.size[1] || 1) / 2;
+        const feet = ep.y - half;
+        if (depth > 0.15 && feet < surf - 0.05) {
+          phys.floatBody(session, entity.id, Math.min(1, (surf - feet) / 0.9), dt);
         }
       }
     }
