@@ -120,7 +120,7 @@ function createPhysicsAdapter(is3D, controlScheme) {
     readBodies: P.readBodies,
     bodyPosition: P.bodyPosition,
     teleportBody: (session, entityId, x, y) => P.teleportBody(session, entityId, x, y),
-    moveKinematicTo: (session, entityId, x, y) => P.moveKinematicTo(session, entityId, x, y),
+    moveKinematicTo: (session, entityId, x, y, dt) => P.moveKinematicTo(session, entityId, x, y, undefined, dt),
     setEntityColliderEnabled: P.setEntityColliderEnabled,
     addEntityToWorld: P.addEntityToWorld,
     removeEntityFromWorld: P.removeEntityFromWorld,

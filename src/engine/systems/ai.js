@@ -70,7 +70,7 @@ function applySteering(vehicle, session, entityId, dt, phys) {
   const pos = phys.bodyPosition(session, entityId);
   if (!pos) return;
   if (pos.z !== undefined) phys.moveKinematicTo(session, entityId, pos.x + dx, pos.y, pos.z + db, dt);
-  else phys.moveKinematicTo(session, entityId, pos.x + dx, pos.y + db);
+  else phys.moveKinematicTo(session, entityId, pos.x + dx, pos.y + db, dt);
 }
 
 /* ------------------------------------------------------------------ */

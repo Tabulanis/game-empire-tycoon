@@ -371,11 +371,32 @@ export function teleportBody(session, entityId, x, y) {
   return false;
 }
 
-export function moveKinematicTo(session, entityId, x, y, angle) {
+export function moveKinematicTo(session, entityId, x, y, angle, dt) {
   const body = session.kinematicByEntity.get(entityId);
-  if (!body) return;
-  body.setNextKinematicTranslation({ x, y });
-  if (angle !== undefined) body.setNextKinematicRotation(angle);
+  if (body) {
+    body.setNextKinematicTranslation({ x, y });
+    if (angle !== undefined) body.setNextKinematicRotation(angle);
+    return;
+  }
+
+  /* Same silent no-op the 3D backend had: enemies ship DYNAMIC bodies, so
+     they were never in kinematicByEntity and every chase/patrol command
+     aimed at one did nothing at all. Drive them by velocity instead, so they
+     still collide with the world.
+
+     Which axes the brick owns depends on the game: a top-down world has
+     zeroed gravity and no vertical axis to fall along, so motion drives both.
+     In a side view gravity owns Y, and taking it over would leave enemies
+     hovering wherever their route put them. */
+  const dyn = session.bodiesByEntity.get(entityId);
+  if (!dyn) return;
+  const p = dyn.translation();
+  const step = dt && dt > 0 ? dt : 1 / 60;
+  const v = dyn.linvel();
+  dyn.setLinvel({
+    x: (x - p.x) / step,
+    y: session.perspective === 'top' ? (y - p.y) / step : v.y
+  }, true);
 }
 
 /**

@@ -73,7 +73,7 @@ export function doPatrolBetween(entity, params, session, dt, state, phys) {
     if (is3D) {
       phys.moveKinematicTo(session, entity.id, nx, pos.y, nb, dt);
     } else {
-      phys.moveKinematicTo(session, entity.id, nx, nb);
+      phys.moveKinematicTo(session, entity.id, nx, nb, dt);
       // Face the direction of travel — 2D convention: transform.s[0] sign.
       entity.components.transform.s[0] = dx < 0
         ? -Math.abs(entity.components.transform.s[0])
@@ -115,7 +115,7 @@ export function doFollowPath(entity, params, session, dt, state, phys) {
     const nx = pos.x + (dx / dist) * speed * dt;
     const nb = groundB + (db / dist) * speed * dt;
     if (is3D) phys.moveKinematicTo(session, entity.id, nx, pos.y, nb, dt);
-    else phys.moveKinematicTo(session, entity.id, nx, nb);
+    else phys.moveKinematicTo(session, entity.id, nx, nb, dt);
   }
 }
 
